@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] A palette matching reference Paint's default colours is shown
-- [ ] Primary/secondary selection and swap behave as in reference Paint
-- [ ] The colour picker sets primary (left click) or secondary (right click) from the canvas
-- [ ] The pencil draws with primary (left) and secondary (right) colours
-- [ ] Engine tests cover picking from known pixels
+- [x] A palette matching reference Paint's default colours is shown
+- [x] Primary/secondary selection and swap behave as in reference Paint
+- [x] The colour picker sets primary (left click) or secondary (right click) from the canvas
+- [x] The pencil draws with primary (left) and secondary (right) colours
+- [x] Engine tests cover picking from known pixels

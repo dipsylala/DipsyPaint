@@ -14,6 +14,7 @@
       <StackPanel Orientation="Horizontal">
         <local:HistoryControl />
         <tools:ToolPicker />
+        <local:ColourControl />
       </StackPanel>
     </Border>
     <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Padding="12,4"

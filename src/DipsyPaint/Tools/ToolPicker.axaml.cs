@@ -17,6 +17,9 @@ public partial class ToolPicker : UserControl
     private readonly IReadOnlyList<ToolDescriptor> _tools;
     private readonly Dictionary<ToolDescriptor, ToggleButton> _buttons = [];
     private readonly Dictionary<ToolDescriptor, Control> _options = [];
+    private DocumentEditor? _editor;
+    private ToolDescriptor? _active;
+    private ToolDescriptor? _previous;
 
     public ToolPicker() : this(ToolRegistry.Tools)
     {
@@ -48,14 +51,31 @@ public partial class ToolPicker : UserControl
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
+        _editor?.StrokeEnded -= OnStrokeEnded;
+        _editor = DataContext as DocumentEditor;
+        _editor?.StrokeEnded += OnStrokeEnded;
         if (_tools.Count > 0)
         {
             Select(_tools[0]);
         }
     }
 
+    private void OnStrokeEnded(object? sender, EventArgs e)
+    {
+        if (_active?.ReturnsToPreviousTool == true && _previous is not null)
+        {
+            Select(_previous);
+        }
+    }
+
     private void Select(ToolDescriptor tool)
     {
+        if (_active is not null && !ReferenceEquals(_active, tool))
+        {
+            _previous = _active;
+        }
+
+        _active = tool;
         foreach (var (descriptor, button) in _buttons)
         {
             button.IsChecked = ReferenceEquals(descriptor, tool);
@@ -68,9 +88,6 @@ public partial class ToolPicker : UserControl
 
         ToolOptions.Content = _options.GetValueOrDefault(tool);
 
-        if (DataContext is DocumentEditor editor)
-        {
-            editor.ActiveTool = tool.CreateTool();
-        }
+        _editor?.ActiveTool = tool.CreateTool();
     }
 }

@@ -11,6 +11,8 @@ public sealed class DocumentEditor
 {
     // Records the active layer's before-pixels from pointer down to pointer up.
     private PixelRecorder? _recorder;
+    private Rgba _primaryColor = Rgba.Black;
+    private Rgba _secondaryColor = Rgba.White;
 
     public DocumentEditor(Document document) : this(document, new History())
     {
@@ -29,14 +31,28 @@ public sealed class DocumentEditor
 
     public ITool? ActiveTool { get; set; }
 
-    /// <summary>Colour for the left button. Fixed default until colour selection exists.</summary>
-    public Rgba PrimaryColor { get; set; } = Rgba.Black;
+    /// <summary>Colour for the left button ("Colour 1"); black by default, as in reference Paint.</summary>
+    public Rgba PrimaryColor
+    {
+        get => _primaryColor;
+        set => SetColor(ref _primaryColor, value);
+    }
 
-    /// <summary>Colour for the right button. Fixed default until colour selection exists.</summary>
-    public Rgba SecondaryColor { get; set; } = Rgba.White;
+    /// <summary>Colour for the right button ("Colour 2"); white by default, as in reference Paint.</summary>
+    public Rgba SecondaryColor
+    {
+        get => _secondaryColor;
+        set => SetColor(ref _secondaryColor, value);
+    }
 
     /// <summary>Raised with the document-space rectangle whose composited pixels changed.</summary>
     public event EventHandler<IntRect>? CompositeChanged;
+
+    /// <summary>Raised when <see cref="PrimaryColor"/> or <see cref="SecondaryColor"/> changes, e.g. by a tool.</summary>
+    public event EventHandler? ColorsChanged;
+
+    /// <summary>Raised after the active tool has handled a pointer up, i.e. at the end of each stroke or click.</summary>
+    public event EventHandler? StrokeEnded;
 
     public void Apply(PointerInput input)
     {
@@ -46,8 +62,10 @@ public sealed class DocumentEditor
         }
 
         _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
-        var context = new ToolContext(_recorder, PrimaryColor, SecondaryColor);
+        var context = new ToolContext(_recorder, PrimaryColor, SecondaryColor) { Composite = Compositor };
         var dirty = ActiveTool.Handle(context, input);
+        PrimaryColor = context.PrimaryColor;
+        SecondaryColor = context.SecondaryColor;
         if (input.Action == PointerAction.Up)
         {
             if (_recorder.TakeStep() is { } step)
@@ -59,6 +77,10 @@ public sealed class DocumentEditor
         }
 
         Refresh(dirty);
+        if (input.Action == PointerAction.Up)
+        {
+            StrokeEnded?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     /// <summary>Undoes the latest history step. Ignored while a stroke is in progress.</summary>
@@ -76,6 +98,15 @@ public sealed class DocumentEditor
         if (_recorder is null)
         {
             Refresh(History.Redo());
+        }
+    }
+
+    private void SetColor(ref Rgba field, Rgba value)
+    {
+        if (field != value)
+        {
+            field = value;
+            ColorsChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
