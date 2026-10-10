@@ -1,0 +1,7 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             x:Class="DipsyPaint.Tools.ToolPicker"
+             AutomationProperties.Name="{x:Static res:ToolStrings.ToolsGroupName}">
+  <StackPanel x:Name="ToolButtons" Orientation="Horizontal" Spacing="4" Margin="8,4" />
+</UserControl>

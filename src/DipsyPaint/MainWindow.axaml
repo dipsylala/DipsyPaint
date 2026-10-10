@@ -2,13 +2,19 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:res="using:DipsyPaint.Resources"
         xmlns:local="using:DipsyPaint"
+        xmlns:drawing="using:DipsyPaint.Drawing"
+        xmlns:tools="using:DipsyPaint.Tools"
         x:Class="DipsyPaint.MainWindow"
         Title="{x:Static res:Strings.AppName}"
         Icon="avares://DipsyPaint/Assets/dipsypaint.ico"
         Width="1100" Height="750">
   <DockPanel>
     <Border x:Name="CommandBar" DockPanel.Dock="Top" MinHeight="48"
-            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+      <StackPanel Orientation="Horizontal">
+        <tools:ToolPicker />
+      </StackPanel>
+    </Border>
     <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Padding="12,4"
             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
       <DockPanel>
@@ -23,7 +29,9 @@
                               RenderOptions.BitmapInterpolationMode="None">
         <Border x:Name="Canvas" Background="White"
                 HorizontalAlignment="Left" VerticalAlignment="Top"
-                AutomationProperties.Name="{x:Static res:Strings.CanvasAutomationName}" />
+                AutomationProperties.Name="{x:Static res:Strings.CanvasAutomationName}">
+          <drawing:DocumentCanvas x:Name="DocumentView" />
+        </Border>
       </LayoutTransformControl>
     </ScrollViewer>
   </DockPanel>
