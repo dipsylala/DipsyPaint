@@ -10,7 +10,8 @@ namespace DipsyPaint.Tools;
 /// <summary>
 /// Command-bar group with one toggle button per registered tool, followed by the active tool's
 /// options panel. Selecting a tool sets the active tool of the <see cref="DocumentEditor"/> in
-/// the DataContext.
+/// the DataContext; when the editor switches tools itself (e.g. Paste selects the selection tool),
+/// the matching button is checked.
 /// </summary>
 public partial class ToolPicker : UserControl
 {
@@ -52,8 +53,10 @@ public partial class ToolPicker : UserControl
     {
         base.OnDataContextChanged(e);
         _editor?.StrokeEnded -= OnStrokeEnded;
+        _editor?.ActiveToolChanged -= OnActiveToolChanged;
         _editor = DataContext as DocumentEditor;
         _editor?.StrokeEnded += OnStrokeEnded;
+        _editor?.ActiveToolChanged += OnActiveToolChanged;
         // A new editor (e.g. after File > New) keeps the tool the user had selected.
         if (_tools.Count > 0)
         {
@@ -69,7 +72,25 @@ public partial class ToolPicker : UserControl
         }
     }
 
+    // Shows a tool the editor switched to without the command bar, if it is a registered one.
+    private void OnActiveToolChanged(object? sender, EventArgs e)
+    {
+        var type = _editor?.ActiveTool?.GetType();
+        if (type is not null && _active?.CreateTool().GetType() != type
+            && _tools.FirstOrDefault(t => t.CreateTool().GetType() == type) is { } tool)
+        {
+            Show(tool);
+        }
+    }
+
     private void Select(ToolDescriptor tool)
+    {
+        Show(tool);
+        _editor?.ActiveTool = tool.CreateTool();
+    }
+
+    // Checks the tool's button and shows its options, without changing the editor's tool.
+    private void Show(ToolDescriptor tool)
     {
         if (_active is not null && !ReferenceEquals(_active, tool))
         {
@@ -88,7 +109,5 @@ public partial class ToolPicker : UserControl
         }
 
         ToolOptions.Content = _options.GetValueOrDefault(tool);
-
-        _editor?.ActiveTool = tool.CreateTool();
     }
 }

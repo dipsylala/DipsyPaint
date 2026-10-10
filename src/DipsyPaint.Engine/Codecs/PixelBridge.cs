@@ -32,6 +32,44 @@ internal static class PixelBridge
         return document;
     }
 
+    /// <summary>Copies <paramref name="image"/>'s pixels into a new <see cref="PixelImage"/>.</summary>
+    public static PixelImage ToPixelImage(Image<Rgba32> image)
+    {
+        var pixels = new Rgba[image.Width * image.Height];
+        image.ProcessPixelRows(accessor =>
+        {
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                var source = accessor.GetRowSpan(y);
+                var target = pixels.AsSpan(y * image.Width, image.Width);
+                for (var x = 0; x < target.Length; x++)
+                {
+                    target[x] = Premultiply(source[x]);
+                }
+            }
+        });
+        return new PixelImage(image.Width, image.Height, pixels);
+    }
+
+    /// <summary>Copies <paramref name="pixels"/> into a new straight-alpha image.</summary>
+    public static Image<Rgba32> ToImage(PixelImage pixels, Configuration configuration)
+    {
+        var image = new Image<Rgba32>(configuration, pixels.Width, pixels.Height);
+        image.ProcessPixelRows(accessor =>
+        {
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                var target = accessor.GetRowSpan(y);
+                var source = pixels.Pixels.AsSpan(y * pixels.Width, pixels.Width);
+                for (var x = 0; x < target.Length; x++)
+                {
+                    target[x] = Unpremultiply(source[x]);
+                }
+            }
+        });
+        return image;
+    }
+
     /// <summary>
     /// Copies the composite into a new straight-alpha image, first compositing it over
     /// <paramref name="background"/> when given (for formats without alpha).

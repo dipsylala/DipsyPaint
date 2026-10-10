@@ -1,7 +1,7 @@
 # ADR-0008: All file I/O through ImageSharp; Skia for rendering only
 
 - **Status:** Accepted; format list superseded by [ADR-0019](0019-file-formats-match-paint.md)
-- **Amended by:** [ADR-0020](0020-imagesharp-licence-key.md) (ImageSharp 4 licence key)
+- **Amended by:** [ADR-0020](0020-imagesharp-licence-key.md) (ImageSharp 4 licence key), [ADR-0021](0021-clipboard-image-formats.md) (clipboard formats per OS)
 - **Date:** 2026-10-10
 - **Depends on:** [ADR-0004](0004-stack-avalonia-skiasharp.md), [ADR-0006](0006-project-format-openraster.md), [ADR-0007](0007-licence-mit.md)
 

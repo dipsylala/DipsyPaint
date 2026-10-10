@@ -24,6 +24,7 @@ public sealed class DocumentEditor
     private PixelRecorder? _recorder;
     private bool _inGesture;
     private ITool? _activeTool;
+    private Selection? _selection;
     private Rgba _primaryColor = Rgba.Black;
     private Rgba _secondaryColor = Rgba.White;
 
@@ -54,6 +55,7 @@ public sealed class DocumentEditor
         {
             CommitPending();
             _activeTool = value;
+            ActiveToolChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -83,7 +85,7 @@ public sealed class DocumentEditor
     /// <summary>The selection of the active <see cref="SelectionTool"/>, or null when there is none.</summary>
     public Selection? Selection => (ActiveTool as SelectionTool)?.Selection;
 
-    /// <summary>Raised with the document-space rectangle whose composited pixels changed.</summary>
+    /// <summary>Raised with the document-space rectangle, within the canvas, whose composited pixels changed.</summary>
     public event EventHandler<IntRect>? CompositeChanged;
 
     /// <summary>
@@ -97,6 +99,12 @@ public sealed class DocumentEditor
 
     /// <summary>Raised after the active tool has handled a pointer up, i.e. at the end of each stroke or click.</summary>
     public event EventHandler? StrokeEnded;
+
+    /// <summary>Raised when <see cref="ActiveTool"/> is set, including by <see cref="Paste"/>.</summary>
+    public event EventHandler? ActiveToolChanged;
+
+    /// <summary>Raised when <see cref="Selection"/> changes: made, moved, stretched or removed.</summary>
+    public event EventHandler? SelectionChanged;
 
     public void Apply(PointerInput input)
     {
@@ -165,6 +173,74 @@ public sealed class DocumentEditor
         _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
         Refresh(tool.Delete(Context(_recorder)));
         RecordStep();
+    }
+
+    /// <summary>
+    /// A copy of the selected pixels (Copy), or null when nothing is selected: the lifted pixels
+    /// as shown, else the active layer's within the selection. The selection is left as it is.
+    /// Cut is a copy followed by <see cref="DeleteSelection"/>.
+    /// </summary>
+    public PixelImage? CopySelection()
+    {
+        if (Selection is not { } selection)
+        {
+            return null;
+        }
+
+        var bounds = selection.Bounds;
+        Rgba[] pixels;
+        if (selection.FloatingPixels is { } floating)
+        {
+            pixels = (Rgba[])floating.Clone();
+        }
+        else
+        {
+            pixels = new Rgba[bounds.Width * bounds.Height];
+            Document.ActiveLayer.Pixels.ReadRegion(bounds, pixels);
+        }
+
+        return new PixelImage(bounds.Width, bounds.Height, pixels);
+    }
+
+    /// <summary>
+    /// Pastes <paramref name="image"/> as a lifted selection with its top-left at (<paramref name="x"/>,
+    /// <paramref name="y"/>), switching to the selection tool as reference Paint does; pending content
+    /// (including a current selection) is committed first. If the image reaches past the canvas, the
+    /// canvas is first enlarged to fit it, as one history step, up to <see cref="Document.MaxSide"/> and
+    /// unless that would exceed <paramref name="budget"/> (default <see cref="MemoryBudget.Default"/>);
+    /// the new area is white on the bottom layer and transparent above, as in a new document. Nothing
+    /// is written to the layer until the pasted selection is committed, which is one history step.
+    /// The editor keeps <see cref="PixelImage.Pixels"/>. Ignored during a gesture.
+    /// </summary>
+    public void Paste(PixelImage image, int x, int y, MemoryBudget? budget = null)
+    {
+        if (_inGesture)
+        {
+            return;
+        }
+
+        if (ActiveTool is SelectionTool)
+        {
+            CommitPending();
+        }
+        else
+        {
+            ActiveTool = new SelectionTool();
+        }
+
+        var (oldWidth, oldHeight) = (Document.Width, Document.Height);
+        var width = Math.Clamp(x + image.Width, oldWidth, Document.MaxSide);
+        var height = Math.Clamp(y + image.Height, oldHeight, Document.MaxSide);
+        // As for Resize: the new layers, the composite and the shell's bitmap.
+        var bytes = (Document.Layers.Count + 2) * (long)width * height * Unsafe.SizeOf<Rgba>();
+        if ((width, height) != (oldWidth, oldHeight) && (budget ?? MemoryBudget.Default).Allows(bytes))
+        {
+            ReplaceCanvas(width, height, (layer, pixels) =>
+                PixelOps.Extend(pixels, oldWidth, oldHeight, width, height, layer == 0 ? Rgba.White : Rgba.Transparent));
+        }
+
+        var tool = (SelectionTool)ActiveTool!;
+        Refresh(tool.Paste(Context(Document.ActiveLayer.Pixels), image, x, y));
     }
 
     /// <summary>
@@ -298,7 +374,7 @@ public sealed class DocumentEditor
         var (oldWidth, oldHeight) = (Document.Width, Document.Height);
         if ((oldWidth, oldHeight) != (width, height))
         {
-            ReplaceCanvas(width, height, pixels => PixelOps.Resample(pixels, oldWidth, oldHeight, width, height));
+            ReplaceCanvas(width, height, (_, pixels) => PixelOps.Resample(pixels, oldWidth, oldHeight, width, height));
         }
 
         return ResizeResult.Resized;
@@ -320,7 +396,7 @@ public sealed class DocumentEditor
         CommitPending();
         if (!region.IsEmpty && region != canvas)
         {
-            ReplaceCanvas(region.Width, region.Height, pixels => PixelOps.Crop(pixels, canvas.Width, region));
+            ReplaceCanvas(region.Width, region.Height, (_, pixels) => PixelOps.Crop(pixels, canvas.Width, region));
         }
     }
 
@@ -330,10 +406,11 @@ public sealed class DocumentEditor
         Refresh(tool.Replace(Context(_recorder), width, height, map));
     }
 
-    private void ReplaceCanvas(int width, int height, Func<Rgba[], Rgba[]> map)
+    // map: from a layer's index and pixels to its new pixels.
+    private void ReplaceCanvas(int width, int height, Func<int, Rgba[], Rgba[]> map)
     {
         var beforeSize = (Document.Width, Document.Height);
-        var before = Document.ReplacePixels(width, height, (_, pixels) => map(pixels));
+        var before = Document.ReplacePixels(width, height, map);
         History.Record(new CanvasPixelsStep(Document, before, beforeSize));
         Refresh(new IntRect(0, 0, width, height));
     }
@@ -362,8 +439,15 @@ public sealed class DocumentEditor
         }
     }
 
+    // Every change to the selection ends here, so this is where SelectionChanged is raised.
     private void Refresh(IntRect dirty)
     {
+        if (Selection != _selection)
+        {
+            _selection = Selection;
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         if (Compositor.FitDocument())
         {
             SizeChanged?.Invoke(this, EventArgs.Empty);
@@ -371,6 +455,8 @@ public sealed class DocumentEditor
             return;
         }
 
+        // Pending content may reach past the canvas (e.g. a pasted image larger than it).
+        dirty = dirty.Intersect(new IntRect(0, 0, Document.Width, Document.Height));
         if (dirty.IsEmpty)
         {
             return;

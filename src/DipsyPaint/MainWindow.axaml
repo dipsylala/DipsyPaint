@@ -17,6 +17,7 @@
       <StackPanel Orientation="Horizontal">
         <files:FileMenu x:Name="FileMenu" />
         <local:HistoryControl />
+        <local:ClipboardControl />
         <images:ImageControl x:Name="ImageGroup" />
         <tools:ToolPicker />
         <local:ColourControl />

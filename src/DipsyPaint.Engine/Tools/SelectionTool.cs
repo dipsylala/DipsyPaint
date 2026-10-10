@@ -7,7 +7,7 @@ namespace DipsyPaint.Engine.Tools;
 /// eraser does. The selection stays pending (see <see cref="IPendingTool"/>) until committed, which
 /// composites lifted pixels source-over at their new place and removes the selection; a marquee
 /// that was never lifted writes nothing. <see cref="Delete"/> removes the selected pixels; <see cref="Replace"/>
-/// rotates, flips or resizes them. The right
+/// rotates, flips or resizes them; <see cref="Paste"/> shows pasted pixels as a lifted selection. The right
 /// button does nothing (Paint opens a context menu there).
 /// </summary>
 public sealed class SelectionTool : IPendingTool
@@ -150,6 +150,20 @@ public sealed class SelectionTool : IPendingTool
         _liftedBounds = new IntRect(bounds.X, bounds.Y, width, height);
         (_a, _b) = ((bounds.X, bounds.Y), (bounds.X + width - 1, bounds.Y + height - 1));
         return dirty.Union(Show(context));
+    }
+
+    /// <summary>
+    /// Shows <paramref name="image"/> as a selection already lifted, its top-left at (<paramref name="x"/>,
+    /// <paramref name="y"/>), as pasted content arrives in reference Paint: nothing is written to the
+    /// layer (no hole), it can be moved and stretched, and committing composites it there. Replaces any
+    /// current selection without committing it. The tool keeps <see cref="PixelImage.Pixels"/>, so the
+    /// caller must not change them. Returns the changed rectangle.
+    /// </summary>
+    public IntRect Paste(ToolContext context, PixelImage image, int x, int y)
+    {
+        (_selected, _gesture, _a, _b) = (true, Gesture.None, (x, y), (x + image.Width - 1, y + image.Height - 1));
+        (_lifted, _liftedBounds) = (image.Pixels, Bounds);
+        return Show(context);
     }
 
     // Takes the selected pixels off the layer, leaving it transparent there, the first time only.

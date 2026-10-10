@@ -70,6 +70,22 @@ internal static class PixelOps
     }
 
     /// <summary>
+    /// Places a <paramref name="width"/>×<paramref name="height"/> bitmap at the top-left of a larger
+    /// <paramref name="newWidth"/>×<paramref name="newHeight"/> one filled with <paramref name="fill"/>.
+    /// </summary>
+    public static Rgba[] Extend(Rgba[] source, int width, int height, int newWidth, int newHeight, Rgba fill)
+    {
+        var result = GC.AllocateUninitializedArray<Rgba>(newWidth * newHeight);
+        result.AsSpan().Fill(fill);
+        for (var y = 0; y < height; y++)
+        {
+            source.AsSpan(y * width, width).CopyTo(result.AsSpan(y * newWidth));
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Resamples a <paramref name="width"/>×<paramref name="height"/> bitmap to
     /// <paramref name="newWidth"/>×<paramref name="newHeight"/> with a separable triangle (bilinear)
     /// filter, widened when shrinking so every source pixel contributes (area-weighted, no aliasing).
