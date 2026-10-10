@@ -1,0 +1,82 @@
+name: Benchmarks
+
+# Tracks the ADR-0018 performance targets (docs/benchmarks.md). Results go to the job summary and
+# an artifact; misses and regressions are flagged as warnings and never fail the run.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: benchmarks-${{ github.ref }}
+
+jobs:
+  key:
+    name: check licence key
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.key.outputs.available }}
+    steps:
+      # Benchmarks need Release builds, which need the Six Labors key (ADR-0020). Without it
+      # (before the secret exists, or on forks) the run skips the benchmarks.
+      - id: key
+        env:
+          SixLaborsLicenseKey: ${{ secrets.SIXLABORS_LICENSE_KEY }}
+        run: |
+          if [ -n "$SixLaborsLicenseKey" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Benchmarks skipped::The SIXLABORS_LICENSE_KEY secret is not available to this run, and benchmarks need a Release build (ADR-0020)."
+          fi
+
+  benchmarks:
+    needs: key
+    if: needs.key.outputs.available == 'true'
+    runs-on: ubuntu-latest
+    env:
+      SixLaborsLicenseKey: ${{ secrets.SIXLABORS_LICENSE_KEY }}
+      Results: artifacts/benchmarks
+      Baseline: .benchmarks/baseline.json
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # The latest main run's results, for regression checks.
+      - uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.Baseline }}
+          key: benchmarks-${{ github.run_id }}
+          restore-keys: benchmarks-
+
+      - name: Engine benchmarks
+        run: dotnet run -c Release --project benchmarks/DipsyPaint.Benchmarks -- --filter '*' --artifacts "$Results"
+
+      - name: Cold start
+        run: |
+          command -v xvfb-run || { sudo apt-get update && sudo apt-get install -y xvfb; }
+          dotnet build src/DipsyPaint -c Release
+          xvfb-run -a dotnet run -c Release --no-build --project benchmarks/DipsyPaint.Benchmarks -- \
+            coldstart src/DipsyPaint/bin/Release/net10.0/DipsyPaint --runs 10 --out "$Results/coldstart.json"
+
+      - name: Report
+        run: |
+          dotnet run -c Release --no-build --project benchmarks/DipsyPaint.Benchmarks -- \
+            report --previous "$Baseline" --summary "$GITHUB_STEP_SUMMARY" --out "$Results/results.json" \
+            "$Results/results/measurements.json" "$Results/coldstart.json"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: benchmarks
+          path: ${{ env.Results }}
+
+      - if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p "$(dirname "$Baseline")"
+          cp "$Results/results.json" "$Baseline"
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.Baseline }}
+          key: benchmarks-${{ github.run_id }}

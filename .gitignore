@@ -6,3 +6,6 @@ TestResults/
 .claude/worktrees/
 # Six Labors licence key (see THIRD-PARTY-NOTICES.md)
 sixlabors.lic
+# Benchmark results (docs/benchmarks.md)
+BenchmarkDotNet.Artifacts/
+artifacts/

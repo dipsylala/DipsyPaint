@@ -6,8 +6,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] A benchmark measures brush input → composited output at 4K × 20 layers (target ≤ 16 ms)
-- [ ] A benchmark measures a 4K flood fill (target ≤ 200 ms)
-- [ ] A benchmark measures cold start (target ≤ 2 s)
+- [x] A benchmark measures brush input → composited output at 4K × 20 layers (target ≤ 16 ms)
+- [x] A benchmark measures a 4K flood fill (target ≤ 200 ms)
+- [x] A benchmark measures cold start (target ≤ 2 s)
 - [ ] CI runs the suites and flags regressions without failing the build
-- [ ] A reference-hardware checklist (2020-era 4-core laptop, integrated GPU) is documented for milestone releases
+- [x] A reference-hardware checklist (2020-era 4-core laptop, integrated GPU) is documented for milestone releases
+
+The CI criterion stays open until the `SIXLABORS_LICENSE_KEY` secret exists and a `main` run of
+`.github/workflows/benchmarks.yml` has run the suites; until then the workflow skips them with a notice.
+See `docs/benchmarks.md`.
