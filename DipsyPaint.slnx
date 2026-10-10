@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DipsyPaint.Engine/DipsyPaint.Engine.csproj" />
+    <Project Path="src/DipsyPaint/DipsyPaint.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DipsyPaint.Engine.Tests/DipsyPaint.Engine.Tests.csproj" />
+    <Project Path="tests/DipsyPaint.Tests/DipsyPaint.Tests.csproj" />
+  </Folder>
+</Solution>
