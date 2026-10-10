@@ -8,6 +8,9 @@ public partial class MainWindow : Window
 {
     public Document Document { get; }
 
+    /// <summary>Edits <see cref="Document"/>; the DataContext that feature controls bind to.</summary>
+    public DocumentEditor Editor { get; }
+
     public MainWindow() : this(Document.CreateBlank())
     {
     }
@@ -15,6 +18,8 @@ public partial class MainWindow : Window
     public MainWindow(Document document)
     {
         Document = document;
+        Editor = new DocumentEditor(document);
+        DataContext = Editor;
         InitializeComponent();
 
         Canvas.Width = document.Width;

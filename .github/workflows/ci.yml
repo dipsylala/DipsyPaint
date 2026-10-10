@@ -19,3 +19,9 @@ jobs:
         with:
           global-json-file: global.json
       - run: dotnet test --configuration Release
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: golden-diffs-${{ matrix.os }}
+          path: TestResults/golden-diffs/
+          if-no-files-found: ignore

@@ -14,11 +14,11 @@ It also delivers the *golden image* test harness. Spec: ADR-0005, ADR-0009, ADR-
 
 **Status:** ready-for-agent
 
-- [ ] Drawing with the pencil shows on the canvas
-- [ ] A scripted pencil stroke, run through the engine API, matches a golden image within a per-pixel tolerance on all three OSes
-- [ ] A failing golden test emits a diff image as a CI artefact
-- [ ] The golden-image update workflow is documented
-- [ ] M1 documents have exactly one layer; the engine supports multiple layers
-- [ ] No tool accesses layer bitmaps except through the pixel-access abstraction
-- [ ] The pencil's keyboard shortcut matches reference Paint where practical
-- [ ] Unresolved (non-blocking): golden tolerance thresholds start conservative and are tuned to avoid flakiness
+- [x] Drawing with the pencil shows on the canvas
+- [x] A scripted pencil stroke, run through the engine API, matches a golden image within a per-pixel tolerance on all three OSes
+- [x] A failing golden test emits a diff image as a CI artefact
+- [x] The golden-image update workflow is documented
+- [x] M1 documents have exactly one layer; the engine supports multiple layers
+- [x] No tool accesses layer bitmaps except through the pixel-access abstraction
+- [x] The pencil's keyboard shortcut matches reference Paint where practical
+- [x] Unresolved (non-blocking): golden tolerance thresholds start conservative and are tuned to avoid flakiness
