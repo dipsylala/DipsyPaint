@@ -28,6 +28,23 @@ public readonly record struct Rgba(byte R, byte G, byte B, byte A)
         return new Rgba((byte)Div255(R * scale), (byte)Div255(G * scale), (byte)Div255(B * scale), (byte)Div255(A * scale));
     }
 
+    /// <summary>
+    /// The pixel's straight (un-premultiplied) colour at full opacity; opaque black for a fully
+    /// transparent pixel, whose colour is undefined.
+    /// </summary>
+    public Rgba ToOpaque()
+    {
+        if (A == 0)
+        {
+            return Black;
+        }
+
+        return new Rgba(Unpremultiply(R, A), Unpremultiply(G, A), Unpremultiply(B, A), 255);
+    }
+
+    // Rounded; clamped because a malformed premultiplied pixel can have a channel above its alpha.
+    private static byte Unpremultiply(byte channel, byte alpha) => (byte)Math.Min(255, (channel * 255 + alpha / 2) / alpha);
+
     // Exact rounded division by 255 for 0 <= value <= 255 * 255.
     private static int Div255(int value) => (value + 128 + ((value + 128) >> 8)) >> 8;
 }
