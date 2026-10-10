@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/DipsyPaint.Benchmarks/DipsyPaint.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/DipsyPaint.Engine/DipsyPaint.Engine.csproj" />
     <Project Path="src/DipsyPaint/DipsyPaint.csproj" />
