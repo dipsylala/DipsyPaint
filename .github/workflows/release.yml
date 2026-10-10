@@ -110,8 +110,9 @@ jobs:
     steps:
       - name: Linux prerequisites
         if: runner.os == 'Linux'
-        # clang and zlib for the NativeAOT linker; git for the checkout; libicu for the .NET SDK.
-        run: dnf install -y --setopt=install_weak_deps=False clang lld zlib-devel git libicu findutils tar gzip
+        # clang and zlib for the NativeAOT linker; git for the checkout; libicu for the .NET SDK;
+        # which and squashfs-tools for vpk to build the AppImage.
+        run: dnf install -y --setopt=install_weak_deps=False clang lld zlib-devel git libicu findutils tar gzip which squashfs-tools
 
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -156,6 +157,8 @@ jobs:
   smoke:
     name: smoke test (${{ matrix.rid }})
     needs: [prepare, pack]
+    # Test every RID that packed, even if another failed.
+    if: ${{ !cancelled() && needs.prepare.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
