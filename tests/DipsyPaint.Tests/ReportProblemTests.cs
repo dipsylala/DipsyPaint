@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Reflection.PortableExecutable;
+using Metadata = System.Reflection.Metadata;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
@@ -97,17 +100,91 @@ public sealed class ReportProblemTests : IDisposable
         Assert.Contains("System.InvalidOperationException: boom", Query(launched[0])["body"]);
     }
 
-    // AC28: no network requests. The only network use allowed later is the update check (ADR-0017);
-    // revisit this list when that lands.
+    // AC28: no network requests except the update check (ADR-0017), which Velopack makes. The shell
+    // and engine reference no networking assemblies themselves.
     [Theory]
     [InlineData(typeof(App))]
     [InlineData(typeof(Document))]
     public void ShellAndEngineReferenceNoNetworkingAssemblies(Type type)
     {
-        string[] networking = ["System.Net.Http", "System.Net.Sockets", "System.Net.WebSockets", "System.Net.Requests", "System.Net.WebClient", "System.Net.Mail"];
-
         var references = type.Assembly.GetReferencedAssemblies().Select(r => r.Name);
 
-        Assert.DoesNotContain(references, networking.Contains);
+        Assert.DoesNotContain(references, Networking.Contains);
+    }
+
+    // Among the third-party assemblies the app ships, only Velopack (the update check) may reach the
+    // network. The others listed use sockets for local connections only. A new entry needs review.
+    [Fact]
+    public void OnlyTheUpdateCheckReferencesNetworkingAssemblies()
+    {
+        string[] allowed =
+        [
+            "Velopack -> System.Net.Http", // the update check
+            "Tmds.DBus.Protocol -> System.Net.Sockets", // Linux D-Bus, over a local Unix socket
+            "Avalonia.FreeDesktop.AtSpi -> System.Net.Sockets", // Linux accessibility, over D-Bus
+            "Avalonia.Remote.Protocol -> System.Net.Sockets", // the IDE XAML previewer, only when it hosts the app
+        ];
+
+        var references = ShippedAssemblies(typeof(App).Assembly)
+            .SelectMany(a => a.GetReferencedAssemblies().Where(r => Networking.Contains(r.Name)).Select(r => $"{a.GetName().Name} -> {r.Name}"))
+            .ToList();
+
+        Assert.Contains("Velopack -> System.Net.Http", references);
+        Assert.Empty(references.Except(allowed));
+    }
+
+    // And the app uses Velopack only for the GitHub Releases update check: no other update source
+    // (web URL, Velopack Flow, GitLab…) or downloader. A new entry here needs the same review.
+    [Fact]
+    public void AppUsesOnlyVelopacksGithubUpdatePath()
+    {
+        string[] allowed =
+        [
+            "Velopack.VelopackApp", "Velopack.UpdateManager", "Velopack.UpdateInfo", "Velopack.VelopackAsset",
+            "Velopack.UpdateOptions", "Velopack.Locators.IVelopackLocator",
+            "Velopack.Sources.GithubSource", "Velopack.Sources.IUpdateSource", "Velopack.Sources.IFileDownloader",
+        ];
+
+        Assert.Equal(allowed.Order(), VelopackTypesUsedBy(typeof(App).Assembly).Order());
+    }
+
+    private static readonly string[] Networking =
+        ["System.Net.Http", "System.Net.Sockets", "System.Net.WebSockets", "System.Net.Requests", "System.Net.WebClient", "System.Net.Mail", "System.Net.Quic", "System.Net.HttpListener"];
+
+    /// <summary>The app's assembly and every non-framework assembly it references, directly or not.</summary>
+    private static IEnumerable<Assembly> ShippedAssemblies(Assembly app)
+    {
+        var runtime = System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory();
+        var seen = new HashSet<string>();
+        var pending = new Stack<Assembly>([app]);
+        while (pending.TryPop(out var assembly))
+        {
+            if (!seen.Add(assembly.GetName().Name!) || assembly.Location.StartsWith(runtime, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            yield return assembly;
+            foreach (var reference in assembly.GetReferencedAssemblies())
+            {
+                pending.Push(Assembly.Load(reference));
+            }
+        }
+    }
+
+    private static IEnumerable<string> VelopackTypesUsedBy(Assembly assembly)
+    {
+        using var stream = File.OpenRead(assembly.Location);
+        using var pe = new PEReader(stream);
+        var metadata = Metadata.PEReaderExtensions.GetMetadataReader(pe);
+        foreach (var handle in metadata.TypeReferences)
+        {
+            var type = metadata.GetTypeReference(handle);
+            if (type.ResolutionScope.Kind == Metadata.HandleKind.AssemblyReference
+                && metadata.GetString(metadata.GetAssemblyReference((Metadata.AssemblyReferenceHandle)type.ResolutionScope).Name) == "Velopack")
+            {
+                yield return $"{metadata.GetString(type.Namespace)}.{metadata.GetString(type.Name)}";
+            }
+        }
     }
 }

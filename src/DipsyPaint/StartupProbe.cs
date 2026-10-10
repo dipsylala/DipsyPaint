@@ -17,6 +17,9 @@ internal static class StartupProbe
 {
     public const string Variable = "DIPSYPAINT_STARTUP_PROBE";
 
+    /// <summary>True when this run is a probe run.</summary>
+    public static bool IsRequested => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(Variable));
+
     public static void Attach(IClassicDesktopStyleApplicationLifetime desktop, MainWindow window)
     {
         var path = Environment.GetEnvironmentVariable(Variable);

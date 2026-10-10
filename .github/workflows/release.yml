@@ -1,0 +1,262 @@
+name: Release
+
+# Builds DipsyPaint's Velopack packages for six RIDs and, for a version tag, uploads them to a draft
+# GitHub Release (ADR-0015, docs/releasing.md). Each RID is published with NativeAOT on a native
+# runner (ADR-0018), packed with vpk (installer, portable package, full package and, when an earlier
+# release exists, a delta), smoke-tested and uploaded as a workflow artifact.
+#
+# - Push of a tag v*: Release build. Needs the SIXLABORS_LICENSE_KEY secret (ADR-0020) and fails
+#   without it. Uploads the packages to a draft release for the maintainer to publish.
+# - Run workflow with "validate" ticked: Debug build with optimisations, which needs no licence key.
+#   For checking the pipeline only: its artifacts are not for distribution.
+# - Run workflow without "validate": Release build (needs the key), artifacts only.
+on:
+  push:
+    tags: ['v*']
+    branches: [issue/16-packaging-and-distribution] # TEMPORARY: validation before merge; remove
+  workflow_dispatch:
+    inputs:
+      validate:
+        description: Pipeline validation build (Debug, no licence key needed). Artifacts are not for distribution.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+
+env:
+  VpkVersion: 1.2.161
+  RepoUrl: https://github.com/${{ github.repository }}
+
+jobs:
+  prepare:
+    name: prepare
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      version: ${{ steps.mode.outputs.version }}
+      build-args: ${{ steps.mode.outputs.build-args }}
+      artifact-prefix: ${{ steps.mode.outputs.artifact-prefix }}
+    steps:
+      - id: mode
+        env:
+          SixLaborsLicenseKey: ${{ secrets.SIXLABORS_LICENSE_KEY }}
+          Validate: ${{ github.event_name == 'workflow_dispatch' && inputs.validate || github.ref_type == 'branch' }} # TEMPORARY "|| ...": remove
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            mode=release
+            version="${GITHUB_REF_NAME#v}"
+            if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error title=Bad tag::Tag '$GITHUB_REF_NAME' is not v<major>.<minor>.<patch>[-<pre-release>]."
+              exit 1
+            fi
+          elif [[ "$Validate" == "true" ]]; then
+            mode=validate
+            version="0.0.0-validate.$GITHUB_RUN_NUMBER"
+          else
+            mode=build
+            version="0.0.0-ci.$GITHUB_RUN_NUMBER"
+          fi
+
+          if [[ "$mode" == validate ]]; then
+            # No key needed: the same NativeAOT publish, in Debug with optimisations (as ticket 14).
+            build_args="-c Debug -p:Optimize=true -p:PublishAot=true"
+            prefix=validation-only-DipsyPaint
+            echo "::notice title=Validation build::Debug build without the Six Labors licence key, to check the pipeline. Its artifacts are not for distribution."
+          elif [[ -z "$SixLaborsLicenseKey" ]]; then
+            echo "::error title=Six Labors licence key missing::Release builds need the SIXLABORS_LICENSE_KEY repository secret (ADR-0020, docs/releasing.md). Add it, or run the workflow with 'validate' to check the pipeline without it."
+            exit 1
+          else
+            build_args="-c Release"
+            prefix=DipsyPaint
+          fi
+
+          {
+            echo "mode=$mode"
+            echo "version=$version"
+            echo "build-args=$build_args"
+            echo "artifact-prefix=$prefix"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building DipsyPaint $version ($mode: $build_args)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  pack:
+    name: pack (${{ matrix.rid }})
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: win-x64, os: windows-latest }
+          - { rid: win-arm64, os: windows-11-arm }
+          - { rid: osx-arm64, os: macos-latest }
+          - { rid: osx-x64, os: macos-15-intel }
+          # A Linux NativeAOT binary needs at least the glibc it was built against, so Linux builds in
+          # AlmaLinux 8 (glibc 2.28, as RHEL 8) rather than on the runner's newer Ubuntu.
+          - { rid: linux-x64, os: ubuntu-24.04, container: 'almalinux:8' }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm, container: 'almalinux:8' }
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      RID: ${{ matrix.rid }}
+      Version: ${{ needs.prepare.outputs.version }}
+      BuildArgs: ${{ needs.prepare.outputs.build-args }}
+      SixLaborsLicenseKey: ${{ needs.prepare.outputs.mode != 'validate' && secrets.SIXLABORS_LICENSE_KEY || '' }}
+    steps:
+      - name: Linux prerequisites
+        if: runner.os == 'Linux'
+        # clang and zlib for the NativeAOT linker; git for the checkout; libicu for the .NET SDK.
+        run: dnf install -y --setopt=install_weak_deps=False clang lld zlib-devel git libicu findutils tar gzip
+
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Publish
+        # ContinuousIntegrationBuild maps source paths to /_/ in stack traces (crash logs, ticket 13).
+        run: |
+          dotnet publish src/DipsyPaint/DipsyPaint.csproj -r "$RID" -o artifacts/publish $BuildArgs \
+            -p:Version="$Version" -p:ContinuousIntegrationBuild=true
+          # Symbols stay out of the packages (ticket 14).
+          find artifacts/publish \( -name '*.pdb' -o -name '*.dbg' -o -name '*.dSYM' \) -prune -exec rm -rf {} +
+          ls -la artifacts/publish
+
+      - name: Pack
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          dotnet tool install vpk --version "$VpkVersion" --tool-path artifacts/tools
+          vpk=artifacts/tools/vpk
+          case "$RID" in
+            win-*) exe=DipsyPaint.exe; icon=src/DipsyPaint/Assets/dipsypaint.ico ;;
+            osx-*) exe=DipsyPaint; icon=artifacts/dipsypaint.icns
+                   sips -s format icns src/DipsyPaint/Assets/dipsypaint.png --out "$icon" ;;
+            *)     exe=DipsyPaint; icon=src/DipsyPaint/Assets/dipsypaint.png ;;
+          esac
+          # The latest published release of this channel, if any, so pack can also build a delta package.
+          "$vpk" --skip-updates -x download github --repoUrl "$RepoUrl" --token "$GITHUB_TOKEN" \
+            --channel "$RID" -o artifacts/releases
+          "$vpk" --skip-updates -x pack --packId DipsyPaint --packVersion "$Version" --packTitle DipsyPaint \
+            --packAuthors "DipsyPaint contributors" --packDir artifacts/publish --mainExe "$exe" --icon "$icon" \
+            --channel "$RID" --runtime "$RID" -o artifacts/releases
+          ls -la artifacts/releases
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ needs.prepare.outputs.artifact-prefix }}-${{ needs.prepare.outputs.version }}-${{ matrix.rid }}
+          path: artifacts/releases/
+          if-no-files-found: error
+
+  smoke:
+    name: smoke test (${{ matrix.rid }})
+    needs: [prepare, pack]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: win-x64, os: windows-latest }
+          - { rid: win-arm64, os: windows-11-arm }
+          - { rid: osx-arm64, os: macos-latest }
+          - { rid: osx-x64, os: macos-15-intel }
+          - { rid: linux-x64, os: ubuntu-24.04 }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      RID: ${{ matrix.rid }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.prepare.outputs.artifact-prefix }}-${{ needs.prepare.outputs.version }}-${{ matrix.rid }}
+          path: pkg
+
+      - name: Linux glibc requirement
+        if: runner.os == 'Linux'
+        run: |
+          appimage=$(ls pkg/*.AppImage)
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract > /dev/null
+          echo "Newest glibc symbol version each file needs:"
+          find squashfs-root -type f | while read -r f; do
+            v=$(objdump -T "$f" 2>/dev/null | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -n 1)
+            if [ -n "$v" ]; then echo "$v ${f#squashfs-root/}"; fi
+          done | sort -V | tee glibc.txt
+          echo "$RID: newest glibc symbol needed: $(tail -n 1 glibc.txt)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Launch the portable package
+        # The startup probe (ADR-0018) opens the main window, round-trips PNG and JPEG, writes one line
+        # and exits; it also skips the update check.
+        run: |
+          probe="$(pwd -W 2>/dev/null || pwd)/probe.txt"
+          case "$RID" in
+            win-*)
+              unzip -q pkg/*-Portable.zip -d app
+              run=(app/DipsyPaint.exe) ;; # Velopack's launcher, which starts app/current/DipsyPaint.exe
+            osx-*)
+              ditto -x -k pkg/*-Portable.zip app
+              run=("$(ls -d app/*.app)/Contents/MacOS/DipsyPaint") ;;
+            linux-*)
+              sudo apt-get update -qq && sudo apt-get install -y -qq xvfb > /dev/null
+              run=(xvfb-run -a env APPIMAGE_EXTRACT_AND_RUN=1 "$(ls pkg/*.AppImage)") ;;
+          esac
+          DIPSYPAINT_STARTUP_PROBE="$probe" "${run[@]}" &
+          for _ in $(seq 120); do
+            if [ -s "$probe" ]; then break; fi
+            sleep 0.5
+          done
+          if [ ! -s "$probe" ]; then
+            echo "::error::$RID: no startup probe output within 60 s"
+            exit 1
+          fi
+          cat "$probe"
+          echo "$RID portable package: $(cat "$probe")" >> "$GITHUB_STEP_SUMMARY"
+          grep -q 'codecs=ok' "$probe"
+
+      - name: Package sizes
+        run: |
+          echo "| $RID file | MB |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          for f in pkg/*; do
+            awk -v name="$(basename "$f")" -v size="$(wc -c < "$f")" 'BEGIN { printf "| %s | %.1f |\n", name, size / 1048576 }' >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  publish:
+    name: upload to draft release
+    needs: [prepare, pack, smoke]
+    # Only for a version tag with the licence key: prepare fails a tag push without the key, and mode
+    # is 'release' only for tags.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.prepare.outputs.mode == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      Version: ${{ needs.prepare.outputs.version }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: DipsyPaint-${{ needs.prepare.outputs.version }}-*
+          path: dist
+      - name: Upload every RID's packages to one draft release
+        run: |
+          dotnet tool install vpk --version "$VpkVersion" --tool-path artifacts/tools
+          pre=()
+          if [[ "$Version" == *-* ]]; then pre=(--pre); fi
+          for rid in win-x64 win-arm64 osx-arm64 osx-x64 linux-x64 linux-arm64; do
+            artifacts/tools/vpk --skip-updates -x upload github --repoUrl "$RepoUrl" --token "$GITHUB_TOKEN" \
+              -o "dist/DipsyPaint-$Version-$rid" --channel "$rid" --tag "$GITHUB_REF_NAME" \
+              --releaseName "DipsyPaint $Version" --merge "${pre[@]}"
+          done
+          echo "Uploaded to a draft release for $GITHUB_REF_NAME. Review it, then publish it (docs/releasing.md)." >> "$GITHUB_STEP_SUMMARY"
