@@ -12,4 +12,5 @@
 - [ ] New layer and duplicate are checked against the memory budget and refused with a message when over
 - [ ] Layer properties exposed stay within what OpenRaster can represent
 - [ ] Golden images for compositing multiple layers with visibility changes
+- [ ] With the composite of the layers above and below the active layer cached, the 4K × 20-layer fill benchmark meets ≤ 200 ms (currently ~730 ms without caching; see `docs/benchmarks.md`)
 - [ ] Unresolved (non-blocking): blend modes. Expose them only if reference Paint does, and only modes OpenRaster supports
