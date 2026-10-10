@@ -40,4 +40,36 @@ public class StrokeTests
         Assert.Equal(new IntRect(1, 1, 3, 2), first);
         Assert.True(second.IsEmpty);
     }
+
+    [Fact]
+    public void Cover_KeepsTheHighestCoveragePerPixel()
+    {
+        var pixels = Document.CreateBlank(1, 1).ActiveLayer.Pixels;
+        var stroke = new Stroke(pixels, Rgba.Black);
+
+        stroke.Cover(0, 0, 0.5f);
+        stroke.Cover(0, 0, 0.25f);
+        var half = pixels.GetPixel(0, 0);
+        stroke.Cover(0, 0, 0.5f);
+
+        Assert.Equal(new Rgba(127, 127, 127, 255), half);
+        Assert.Equal(half, pixels.GetPixel(0, 0));
+
+        stroke.Cover(0, 0, 1f);
+        Assert.Equal(Rgba.Black, pixels.GetPixel(0, 0));
+    }
+
+    [Fact]
+    public void Erase_RemovesAlphaInProportionToCoverageAndOpacity()
+    {
+        var pixels = Document.CreateBlank(3, 1).ActiveLayer.Pixels;
+
+        Stroke.Erase(pixels).Plot(0, 0);
+        Stroke.Erase(pixels).Cover(1, 0, 0.5f);
+        Stroke.Erase(pixels, opacity: 0.5f).Plot(2, 0);
+
+        Assert.Equal(Rgba.Transparent, pixels.GetPixel(0, 0));
+        Assert.Equal(new Rgba(128, 128, 128, 128), pixels.GetPixel(1, 0));
+        Assert.Equal(new Rgba(128, 128, 128, 128), pixels.GetPixel(2, 0));
+    }
 }
