@@ -22,4 +22,7 @@
   <data name="Pencil" xml:space="preserve">
     <value>Pencil</value>
   </data>
+  <data name="Fill" xml:space="preserve">
+    <value>Fill</value>
+  </data>
 </root>

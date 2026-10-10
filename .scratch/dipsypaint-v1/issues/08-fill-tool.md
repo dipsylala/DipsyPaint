@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Fill matches reference Paint's behaviour (contiguous region, active colour)
-- [ ] Scanline implementation; a full 4K canvas fill causes no stack overflow
-- [ ] Golden images for fills of simple and complex regions
-- [ ] Fill is undoable
+- [x] Fill matches reference Paint's behaviour (contiguous region, active colour)
+- [x] Scanline implementation; a full 4K canvas fill causes no stack overflow
+- [x] Golden images for fills of simple and complex regions
+- [x] Fill is undoable
