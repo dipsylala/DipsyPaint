@@ -28,4 +28,4 @@ Several tickets are often built at once on separate branches. Keep each feature'
 
 - **UI:** put each feature's controls in its own `UserControl` and mount it in `MainWindow` with a single line.
 - **Strings:** add a feature-named `.resx` under `src/DipsyPaint/Resources/` (e.g. `ZoomStrings.resx`). It generates a `DipsyPaint.Resources.<FileName>` class automatically.
-- **Tools:** register each tool through the tool registry (introduced by ticket 02) instead of editing the command bar directly.
+- **Tools:** register each tool through the tool registry (`ToolRegistry`) instead of editing the command bar directly. A tool's settings (size, outline, fill…) go in its own options panel via `ToolDescriptor.CreateOptions`; the command bar shows it while the tool is active.
