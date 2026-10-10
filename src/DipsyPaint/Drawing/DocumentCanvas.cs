@@ -14,10 +14,25 @@ namespace DipsyPaint.Drawing;
 /// Shows the composited document at one device-independent pixel per document pixel and routes
 /// pointer input to the <see cref="DocumentEditor"/> in its <see cref="StyledElement.DataContext"/>.
 /// Pointer positions are taken in this control's own coordinates, so a transform applied around
-/// it (e.g. zoom) still yields document pixels.
+/// it (e.g. zoom) still yields document pixels. Transparent pixels show a checkerboard, as in
+/// reference Paint.
 /// </summary>
 public sealed class DocumentCanvas : Control
 {
+    // 8×8 document-pixel squares, light grey on white.
+    private static readonly IBrush Checkerboard = new DrawingBrush(new DrawingGroup
+    {
+        Children =
+        {
+            new GeometryDrawing { Brush = Brushes.White, Geometry = Geometry.Parse("M0,0 H16 V16 H0 Z") },
+            new GeometryDrawing { Brush = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC)), Geometry = Geometry.Parse("M0,0 H8 V8 H0 Z M8,8 H16 V16 H8 Z") },
+        },
+    })
+    {
+        TileMode = TileMode.Tile,
+        DestinationRect = new RelativeRect(0, 0, 16, 16, RelativeUnit.Absolute),
+    };
+
     private DocumentEditor? _editor;
     private WriteableBitmap? _bitmap;
     private PointerButton? _strokeButton;
@@ -56,6 +71,7 @@ public sealed class DocumentCanvas : Control
     {
         if (_bitmap is not null)
         {
+            context.FillRectangle(Checkerboard, new Rect(_bitmap.Size));
             context.DrawImage(_bitmap, new Rect(_bitmap.Size));
         }
     }

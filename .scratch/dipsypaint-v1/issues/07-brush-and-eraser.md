@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] The brush and eraser match reference Paint's behaviour, including what the eraser leaves behind
-- [ ] Size control for each
-- [ ] Golden images for brush and eraser strokes at several sizes
-- [ ] Strokes are undoable
-- [ ] Shortcuts match reference Paint where practical
+- [x] The brush and eraser match reference Paint's behaviour, including what the eraser leaves behind
+- [x] Size control for each
+- [x] Golden images for brush and eraser strokes at several sizes
+- [x] Strokes are undoable
+- [x] Shortcuts match reference Paint where practical
