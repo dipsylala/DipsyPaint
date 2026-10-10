@@ -5,6 +5,7 @@
         xmlns:drawing="using:DipsyPaint.Drawing"
         xmlns:tools="using:DipsyPaint.Tools"
         xmlns:files="using:DipsyPaint.Files"
+        xmlns:diagnostics="using:DipsyPaint.Diagnostics"
         x:Class="DipsyPaint.MainWindow"
         Title="{x:Static res:Strings.AppName}"
         Icon="avares://DipsyPaint/Assets/dipsypaint.ico"
@@ -17,6 +18,7 @@
         <local:HistoryControl />
         <tools:ToolPicker />
         <local:ColourControl />
+        <diagnostics:HelpMenu x:Name="HelpMenu" />
       </StackPanel>
     </Border>
     <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Padding="12,4"
