@@ -2,7 +2,7 @@
 
 **What to build:** The user can create a new document, open PNG, JPEG (`.jpg` `.jpeg` `.jpe` `.jfif`) and BMP/DIB files, and save as PNG, JPEG or 24-bit BMP using native file dialogs. All encoding and decoding goes through ImageSharp, with pixels crossing to Skia at a single conversion point. Untrusted flat images are checked before decoding. Spec: AC8, AC12 (partial), AC17, AC18, AC21, ADR-0008, ADR-0014, ADR-0019.
 
-**Blocked by:** 01 (Walking skeleton)
+**Blocked by:** 02 (Pencil tool + golden-image harness): opening a file needs the layer pixel model 02 creates
 
 **Status:** ready-for-agent
 
