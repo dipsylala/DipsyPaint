@@ -199,7 +199,7 @@ jobs:
           "$appimage" --appimage-extract > /dev/null
           echo "Newest glibc symbol version each file needs:"
           find squashfs-root -type f | while read -r f; do
-            v=$(objdump -T "$f" 2>/dev/null | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -n 1)
+            v=$(objdump -T "$f" 2>/dev/null | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -n 1 || true)
             if [ -n "$v" ]; then echo "$v ${f#squashfs-root/}"; fi
           done | sort -V | tee glibc.txt
           echo "$RID: newest glibc symbol needed: $(tail -n 1 glibc.txt)" >> "$GITHUB_STEP_SUMMARY"
