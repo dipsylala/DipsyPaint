@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] Zoom in/out/fit, with shortcuts matching reference Paint
-- [ ] Panning works with scrollbars and the mouse wheel (as in reference Paint)
-- [ ] The status bar shows the zoom level
-- [ ] Rendering stays crisp at HiDPI and at high zoom (nearest-neighbour pixels, as in Paint)
-- [ ] A headless UI test covers zoom changes
+- [x] Zoom in/out/fit, with shortcuts matching reference Paint
+- [x] Panning works with scrollbars and the mouse wheel (as in reference Paint)
+- [x] The status bar shows the zoom level
+- [x] Rendering stays crisp at HiDPI and at high zoom (nearest-neighbour pixels, as in Paint)
+- [x] A headless UI test covers zoom changes
