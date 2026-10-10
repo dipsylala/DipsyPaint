@@ -14,4 +14,10 @@ public sealed record ToolContext(IPixelAccess Target, Rgba PrimaryColor, Rgba Se
 
     /// <summary>The composited document (what the user sees), for tools that sample it; null if not provided.</summary>
     public Compositor? Composite { get; init; }
+
+    /// <summary>Pending content shown above the active layer (see <see cref="IPendingTool"/>).</summary>
+    public Overlay Overlay { get; init; } = new();
+
+    /// <summary>How far from a handle, in document pixels, the pointer still grabs it; follows the zoom.</summary>
+    public double HandleTolerance { get; init; } = DocumentEditor.DefaultHandleTolerance;
 }

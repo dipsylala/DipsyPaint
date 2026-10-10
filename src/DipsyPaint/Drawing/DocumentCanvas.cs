@@ -15,10 +15,20 @@ namespace DipsyPaint.Drawing;
 /// pointer input to the <see cref="DocumentEditor"/> in its <see cref="StyledElement.DataContext"/>.
 /// Pointer positions are taken in this control's own coordinates, so a transform applied around
 /// it (e.g. zoom) still yields document pixels. Transparent pixels show a checkerboard, as in
-/// reference Paint.
+/// reference Paint. Also draws the frame and handles around pending content
+/// (<see cref="DocumentEditor.Adornment"/>) at a constant on-screen size, and handles Enter
+/// (commit) and Esc (cancel) for it.
 /// </summary>
 public sealed class DocumentCanvas : Control
 {
+    /// <summary>Side of a handle square, in device-independent pixels on screen.</summary>
+    private const double HandleSize = 7;
+
+    /// <summary>How far from a handle's centre the pointer grabs it, in device-independent pixels on screen.</summary>
+    private const double HandleReach = HandleSize / 2 + 1;
+
+    private static readonly IBrush FrameBrush = new SolidColorBrush(Color.FromRgb(0, 103, 192));
+
     // 8×8 document-pixel squares, light grey on white.
     private static readonly IBrush Checkerboard = new DrawingBrush(new DrawingGroup
     {
@@ -37,6 +47,11 @@ public sealed class DocumentCanvas : Control
     private WriteableBitmap? _bitmap;
     private PointerButton? _strokeButton;
     private Point _lastPosition;
+    private TopLevel? _topLevel;
+    private FrameHandle _hoveredHandle;
+
+    // Device-independent pixels on screen per document pixel (the zoom).
+    private double _scale = 1;
 
     public DocumentCanvas() => RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.None);
 
@@ -53,6 +68,7 @@ public sealed class DocumentCanvas : Control
         _editor = DataContext as DocumentEditor;
         if (_editor is not null)
         {
+            _editor.HandleTolerance = HandleReach / _scale;
             var compositor = _editor.Compositor;
             _bitmap = new WriteableBitmap(
                 new PixelSize(compositor.Width, compositor.Height), new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Premul);
@@ -67,6 +83,22 @@ public sealed class DocumentCanvas : Control
     protected override Size MeasureOverride(Size availableSize) =>
         _editor is null ? default : new Size(_editor.Compositor.Width, _editor.Compositor.Height);
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _topLevel = TopLevel.GetTopLevel(this);
+        _topLevel?.AddHandler(KeyDownEvent, OnTopLevelKeyDown);
+        LayoutUpdated += OnLayoutUpdated;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        LayoutUpdated -= OnLayoutUpdated;
+        _topLevel?.RemoveHandler(KeyDownEvent, OnTopLevelKeyDown);
+        _topLevel = null;
+        base.OnDetachedFromVisualTree(e);
+    }
+
     public override void Render(DrawingContext context)
     {
         if (_bitmap is not null)
@@ -74,6 +106,62 @@ public sealed class DocumentCanvas : Control
             context.FillRectangle(Checkerboard, new Rect(_bitmap.Size));
             context.DrawImage(_bitmap, new Rect(_bitmap.Size));
         }
+
+        if (_editor?.Adornment is { } adornment)
+        {
+            DrawAdornment(context, adornment);
+        }
+    }
+
+    // Drawn in document coordinates with sizes divided by the zoom, so it is the same size on screen at any zoom.
+    private void DrawAdornment(DrawingContext context, Adornment adornment)
+    {
+        var unit = 1 / _scale;
+        var frame = adornment.Frame;
+        var dashed = new Pen(FrameBrush, unit, new DashStyle([4, 4], 0));
+        // Just outside the content, so it covers none of its pixels and stays crisp.
+        context.DrawRectangle(null, dashed, new Rect(frame.X, frame.Y, frame.Width, frame.Height).Inflate(unit / 2));
+        var solid = new Pen(FrameBrush, unit);
+        var half = HandleSize / 2 * unit;
+        foreach (var (_, x, y) in adornment.Handles)
+        {
+            context.DrawRectangle(Brushes.White, solid, new Rect(x - half, y - half, 2 * half, 2 * half));
+        }
+    }
+
+    private void OnLayoutUpdated(object? sender, EventArgs e)
+    {
+        var scale = _topLevel is null ? 1 : this.TransformToVisual(_topLevel)?.M11 ?? 1;
+        if (scale > 0 && scale != _scale)
+        {
+            _scale = scale;
+            _editor?.HandleTolerance = HandleReach / scale;
+            InvalidateVisual();
+        }
+    }
+
+    // Bubbling, so a focused control that uses Enter or Esc itself handles the key first.
+    private void OnTopLevelKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_editor?.Adornment is null || e.KeyModifiers != KeyModifiers.None)
+        {
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case Key.Enter:
+                _editor.CommitPending();
+                break;
+            case Key.Escape:
+                _editor.CancelPending();
+                break;
+            default:
+                return;
+        }
+
+        e.Handled = true;
+        InvalidateVisual();
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -103,7 +191,29 @@ public sealed class DocumentCanvas : Control
         {
             Apply(PointerAction.Move, e);
         }
+        else if (_editor is not null)
+        {
+            var position = e.GetPosition(this);
+            var handle = _editor.Adornment?.HitTest(position.X, position.Y, _editor.HandleTolerance) ?? FrameHandle.None;
+            if (handle != _hoveredHandle)
+            {
+                _hoveredHandle = handle;
+                Cursor = CursorFor(handle);
+            }
+        }
     }
+
+    private static Cursor? CursorFor(FrameHandle handle) => handle switch
+    {
+        FrameHandle.None => null,
+        FrameHandle.Move => new Cursor(StandardCursorType.SizeAll),
+        FrameHandle.TopLeft => new Cursor(StandardCursorType.TopLeftCorner),
+        FrameHandle.TopRight => new Cursor(StandardCursorType.TopRightCorner),
+        FrameHandle.BottomRight => new Cursor(StandardCursorType.BottomRightCorner),
+        FrameHandle.BottomLeft => new Cursor(StandardCursorType.BottomLeftCorner),
+        FrameHandle.Top or FrameHandle.Bottom => new Cursor(StandardCursorType.SizeNorthSouth),
+        _ => new Cursor(StandardCursorType.SizeWestEast),
+    };
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
@@ -132,6 +242,7 @@ public sealed class DocumentCanvas : Control
         {
             _strokeButton = null;
             _editor?.Apply(new PointerInput(PointerAction.Up, _lastPosition.X, _lastPosition.Y, button));
+            InvalidateVisual();
         }
     }
 
@@ -139,7 +250,10 @@ public sealed class DocumentCanvas : Control
     {
         var point = e.GetCurrentPoint(this);
         _lastPosition = point.Position;
-        _editor?.Apply(new PointerInput(action, point.Position.X, point.Position.Y, _strokeButton!.Value, point.Properties.Pressure));
+        _editor?.Apply(new PointerInput(
+            action, point.Position.X, point.Position.Y, _strokeButton!.Value, point.Properties.Pressure,
+            e.KeyModifiers.HasFlag(KeyModifiers.Shift)));
+        InvalidateVisual(); // the adornment may change without the composite changing
     }
 
     private void OnCompositeChanged(object? sender, IntRect dirty)
