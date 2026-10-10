@@ -1,2 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- All image encoding and decoding (ADR-0008). -->
+    <PackageReference Include="SixLabors.ImageSharp" />
+  </ItemGroup>
 </Project>

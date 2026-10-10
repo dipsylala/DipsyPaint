@@ -4,6 +4,7 @@
         xmlns:local="using:DipsyPaint"
         xmlns:drawing="using:DipsyPaint.Drawing"
         xmlns:tools="using:DipsyPaint.Tools"
+        xmlns:files="using:DipsyPaint.Files"
         x:Class="DipsyPaint.MainWindow"
         Title="{x:Static res:Strings.AppName}"
         Icon="avares://DipsyPaint/Assets/dipsypaint.ico"
@@ -12,6 +13,7 @@
     <Border x:Name="CommandBar" DockPanel.Dock="Top" MinHeight="48"
             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
       <StackPanel Orientation="Horizontal">
+        <files:FileMenu x:Name="FileMenu" />
         <local:HistoryControl />
         <tools:ToolPicker />
         <local:ColourControl />

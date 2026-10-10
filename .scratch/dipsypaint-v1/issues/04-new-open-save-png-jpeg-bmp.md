@@ -6,11 +6,11 @@
 
 **Status:** ready-for-agent
 
-- [ ] PNG, JPEG and 24-bit BMP open and save; round-trips preserve pixels (within JPEG loss)
-- [ ] Saving writes the composited image; exports keep no layers
-- [ ] Creating or opening a document larger than 16384 px on either side is refused with a message
-- [ ] Image dimensions are read from the header before decoding; over-limit or over-memory-budget images are rejected before decode
-- [ ] Corrupt, truncated or malicious samples show "could not open". No crash, no half-open document
-- [ ] A malicious-sample corpus for flat formats runs in CI
-- [ ] The ImageSharp/Skia boundary is a single conversion point
-- [ ] Unresolved (non-blocking): the memory-budget value is not yet quantified; implement it as a configurable value with a documented placeholder
+- [x] PNG, JPEG and 24-bit BMP open and save; round-trips preserve pixels (within JPEG loss)
+- [x] Saving writes the composited image; exports keep no layers
+- [x] Creating or opening a document larger than 16384 px on either side is refused with a message
+- [x] Image dimensions are read from the header before decoding; over-limit or over-memory-budget images are rejected before decode
+- [x] Corrupt, truncated or malicious samples show "could not open". No crash, no half-open document
+- [x] A malicious-sample corpus for flat formats runs in CI
+- [x] The ImageSharp/Skia boundary is a single conversion point
+- [x] Unresolved (non-blocking): the memory-budget value is not yet quantified; implement it as a configurable value with a documented placeholder

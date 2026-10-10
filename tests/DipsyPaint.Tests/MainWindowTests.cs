@@ -43,7 +43,7 @@ public class MainWindowTests
     {
         var window = ShowWindow();
 
-        Assert.Equal("DipsyPaint", window.Title);
+        Assert.Equal("Untitled - DipsyPaint", window.Title);
         Assert.NotNull(window.Icon);
         var texts = window.GetLogicalDescendants().OfType<TextBlock>().Select(t => t.Text ?? "").Append(window.Title!);
         Assert.DoesNotContain(texts, t => t.Contains("Microsoft", StringComparison.OrdinalIgnoreCase)

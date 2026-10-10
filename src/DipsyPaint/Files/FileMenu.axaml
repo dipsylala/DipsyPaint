@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             x:Class="DipsyPaint.Files.FileMenu">
+  <Menu VerticalAlignment="Center" Margin="8,0,0,0">
+    <MenuItem x:Name="FileMenuItem" Header="{x:Static res:FileStrings.File}"
+              AutomationProperties.Name="{x:Static res:FileStrings.File}">
+      <MenuItem x:Name="NewItem" Header="{x:Static res:FileStrings.New}" Click="OnNewClick"
+                AutomationProperties.Name="{x:Static res:FileStrings.New}" />
+      <MenuItem x:Name="OpenItem" Header="{x:Static res:FileStrings.Open}" Click="OnOpenClick"
+                AutomationProperties.Name="{x:Static res:FileStrings.Open}" />
+      <Separator />
+      <MenuItem x:Name="SaveItem" Header="{x:Static res:FileStrings.Save}" Click="OnSaveClick"
+                AutomationProperties.Name="{x:Static res:FileStrings.Save}" />
+      <MenuItem x:Name="SaveAsItem" Header="{x:Static res:FileStrings.SaveAs}"
+                AutomationProperties.Name="{x:Static res:FileStrings.SaveAs}">
+        <MenuItem x:Name="SaveAsPngItem" Header="{x:Static res:FileStrings.SaveAsPng}" Click="OnSaveAsPngClick"
+                  AutomationProperties.Name="{x:Static res:FileStrings.SaveAsPng}" />
+        <MenuItem x:Name="SaveAsJpegItem" Header="{x:Static res:FileStrings.SaveAsJpeg}" Click="OnSaveAsJpegClick"
+                  AutomationProperties.Name="{x:Static res:FileStrings.SaveAsJpeg}" />
+        <MenuItem x:Name="SaveAsBmpItem" Header="{x:Static res:FileStrings.SaveAsBmp}" Click="OnSaveAsBmpClick"
+                  AutomationProperties.Name="{x:Static res:FileStrings.SaveAsBmp}" />
+      </MenuItem>
+    </MenuItem>
+  </Menu>
+</UserControl>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="SaveAs" xml:space="preserve">
+    <value>Save as</value>
+  </data>
+  <data name="SaveAsPng" xml:space="preserve">
+    <value>PNG image</value>
+  </data>
+  <data name="SaveAsJpeg" xml:space="preserve">
+    <value>JPEG image</value>
+  </data>
+  <data name="SaveAsBmp" xml:space="preserve">
+    <value>BMP image</value>
+  </data>
+  <data name="Untitled" xml:space="preserve">
+    <value>Untitled</value>
+  </data>
+  <data name="TitleFormat" xml:space="preserve">
+    <value>{0} - {1}</value>
+    <comment>{0} is the file name, {1} the app name.</comment>
+  </data>
+  <data name="OpenDialogTitle" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="SaveAsDialogTitle" xml:space="preserve">
+    <value>Save as</value>
+  </data>
+  <data name="AllPicturesFileType" xml:space="preserve">
+    <value>All picture files</value>
+  </data>
+  <data name="PngFileType" xml:space="preserve">
+    <value>PNG</value>
+  </data>
+  <data name="JpegFileType" xml:space="preserve">
+    <value>JPEG</value>
+  </data>
+  <data name="BmpFileType" xml:space="preserve">
+    <value>24-bit Bitmap</value>
+  </data>
+  <data name="CouldNotOpen" xml:space="preserve">
+    <value>Could not open "{0}".</value>
+  </data>
+  <data name="UnreadableReason" xml:space="preserve">
+    <value>The file is damaged or is not a PNG, JPEG or BMP image.</value>
+  </data>
+  <data name="TooLargeReason" xml:space="preserve">
+    <value>The image is larger than {0} pixels on a side.</value>
+  </data>
+  <data name="OverMemoryBudgetReason" xml:space="preserve">
+    <value>The image is too large to open with the memory available.</value>
+  </data>
+  <data name="ReadErrorReason" xml:space="preserve">
+    <value>The file could not be read.</value>
+  </data>
+  <data name="CouldNotSave" xml:space="preserve">
+    <value>Could not save "{0}".</value>
+  </data>
+  <data name="Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+</root>

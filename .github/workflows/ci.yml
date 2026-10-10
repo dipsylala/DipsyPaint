@@ -13,6 +13,9 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # ImageSharp 4 Release builds need a Six Labors licence key (THIRD-PARTY-NOTICES.md).
+      SixLaborsLicenseKey: ${{ secrets.SIXLABORS_LICENSE_KEY }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
