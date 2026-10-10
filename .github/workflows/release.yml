@@ -55,10 +55,10 @@ jobs:
             fi
           elif [[ "$Validate" == "true" ]]; then
             mode=validate
-            version="0.0.0-validate.$GITHUB_RUN_NUMBER"
+            version="0.0.$GITHUB_RUN_NUMBER-validate" # vpk needs >= 0.0.1
           else
             mode=build
-            version="0.0.0-ci.$GITHUB_RUN_NUMBER"
+            version="0.0.$GITHUB_RUN_NUMBER-ci"
           fi
 
           if [[ "$mode" == validate ]]; then
@@ -235,6 +235,8 @@ jobs:
     # is 'release' only for tags.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.prepare.outputs.mode == 'release'
     runs-on: ubuntu-latest
+    # Protection rules (required reviewer, v* tags only) are set on this environment (docs/releasing.md).
+    environment: release
     permissions:
       contents: write
     env:
