@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             x:Class="DipsyPaint.HistoryControl">
+  <StackPanel Orientation="Horizontal" Spacing="4" Margin="8,4">
+    <Button x:Name="UndoButton" Click="OnUndoClick" Width="40" Height="40" IsEnabled="False"
+            AutomationProperties.Name="{x:Static res:HistoryStrings.Undo}"
+            ToolTip.Tip="{x:Static res:HistoryStrings.UndoToolTip}">
+      <PathIcon Width="16" Height="16"
+                Data="M2,6 L6,2 V5 H9.5 A4,4 0 0 1 9.5,13 H5 V11 H9.5 A2,2 0 0 0 9.5,7 H6 V10 Z" />
+    </Button>
+    <Button x:Name="RedoButton" Click="OnRedoClick" Width="40" Height="40" IsEnabled="False"
+            AutomationProperties.Name="{x:Static res:HistoryStrings.Redo}"
+            ToolTip.Tip="{x:Static res:HistoryStrings.RedoToolTip}">
+      <PathIcon Width="16" Height="16"
+                Data="M14,6 L10,2 V5 H6.5 A4,4 0 0 0 6.5,13 H11 V11 H6.5 A2,2 0 0 1 6.5,7 H10 V10 Z" />
+    </Button>
+  </StackPanel>
+</UserControl>

@@ -9,6 +9,14 @@ public class PencilGoldenTests
     {
         var editor = new DocumentEditor(Document.CreateBlank(48, 32)) { ActiveTool = new PencilTool() };
 
+        DrawStrokes(editor);
+
+        GoldenImage.AssertMatches("pencil-strokes", editor.Compositor);
+    }
+
+    /// <summary>The scripted strokes behind the <c>pencil-strokes</c> golden image.</summary>
+    internal static void DrawStrokes(DocumentEditor editor)
+    {
         Script.Stroke(editor, PointerButton.Left, (2.5, 2.5));                           // single click
         Script.Stroke(editor, PointerButton.Left, (5, 2), (20, 2));                      // horizontal
         Script.Stroke(editor, PointerButton.Left, (2, 5), (2, 28));                      // vertical
@@ -16,7 +24,5 @@ public class PencilGoldenTests
         Script.Stroke(editor, PointerButton.Left, (24, 4), (46, 10), (30, 28), (24.9, 4.9)); // shallow and steep
         Script.Stroke(editor, PointerButton.Left, (-6, 31.5), (12, 24));                // enters from off the canvas
         Script.Stroke(editor, PointerButton.Right, (12, -1), (12, 32));                 // secondary colour over black
-
-        GoldenImage.AssertMatches("pencil-strokes", editor.Compositor);
     }
 }

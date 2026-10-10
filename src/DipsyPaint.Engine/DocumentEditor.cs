@@ -3,19 +3,29 @@ using DipsyPaint.Engine.Tools;
 namespace DipsyPaint.Engine;
 
 /// <summary>
-/// Routes pointer input to the active tool and keeps the composite up to date.
-/// The shell and scripted tests both drive editing through this class.
+/// Routes pointer input to the active tool, records each stroke as a history step and keeps the
+/// composite up to date. The shell and scripted tests both drive editing through this class.
+/// An editor belongs to one document: replacing the document means a new editor and an empty history.
 /// </summary>
 public sealed class DocumentEditor
 {
-    public DocumentEditor(Document document)
+    // Records the active layer's before-pixels from pointer down to pointer up.
+    private PixelRecorder? _recorder;
+
+    public DocumentEditor(Document document) : this(document, new History())
+    {
+    }
+
+    public DocumentEditor(Document document, History history)
     {
         Document = document;
         Compositor = new Compositor(document);
+        History = history;
     }
 
     public Document Document { get; }
     public Compositor Compositor { get; }
+    public History History { get; }
 
     public ITool? ActiveTool { get; set; }
 
@@ -35,8 +45,42 @@ public sealed class DocumentEditor
             return;
         }
 
-        var context = new ToolContext(Document.ActiveLayer.Pixels, PrimaryColor, SecondaryColor);
+        _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
+        var context = new ToolContext(_recorder, PrimaryColor, SecondaryColor);
         var dirty = ActiveTool.Handle(context, input);
+        if (input.Action == PointerAction.Up)
+        {
+            if (_recorder.TakeStep() is { } step)
+            {
+                History.Record(step);
+            }
+
+            _recorder = null;
+        }
+
+        Refresh(dirty);
+    }
+
+    /// <summary>Undoes the latest history step. Ignored while a stroke is in progress.</summary>
+    public void Undo()
+    {
+        if (_recorder is null)
+        {
+            Refresh(History.Undo());
+        }
+    }
+
+    /// <summary>Redoes the latest undone history step. Ignored while a stroke is in progress.</summary>
+    public void Redo()
+    {
+        if (_recorder is null)
+        {
+            Refresh(History.Redo());
+        }
+    }
+
+    private void Refresh(IntRect dirty)
+    {
         if (dirty.IsEmpty)
         {
             return;

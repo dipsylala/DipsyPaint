@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] Undo restores the pixels exactly as before the step; redo reapplies it exactly
-- [ ] A history step's memory is proportional to the changed area, not the document size
-- [ ] History memory never exceeds min(1 GB, 25% of RAM); oldest steps are dropped first
-- [ ] Undo/redo shortcuts match reference Paint
-- [ ] Engine unit tests cover exact restore, redo after undo, redo cleared by a new step, and cap eviction
+- [x] Undo restores the pixels exactly as before the step; redo reapplies it exactly
+- [x] A history step's memory is proportional to the changed area, not the document size
+- [x] History memory never exceeds min(1 GB, 25% of RAM); oldest steps are dropped first
+- [x] Undo/redo shortcuts match reference Paint
+- [x] Engine unit tests cover exact restore, redo after undo, redo cleared by a new step, and cap eviction
