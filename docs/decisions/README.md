@@ -41,5 +41,7 @@ Not discussed in depth. These defaults apply until revisited.
 
 ## Spikes needed (unverified assumptions)
 
-- NativeAOT compatibility of ImageSharp + SkiaSharp + Avalonia 12: ADR-0018
+- ~~NativeAOT compatibility of ImageSharp + SkiaSharp + Avalonia 12: ADR-0018~~
+  Done (ticket 14): compatible on all six RIDs with no trim/AOT warnings; releases
+  use NativeAOT (ADR-0018, amendment 2026-10-10)
 - SignPath Foundation eligibility given ImageSharp's Split License: ADR-0015

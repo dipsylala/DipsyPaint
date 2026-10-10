@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] A NativeAOT build of the skeleton is attempted on all three OSes; trimming/AOT warnings and failures are documented
-- [ ] Cold start to usable is measured for NativeAOT and ReadyToRun
-- [ ] The chosen publish mode and evidence are recorded as an amendment to ADR-0018
-- [ ] The "Spikes needed" entry in the decision index is updated
+- [x] A NativeAOT build of the skeleton is attempted on all three OSes; trimming/AOT warnings and failures are documented
+- [x] Cold start to usable is measured for NativeAOT and ReadyToRun
+- [x] The chosen publish mode and evidence are recorded as an amendment to ADR-0018
+- [x] The "Spikes needed" entry in the decision index is updated
