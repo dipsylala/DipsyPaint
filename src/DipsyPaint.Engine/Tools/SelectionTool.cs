@@ -6,7 +6,8 @@ namespace DipsyPaint.Engine.Tools;
 /// neighbour); the first such drag lifts them off the layer, leaving it transparent there, as the
 /// eraser does. The selection stays pending (see <see cref="IPendingTool"/>) until committed, which
 /// composites lifted pixels source-over at their new place and removes the selection; a marquee
-/// that was never lifted writes nothing. <see cref="Delete"/> removes the selected pixels. The right
+/// that was never lifted writes nothing. <see cref="Delete"/> removes the selected pixels; <see cref="Replace"/>
+/// rotates, flips or resizes them. The right
 /// button does nothing (Paint opens a context menu there).
 /// </summary>
 public sealed class SelectionTool : IPendingTool
@@ -128,6 +129,27 @@ public sealed class SelectionTool : IPendingTool
         }
 
         return dirty.Union(Cancel(context));
+    }
+
+    /// <summary>
+    /// Replaces the selected pixels (lifting them first) with <paramref name="map"/>'s result, a new
+    /// <paramref name="width"/>×<paramref name="height"/> bitmap computed from the shown pixels and
+    /// their size; the frame keeps its top-left corner. Used for rotating, flipping and resizing a
+    /// selection. Returns the changed rectangle; empty when nothing is selected.
+    /// </summary>
+    public IntRect Replace(ToolContext context, int width, int height, Func<Rgba[], int, int, Rgba[]> map)
+    {
+        if (!_selected)
+        {
+            return IntRect.Empty;
+        }
+
+        var dirty = Lift(context);
+        var bounds = Bounds;
+        _lifted = map(_shown ?? _lifted!, bounds.Width, bounds.Height);
+        _liftedBounds = new IntRect(bounds.X, bounds.Y, width, height);
+        (_a, _b) = ((bounds.X, bounds.Y), (bounds.X + width - 1, bounds.Y + height - 1));
+        return dirty.Union(Show(context));
     }
 
     // Takes the selected pixels off the layer, leaving it transparent there, the first time only.

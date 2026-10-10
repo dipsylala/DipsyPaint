@@ -13,8 +13,8 @@ single opaque bitmap, no layers). See ADR-0001.
 AI/ML features** (ADR-0002), **printing** (ADR-0010), **HEIC and `.paint`**
 (ADR-0019). UI matches its layout and mental model, not its branding (ADR-0012).
 
-**Document** — an open image being edited: an ordered stack of layers with a
-fixed canvas size (max 16384 px per side). See ADR-0005.
+**Document** — an open image being edited: an ordered stack of layers sharing one
+canvas size (max 16384 px per side), changed only by crop, resize and rotate. See ADR-0005.
 
 **Layer** — a raster plane the size of the canvas, 8-bit RGBA sRGB, composited
 into the document. Stored as a flat bitmap behind a pixel-access abstraction.

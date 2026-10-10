@@ -3,7 +3,7 @@ namespace DipsyPaint.Engine;
 /// <summary>Layer storage as one flat, row-major bitmap (ADR-0005).</summary>
 internal sealed class FlatPixels : IPixelAccess
 {
-    private readonly Rgba[] _pixels;
+    private Rgba[] _pixels;
 
     public FlatPixels(int width, int height, Rgba fill)
     {
@@ -13,8 +13,20 @@ internal sealed class FlatPixels : IPixelAccess
         Array.Fill(_pixels, fill);
     }
 
-    public int Width { get; }
-    public int Height { get; }
+    public int Width { get; private set; }
+    public int Height { get; private set; }
+
+    /// <summary>The pixels, row-major; for whole-layer operations inside the engine (see <see cref="Document"/>).</summary>
+    internal Rgba[] Buffer => _pixels;
+
+    /// <summary>Takes <paramref name="pixels"/> as the new <paramref name="width"/>×<paramref name="height"/> storage; returns the old pixels.</summary>
+    internal Rgba[] Replace(int width, int height, Rgba[] pixels)
+    {
+        ArgumentOutOfRangeException.ThrowIfNotEqual(pixels.Length, width * height, nameof(pixels));
+        var old = _pixels;
+        (_pixels, Width, Height) = (pixels, width, height);
+        return old;
+    }
 
     public Rgba GetPixel(int x, int y) => _pixels[IndexOf(x, y)];
 

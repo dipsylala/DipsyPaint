@@ -61,24 +61,38 @@ public sealed class DocumentCanvas : Control
         if (_editor is not null)
         {
             _editor.CompositeChanged -= OnCompositeChanged;
+            _editor.SizeChanged -= OnSizeChanged;
         }
 
-        _bitmap?.Dispose();
-        _bitmap = null;
         _editor = DataContext as DocumentEditor;
         if (_editor is not null)
         {
             _editor.HandleTolerance = HandleReach / _scale;
+            _editor.CompositeChanged += OnCompositeChanged;
+            _editor.SizeChanged += OnSizeChanged;
+        }
+
+        CreateBitmap();
+    }
+
+    // A new bitmap the size of the composite, holding all of it.
+    private void CreateBitmap()
+    {
+        _bitmap?.Dispose();
+        _bitmap = null;
+        if (_editor is not null)
+        {
             var compositor = _editor.Compositor;
             _bitmap = new WriteableBitmap(
                 new PixelSize(compositor.Width, compositor.Height), new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Premul);
             CopyToBitmap(new IntRect(0, 0, compositor.Width, compositor.Height));
-            _editor.CompositeChanged += OnCompositeChanged;
         }
 
         InvalidateMeasure();
         InvalidateVisual();
     }
+
+    private void OnSizeChanged(object? sender, EventArgs e) => CreateBitmap();
 
     protected override Size MeasureOverride(Size availableSize) =>
         _editor is null ? default : new Size(_editor.Compositor.Width, _editor.Compositor.Height);

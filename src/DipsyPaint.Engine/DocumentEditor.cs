@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using DipsyPaint.Engine.Tools;
 
 namespace DipsyPaint.Engine;
@@ -9,6 +10,9 @@ namespace DipsyPaint.Engine;
 /// Pending content of an <see cref="IPendingTool"/> is shown in <see cref="Overlay"/>. Everything
 /// written to the layer from the gesture that creates it until it is committed (e.g. the hole left by
 /// lifting a selection) becomes one history step; cancelling reverts those writes.
+/// The image operations (<see cref="CropToSelection"/>, <see cref="Resize"/>, <see cref="Transform"/>)
+/// apply to the selection when there is one, else to every layer, and may change the canvas size
+/// (<see cref="SizeChanged"/>).
 /// </summary>
 public sealed class DocumentEditor
 {
@@ -81,6 +85,12 @@ public sealed class DocumentEditor
 
     /// <summary>Raised with the document-space rectangle whose composited pixels changed.</summary>
     public event EventHandler<IntRect>? CompositeChanged;
+
+    /// <summary>
+    /// Raised when the canvas size changed (an image operation, or undoing or redoing one), after
+    /// <see cref="Compositor"/> has been resized and before the matching <see cref="CompositeChanged"/>.
+    /// </summary>
+    public event EventHandler? SizeChanged;
 
     /// <summary>Raised when <see cref="PrimaryColor"/> or <see cref="SecondaryColor"/> changes, e.g. by a tool.</summary>
     public event EventHandler? ColorsChanged;
@@ -204,13 +214,128 @@ public sealed class DocumentEditor
         }
     }
 
-    /// <summary>Redoes the latest undone history step. Ignored while a stroke is in progress.</summary>
+    /// <summary>
+    /// Commits pending content, then redoes the latest undone history step. Pending content that wrote
+    /// to the layer (e.g. a lifted selection) is a new step, so nothing is left to redo; committing it
+    /// first keeps a redone canvas resize from landing under it. Ignored while a stroke is in progress.
+    /// </summary>
     public void Redo()
     {
         if (!_inGesture)
         {
+            CommitPending();
             Refresh(History.Redo());
         }
+    }
+
+    /// <summary>
+    /// Rotates or flips the selection if there is one (it stays pending, as after a move), else every
+    /// layer and the canvas, as one history step. Ignored during a gesture.
+    /// </summary>
+    public void Transform(ImageTransform transform)
+    {
+        if (_inGesture)
+        {
+            return;
+        }
+
+        if (ActiveTool is SelectionTool { Selection: { } selection } tool)
+        {
+            var (width, height) = transform.SwapsSides()
+                ? (selection.Bounds.Height, selection.Bounds.Width)
+                : (selection.Bounds.Width, selection.Bounds.Height);
+            ReplaceSelection(tool, width, height, (pixels, w, h) => PixelOps.Transform(pixels, w, h, transform));
+            return;
+        }
+
+        CommitPending();
+        CanvasTransformStep.Apply(Document, transform);
+        History.Record(new CanvasTransformStep(Document, transform));
+        Refresh(new IntRect(0, 0, Document.Width, Document.Height));
+    }
+
+    /// <summary>
+    /// Resamples the selection to <paramref name="width"/>×<paramref name="height"/> if there is one (it
+    /// stays pending), else every layer and the canvas, as one history step; the filter is a triangle
+    /// (bilinear) filter, area-weighted when shrinking. Refused beyond <see cref="Document.MaxSide"/>
+    /// per side, or when the new pixels would exceed <paramref name="budget"/> (default
+    /// <see cref="MemoryBudget.Default"/>). Does nothing during a gesture or when the size is unchanged.
+    /// </summary>
+    public ResizeResult Resize(int width, int height, MemoryBudget? budget = null)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(width, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(height, 1);
+        if (width > Document.MaxSide || height > Document.MaxSide)
+        {
+            return ResizeResult.TooLarge;
+        }
+
+        var tool = ActiveTool as SelectionTool;
+        var selection = tool?.Selection;
+        // The new layers (or selection), the resampler's intermediate, the composite and the shell's bitmap.
+        var bitmaps = selection is null ? Document.Layers.Count + 3 : 2;
+        if (!(budget ?? MemoryBudget.Default).Allows(bitmaps * width * (long)height * Unsafe.SizeOf<Rgba>()))
+        {
+            return ResizeResult.OverMemoryBudget;
+        }
+
+        if (_inGesture)
+        {
+            return ResizeResult.Resized;
+        }
+
+        if (selection is { Bounds: var bounds })
+        {
+            if ((bounds.Width, bounds.Height) != (width, height))
+            {
+                ReplaceSelection(tool!, width, height, (pixels, w, h) => PixelOps.Resample(pixels, w, h, width, height));
+            }
+
+            return ResizeResult.Resized;
+        }
+
+        CommitPending();
+        var (oldWidth, oldHeight) = (Document.Width, Document.Height);
+        if ((oldWidth, oldHeight) != (width, height))
+        {
+            ReplaceCanvas(width, height, pixels => PixelOps.Resample(pixels, oldWidth, oldHeight, width, height));
+        }
+
+        return ResizeResult.Resized;
+    }
+
+    /// <summary>
+    /// Commits the selection, then crops every layer and the canvas to it (the part on the canvas) as
+    /// one history step. Does nothing without a selection or during a gesture.
+    /// </summary>
+    public void CropToSelection()
+    {
+        if (_inGesture || Selection is not { } selection)
+        {
+            return;
+        }
+
+        var canvas = new IntRect(0, 0, Document.Width, Document.Height);
+        var region = selection.Bounds.Intersect(canvas);
+        CommitPending();
+        if (!region.IsEmpty && region != canvas)
+        {
+            ReplaceCanvas(region.Width, region.Height, pixels => PixelOps.Crop(pixels, canvas.Width, region));
+        }
+    }
+
+    private void ReplaceSelection(SelectionTool tool, int width, int height, Func<Rgba[], int, int, Rgba[]> map)
+    {
+        _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
+        Refresh(tool.Replace(Context(_recorder), width, height, map));
+    }
+
+    private void ReplaceCanvas(int width, int height, Func<Rgba[], Rgba[]> map)
+    {
+        var beforeSize = (Document.Width, Document.Height);
+        var before = Document.ReplacePixels(width, height, (_, pixels) => map(pixels));
+        History.Record(new CanvasPixelsStep(Document, before, beforeSize));
+        Refresh(new IntRect(0, 0, width, height));
     }
 
     private void RecordStep()
@@ -239,6 +364,13 @@ public sealed class DocumentEditor
 
     private void Refresh(IntRect dirty)
     {
+        if (Compositor.FitDocument())
+        {
+            SizeChanged?.Invoke(this, EventArgs.Empty);
+            CompositeChanged?.Invoke(this, new IntRect(0, 0, Compositor.Width, Compositor.Height));
+            return;
+        }
+
         if (dirty.IsEmpty)
         {
             return;

@@ -29,10 +29,19 @@ public partial class MainWindow : Window
     [MemberNotNull(nameof(Editor))]
     public void ReplaceDocument(Document document)
     {
+        Editor?.SizeChanged -= OnCanvasSizeChanged;
         Editor = new DocumentEditor(document);
+        Editor.SizeChanged += OnCanvasSizeChanged;
         DataContext = Editor;
-        Canvas.Width = document.Width;
-        Canvas.Height = document.Height;
-        CanvasSizeText.Text = string.Format(Strings.CanvasSizeFormat, document.Width, document.Height);
+        ShowCanvasSize();
+    }
+
+    private void OnCanvasSizeChanged(object? sender, EventArgs e) => ShowCanvasSize();
+
+    private void ShowCanvasSize()
+    {
+        Canvas.Width = Document.Width;
+        Canvas.Height = Document.Height;
+        CanvasSizeText.Text = string.Format(Strings.CanvasSizeFormat, Document.Width, Document.Height);
     }
 }
