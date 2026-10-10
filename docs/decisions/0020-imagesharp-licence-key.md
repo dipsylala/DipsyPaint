@@ -32,7 +32,8 @@ dedicated codecs; stay on 3.1.12 with mitigations.
   before the secret exists). The run logs which configuration it tested.
 - `sixlabors.lic` is git-ignored; the key is never committed.
 - Local builds: Debug works without a key. Release needs `SixLaborsLicenseKey`
-  set or a local `sixlabors.lic`.
+  set, or `sixlabors.lic` at the repo root (`Directory.Build.props` points
+  ImageSharp at it, since ImageSharp only searches below each project).
 
 ## Consequences
 

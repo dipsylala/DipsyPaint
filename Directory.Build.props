@@ -6,4 +6,8 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
+  <!-- ImageSharp only searches below each project for sixlabors.lic; use the git-ignored one at the repo root (ADR-0020). -->
+  <PropertyGroup Condition="'$(SixLaborsLicenseFile)' == '' and Exists('$(MSBuildThisFileDirectory)sixlabors.lic')">
+    <SixLaborsLicenseFile>$(MSBuildThisFileDirectory)sixlabors.lic</SixLaborsLicenseFile>
+  </PropertyGroup>
 </Project>

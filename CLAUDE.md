@@ -12,7 +12,7 @@ DipsyPaint: an MIT-licensed, cross-platform (Windows, macOS, Linux) equivalent o
 
 ## Building and testing
 
-`dotnet test` (Debug) works without setup. Release builds need a Six Labors licence key for ImageSharp, via the `SixLaborsLicenseKey` environment variable or a git-ignored `sixlabors.lic` (ADR-0020). Test Release only when that key is available. CI picks the configuration automatically.
+`dotnet test` (Debug) works without setup. Release builds need a Six Labors licence key for ImageSharp, via the `SixLaborsLicenseKey` environment variable or a git-ignored `sixlabors.lic` at the repo root (ADR-0020). Test Release only when that key is available. CI picks the configuration automatically.
 
 ## Ticket workflow
 
