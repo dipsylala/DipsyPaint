@@ -17,7 +17,7 @@ namespace DipsyPaint.Drawing;
 /// it (e.g. zoom) still yields document pixels. Transparent pixels show a checkerboard, as in
 /// reference Paint. Also draws the frame and handles around pending content
 /// (<see cref="DocumentEditor.Adornment"/>) at a constant on-screen size, and handles Enter
-/// (commit) and Esc (cancel) for it.
+/// (commit) and Esc (cancel) for it, and Delete for a selection.
 /// </summary>
 public sealed class DocumentCanvas : Control
 {
@@ -155,6 +155,9 @@ public sealed class DocumentCanvas : Control
                 break;
             case Key.Escape:
                 _editor.CancelPending();
+                break;
+            case Key.Delete when _editor.Selection is not null:
+                _editor.DeleteSelection();
                 break;
             default:
                 return;

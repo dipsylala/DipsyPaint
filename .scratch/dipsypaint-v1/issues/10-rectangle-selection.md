@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] A rectangle selection can be drawn, moved and deleted as in reference Paint
-- [ ] Move and delete are undoable
-- [ ] Golden images for move and delete
-- [ ] Shortcuts match reference Paint
+- [x] A rectangle selection can be drawn, moved and deleted as in reference Paint
+- [x] Move and delete are undoable
+- [x] Golden images for move and delete
+- [x] Shortcuts match reference Paint

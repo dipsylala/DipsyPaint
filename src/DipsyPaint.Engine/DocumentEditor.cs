@@ -76,6 +76,9 @@ public sealed class DocumentEditor
     /// <summary>The frame and handles to draw around pending content, or null.</summary>
     public Adornment? Adornment => (ActiveTool as IPendingTool)?.Adornment;
 
+    /// <summary>The selection of the active <see cref="SelectionTool"/>, or null when there is none.</summary>
+    public Selection? Selection => (ActiveTool as SelectionTool)?.Selection;
+
     /// <summary>Raised with the document-space rectangle whose composited pixels changed.</summary>
     public event EventHandler<IntRect>? CompositeChanged;
 
@@ -136,6 +139,22 @@ public sealed class DocumentEditor
         }
 
         Refresh(dirty);
+    }
+
+    /// <summary>
+    /// Deletes the selected pixels (Delete), leaving the layer transparent there, and removes the
+    /// selection; with any move or stretch before it, one history step. Ignored during a gesture.
+    /// </summary>
+    public void DeleteSelection()
+    {
+        if (_inGesture || ActiveTool is not SelectionTool tool)
+        {
+            return;
+        }
+
+        _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
+        Refresh(tool.Delete(Context(_recorder)));
+        RecordStep();
     }
 
     /// <summary>
