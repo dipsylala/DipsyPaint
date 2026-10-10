@@ -9,19 +9,18 @@ public sealed class Compositor
 {
     private readonly Document _document;
     private readonly Overlay? _overlay;
-    private readonly Rgba[] _composite;
+    private Rgba[] _composite = [];
     private Rgba[] _row = [];
 
     public Compositor(Document document, Overlay? overlay = null)
     {
         _document = document;
         _overlay = overlay;
-        _composite = new Rgba[document.Width * document.Height];
-        Update(new IntRect(0, 0, Width, Height));
+        FitDocument();
     }
 
-    public int Width => _document.Width;
-    public int Height => _document.Height;
+    public int Width { get; private set; }
+    public int Height { get; private set; }
 
     /// <summary>The composited document, row-major, premultiplied.</summary>
     public ReadOnlySpan<Rgba> Pixels => _composite;
@@ -59,5 +58,22 @@ public sealed class Compositor
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// After the document's canvas size changed: reallocates the composite at the new size and
+    /// recomposites all of it. Returns false, doing nothing, if the size is unchanged.
+    /// </summary>
+    internal bool FitDocument()
+    {
+        if (Width == _document.Width && Height == _document.Height)
+        {
+            return false;
+        }
+
+        (Width, Height) = (_document.Width, _document.Height);
+        _composite = new Rgba[Width * Height];
+        Update(new IntRect(0, 0, Width, Height));
+        return true;
     }
 }

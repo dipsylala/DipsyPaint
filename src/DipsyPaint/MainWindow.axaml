@@ -6,6 +6,7 @@
         xmlns:tools="using:DipsyPaint.Tools"
         xmlns:files="using:DipsyPaint.Files"
         xmlns:diagnostics="using:DipsyPaint.Diagnostics"
+        xmlns:images="using:DipsyPaint.Images"
         x:Class="DipsyPaint.MainWindow"
         Title="{x:Static res:Strings.AppName}"
         Icon="avares://DipsyPaint/Assets/dipsypaint.ico"
@@ -16,6 +17,7 @@
       <StackPanel Orientation="Horizontal">
         <files:FileMenu x:Name="FileMenu" />
         <local:HistoryControl />
+        <images:ImageControl x:Name="ImageGroup" />
         <tools:ToolPicker />
         <local:ColourControl />
         <diagnostics:HelpMenu x:Name="HelpMenu" />

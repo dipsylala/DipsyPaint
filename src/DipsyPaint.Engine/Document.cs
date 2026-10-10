@@ -1,6 +1,10 @@
 namespace DipsyPaint.Engine;
 
-/// <summary>An open image being edited: an ordered stack of layers with a fixed canvas size.</summary>
+/// <summary>
+/// An open image being edited: an ordered stack of layers sharing one canvas size. The size changes
+/// only through the image operations of <see cref="DocumentEditor"/> (crop, resize, rotate), which
+/// apply to every layer.
+/// </summary>
 public sealed class Document
 {
     /// <summary>Largest allowed canvas side, in pixels (ADR-0005).</summary>
@@ -13,8 +17,8 @@ public sealed class Document
     private readonly List<Layer> _layers = [];
     private Layer _activeLayer;
 
-    public int Width { get; }
-    public int Height { get; }
+    public int Width { get; private set; }
+    public int Height { get; private set; }
 
     /// <summary>The layers, bottom first.</summary>
     public IReadOnlyList<Layer> Layers => _layers;
@@ -53,5 +57,24 @@ public sealed class Document
         _layers.Add(layer);
         _activeLayer = layer;
         return layer;
+    }
+
+    /// <summary>
+    /// Gives every layer new <paramref name="width"/>×<paramref name="height"/> pixels, computed by
+    /// <paramref name="pixelsOf"/> from the layer's index and current pixels (which it must not change),
+    /// and sets the canvas size. All new pixels are computed before any layer changes. Returns each
+    /// layer's old pixels.
+    /// </summary>
+    internal Rgba[][] ReplacePixels(int width, int height, Func<int, Rgba[], Rgba[]> pixelsOf)
+    {
+        var replacement = _layers.Select((layer, i) => pixelsOf(i, layer.Storage.Buffer)).ToArray();
+        var old = new Rgba[_layers.Count][];
+        for (var i = 0; i < _layers.Count; i++)
+        {
+            old[i] = _layers[i].Storage.Replace(width, height, replacement[i]);
+        }
+
+        (Width, Height) = (width, height);
+        return old;
     }
 }

@@ -1,0 +1,39 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:DipsyPaint.Resources"
+        x:Class="DipsyPaint.Images.ResizeDialog"
+        Title="{x:Static res:ImageStrings.ResizeDialogTitle}"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="24" Spacing="12" MinWidth="280">
+    <StackPanel Orientation="Horizontal" Spacing="16">
+      <RadioButton x:Name="PercentageOption" GroupName="ResizeBy" IsChecked="True"
+                   Content="{x:Static res:ImageStrings.Percentage}"
+                   AutomationProperties.Name="{x:Static res:ImageStrings.Percentage}" />
+      <RadioButton x:Name="PixelsOption" GroupName="ResizeBy"
+                   Content="{x:Static res:ImageStrings.Pixels}"
+                   AutomationProperties.Name="{x:Static res:ImageStrings.Pixels}" />
+    </StackPanel>
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="12">
+      <Label Content="{x:Static res:ImageStrings.Horizontal}" Target="HorizontalBox" VerticalAlignment="Center" />
+      <NumericUpDown x:Name="HorizontalBox" Grid.Column="1" Minimum="1" Maximum="1000000" Increment="1"
+                     FormatString="0" ParsingNumberStyle="Integer"
+                     AutomationProperties.Name="{x:Static res:ImageStrings.Horizontal}" />
+      <Label Grid.Row="1" Content="{x:Static res:ImageStrings.Vertical}" Target="VerticalBox" VerticalAlignment="Center" />
+      <NumericUpDown x:Name="VerticalBox" Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="1000000" Increment="1"
+                     FormatString="0" ParsingNumberStyle="Integer"
+                     AutomationProperties.Name="{x:Static res:ImageStrings.Vertical}" />
+    </Grid>
+    <CheckBox x:Name="MaintainAspectRatioBox" IsChecked="True"
+              Content="{x:Static res:ImageStrings.MaintainAspectRatio}"
+              AutomationProperties.Name="{x:Static res:ImageStrings.MaintainAspectRatio}" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="OkButton" IsDefault="True" MinWidth="80" Click="OnOkClick"
+              Content="{x:Static res:ImageStrings.Ok}"
+              AutomationProperties.Name="{x:Static res:ImageStrings.Ok}" />
+      <Button x:Name="CancelButton" IsCancel="True" MinWidth="80" Click="OnCancelClick"
+              Content="{x:Static res:ImageStrings.Cancel}"
+              AutomationProperties.Name="{x:Static res:ImageStrings.Cancel}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

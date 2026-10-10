@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Crop to selection, resize, rotate 90°/180° and flip behave as in reference Paint
-- [ ] Resizing beyond 16384 px on either side is refused with a message
-- [ ] Each operation is undoable
-- [ ] Golden images for each operation
+- [x] Crop to selection, resize, rotate 90°/180° and flip behave as in reference Paint
+- [x] Resizing beyond 16384 px on either side is refused with a message
+- [x] Each operation is undoable
+- [x] Golden images for each operation

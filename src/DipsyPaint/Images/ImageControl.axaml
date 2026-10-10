@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             x:Class="DipsyPaint.Images.ImageControl"
+             AutomationProperties.Name="{x:Static res:ImageStrings.ImageGroupName}">
+  <StackPanel Orientation="Horizontal" Spacing="4" Margin="8,4">
+    <Button x:Name="CropButton" Click="OnCropClick" Width="40" Height="40"
+            AutomationProperties.Name="{x:Static res:ImageStrings.Crop}"
+            ToolTip.Tip="{x:Static res:ImageStrings.CropToolTip}">
+      <PathIcon Width="16" Height="16" Data="M4,1 H5.5 V10.5 H15 V12 H4 Z M1,4 H12 V15 H10.5 V5.5 H1 Z" />
+    </Button>
+    <Button x:Name="ResizeButton" Click="OnResizeClick" Width="40" Height="40"
+            AutomationProperties.Name="{x:Static res:ImageStrings.Resize}"
+            ToolTip.Tip="{x:Static res:ImageStrings.ResizeToolTip}">
+      <PathIcon Width="16" Height="16"
+                Data="M1,7 H9 V15 H1 Z M2.5,8.5 V13.5 H7.5 V8.5 Z M6,1 H15 V10 H10.5 V8.5 H13.5 V2.5 H7.5 V5.5 H6 Z" />
+    </Button>
+    <Button x:Name="RotateButton" Width="40" Height="40"
+            AutomationProperties.Name="{x:Static res:ImageStrings.Rotate}"
+            ToolTip.Tip="{x:Static res:ImageStrings.Rotate}">
+      <PathIcon Width="16" Height="16" Data="M8,2 A6,6 0 1 1 2,8 H4 A4,4 0 1 0 8,4 V6 L4.5,3 L8,0 Z" />
+      <Button.Flyout>
+        <MenuFlyout>
+          <MenuItem x:Name="RotateRightItem" Header="{x:Static res:ImageStrings.RotateRight}" Click="OnRotateRightClick"
+                    AutomationProperties.Name="{x:Static res:ImageStrings.RotateRight}" />
+          <MenuItem x:Name="RotateLeftItem" Header="{x:Static res:ImageStrings.RotateLeft}" Click="OnRotateLeftClick"
+                    AutomationProperties.Name="{x:Static res:ImageStrings.RotateLeft}" />
+          <MenuItem x:Name="Rotate180Item" Header="{x:Static res:ImageStrings.Rotate180}" Click="OnRotate180Click"
+                    AutomationProperties.Name="{x:Static res:ImageStrings.Rotate180}" />
+          <Separator />
+          <MenuItem x:Name="FlipVerticalItem" Header="{x:Static res:ImageStrings.FlipVertical}" Click="OnFlipVerticalClick"
+                    AutomationProperties.Name="{x:Static res:ImageStrings.FlipVertical}" />
+          <MenuItem x:Name="FlipHorizontalItem" Header="{x:Static res:ImageStrings.FlipHorizontal}" Click="OnFlipHorizontalClick"
+                    AutomationProperties.Name="{x:Static res:ImageStrings.FlipHorizontal}" />
+        </MenuFlyout>
+      </Button.Flyout>
+    </Button>
+  </StackPanel>
+</UserControl>
