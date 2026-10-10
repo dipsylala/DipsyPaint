@@ -65,7 +65,7 @@ Per RID (`<rid>` is the channel):
 | --- | --- |
 | `DipsyPaint-<rid>-Setup.exe` | Windows installer |
 | `DipsyPaint-<rid>-Setup.pkg` | macOS installer |
-| `DipsyPaint.AppImage` named for the RID | Linux app |
+| `DipsyPaint-<rid>.AppImage` | Linux app (no separate portable package needed) |
 | `DipsyPaint-<rid>-Portable.zip` | Windows and macOS portable copy; it updates itself too |
 | `DipsyPaint-<version>-<rid>-full.nupkg` | Full update package |
 | `DipsyPaint-<version>-<rid>-delta.nupkg` | Delta from the previous release, when there is one |

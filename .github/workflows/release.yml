@@ -13,7 +13,6 @@ name: Release
 on:
   push:
     tags: ['v*']
-    branches: [issue/16-packaging-and-distribution] # TEMPORARY: validation before merge; remove
   workflow_dispatch:
     inputs:
       validate:
@@ -44,7 +43,7 @@ jobs:
       - id: mode
         env:
           SixLaborsLicenseKey: ${{ secrets.SIXLABORS_LICENSE_KEY }}
-          Validate: ${{ github.event_name == 'workflow_dispatch' && inputs.validate || github.ref_type == 'branch' }} # TEMPORARY "|| ...": remove
+          Validate: ${{ github.event_name == 'workflow_dispatch' && inputs.validate }}
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             mode=release
