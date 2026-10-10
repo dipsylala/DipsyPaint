@@ -37,6 +37,10 @@ public static class ToolRegistry
     // Shape options are app-wide, as in reference Paint: every shape tool and options panel shares them.
     private static readonly ShapeSettings ShapeSettings = new();
 
+    // Bespoke: a dashed square, ADR-0012.
+    private const string SelectionIcon =
+        "M3 3h5v1.5H4.5V8H3zM10 3h4v1.5h-4zM16 3h5v5h-1.5V4.5H16zM19.5 10H21v4h-1.5zM21 16v5h-5v-1.5h3.5V16zM10 19.5h4V21h-4zM3 16h1.5v3.5H8V21H3zM3 10h1.5v4H3z";
+
     public static IReadOnlyList<ToolDescriptor> Tools { get; } =
     [
         new("pencil", ToolStrings.Pencil, EditIcon, new KeyGesture(Key.P), () => new PencilTool()),
@@ -47,5 +51,6 @@ public static class ToolRegistry
         new("eraser", BrushStrings.Eraser, EraserIcon, new KeyGesture(Key.E),
             () => new EraserTool(EraserSettings), () => new StrokeSizeOptions(EraserSettings)),
         new("shapes", ShapeStrings.Shapes, ShapesIcon, null, () => new ShapeTool(ShapeSettings), () => new ShapeOptions(ShapeSettings)),
+        new("rectangle-selection", SelectionStrings.RectangleSelection, SelectionIcon, null, () => new SelectionTool()),
     ];
 }
