@@ -4,3 +4,5 @@ obj/
 *.user
 TestResults/
 .claude/worktrees/
+# Six Labors licence key (see THIRD-PARTY-NOTICES.md)
+sixlabors.lic

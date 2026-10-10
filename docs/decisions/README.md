@@ -21,6 +21,7 @@
 | [0017](0017-no-telemetry.md) | No telemetry; local crash logs and user-submitted reports | Accepted |
 | [0018](0018-performance-targets.md) | Performance targets with non-blocking CI benchmark tracking | Accepted |
 | [0019](0019-file-formats-match-paint.md) | Flat file formats match reference Paint, minus HEIC | Accepted |
+| [0020](0020-imagesharp-licence-key.md) | ImageSharp 4 licence key: obtain one; CI falls back to Debug without it | Accepted |
 
 ## Open Questions
 

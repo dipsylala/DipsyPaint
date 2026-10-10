@@ -13,12 +13,18 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # ImageSharp 4 Release builds need a Six Labors licence key (ADR-0020). Secrets are not
+      # passed to pull requests from forks, so those (and any run without the key) build Debug.
+      SixLaborsLicenseKey: ${{ secrets.SIXLABORS_LICENSE_KEY }}
+      Configuration: ${{ secrets.SIXLABORS_LICENSE_KEY != '' && 'Release' || 'Debug' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - run: dotnet test --configuration Release
+      - run: echo "Testing the ${{ env.Configuration }} configuration"
+      - run: dotnet test --configuration ${{ env.Configuration }}
       - if: failure()
         uses: actions/upload-artifact@v7
         with:

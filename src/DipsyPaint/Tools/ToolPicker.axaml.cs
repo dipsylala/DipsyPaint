@@ -54,9 +54,10 @@ public partial class ToolPicker : UserControl
         _editor?.StrokeEnded -= OnStrokeEnded;
         _editor = DataContext as DocumentEditor;
         _editor?.StrokeEnded += OnStrokeEnded;
+        // A new editor (e.g. after File > New) keeps the tool the user had selected.
         if (_tools.Count > 0)
         {
-            Select(_tools[0]);
+            Select(_active ?? _tools[0]);
         }
     }
 
