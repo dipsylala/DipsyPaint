@@ -8,17 +8,25 @@ using DipsyPaint.Resources;
 namespace DipsyPaint.Tools;
 
 /// <summary>
-/// Command-bar group with one toggle button per registered tool. Selecting a tool sets the
-/// active tool of the <see cref="DocumentEditor"/> in the DataContext.
+/// Command-bar group with one toggle button per registered tool, followed by the active tool's
+/// options panel. Selecting a tool sets the active tool of the <see cref="DocumentEditor"/> in
+/// the DataContext.
 /// </summary>
 public partial class ToolPicker : UserControl
 {
+    private readonly IReadOnlyList<ToolDescriptor> _tools;
     private readonly Dictionary<ToolDescriptor, ToggleButton> _buttons = [];
+    private readonly Dictionary<ToolDescriptor, Control> _options = [];
 
-    public ToolPicker()
+    public ToolPicker() : this(ToolRegistry.Tools)
     {
+    }
+
+    public ToolPicker(IReadOnlyList<ToolDescriptor> tools)
+    {
+        _tools = tools;
         InitializeComponent();
-        foreach (var tool in ToolRegistry.Tools)
+        foreach (var tool in tools)
         {
             var button = new ToggleButton
             {
@@ -40,9 +48,9 @@ public partial class ToolPicker : UserControl
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (ToolRegistry.Tools.Count > 0)
+        if (_tools.Count > 0)
         {
-            Select(ToolRegistry.Tools[0]);
+            Select(_tools[0]);
         }
     }
 
@@ -52,6 +60,13 @@ public partial class ToolPicker : UserControl
         {
             button.IsChecked = ReferenceEquals(descriptor, tool);
         }
+
+        if (tool.CreateOptions is not null && !_options.ContainsKey(tool))
+        {
+            _options[tool] = tool.CreateOptions();
+        }
+
+        ToolOptions.Content = _options.GetValueOrDefault(tool);
 
         if (DataContext is DocumentEditor editor)
         {

@@ -3,5 +3,8 @@
              xmlns:res="using:DipsyPaint.Resources"
              x:Class="DipsyPaint.Tools.ToolPicker"
              AutomationProperties.Name="{x:Static res:ToolStrings.ToolsGroupName}">
-  <StackPanel x:Name="ToolButtons" Orientation="Horizontal" Spacing="4" Margin="8,4" />
+  <StackPanel Orientation="Horizontal">
+    <StackPanel x:Name="ToolButtons" Orientation="Horizontal" Spacing="4" Margin="8,4" />
+    <ContentControl x:Name="ToolOptions" VerticalAlignment="Center" Margin="8,4" />
+  </StackPanel>
 </UserControl>
