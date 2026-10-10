@@ -1,4 +1,4 @@
-# AGENTS.md
+# CLAUDE.md
 
 DipsyPaint: an MIT-licensed, cross-platform (Windows, macOS, Linux) equivalent of Windows 11 Paint, built on Avalonia + SkiaSharp + ImageSharp (.NET 10).
 
