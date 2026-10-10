@@ -197,6 +197,23 @@ public sealed class FileMenuTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task SaveCommitsAPendingShapeFirst()
+    {
+        var (window, menu, dialogs) = ShowWindow();
+        window.Editor.ActiveTool = new ShapeTool(new ShapeSettings { Kind = ShapeKind.Rectangle });
+        window.Editor.Apply(new PointerInput(PointerAction.Down, 2.5, 2.5));
+        window.Editor.Apply(new PointerInput(PointerAction.Move, 20.5, 20.5));
+        window.Editor.Apply(new PointerInput(PointerAction.Up, 20.5, 20.5));
+        Assert.NotNull(window.Editor.Adornment);
+        dialogs.SaveResult = FileOnDisk("shape.png");
+
+        await menu.SaveAsAsync(ImageFormat.Png);
+
+        Assert.Null(window.Editor.Adornment);
+        Assert.Equal(Rgba.Black, Reopen("shape.png").ActiveLayer.Pixels.GetPixel(2, 2));
+    }
+
+    [AvaloniaFact]
     public async Task SaveWithoutAFileAsksWhereToSaveAsPng()
     {
         var (_, menu, dialogs) = ShowWindow();

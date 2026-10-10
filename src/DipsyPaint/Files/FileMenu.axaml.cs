@@ -138,6 +138,8 @@ public partial class FileMenu : UserControl
     {
         try
         {
+            // A pending shape is visible in the composite but not yet in the layer.
+            Window.Editor.CommitPending();
             using var encoded = new MemoryStream();
             ImageCodec.Export(Window.Editor.Compositor, encoded, format);
             await using var stream = await file.OpenWriteAsync();
