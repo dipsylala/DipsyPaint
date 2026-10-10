@@ -6,12 +6,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] The app launches and shows a blank document on Windows, macOS and Linux
-- [ ] The engine library has no Avalonia dependency
-- [ ] Light and dark mode follow the OS setting
-- [ ] The window title and app icon say DipsyPaint; no "Microsoft"/"MS Paint" text or Microsoft icons anywhere
-- [ ] No print command exists in the UI
-- [ ] All UI strings come from `.resx` resources (English)
-- [ ] Every command present is reachable by keyboard and carries an automation name
-- [ ] An engine unit test and an Avalonia.Headless smoke test (window loads, document visible) pass
-- [ ] A GitHub Actions matrix (Windows, macOS, Linux) runs build and tests on every PR
+- [x] The app launches and shows a blank document on Windows, macOS and Linux
+- [x] The engine library has no Avalonia dependency
+- [x] Light and dark mode follow the OS setting
+- [x] The window title and app icon say DipsyPaint; no "Microsoft"/"MS Paint" text or Microsoft icons anywhere
+- [x] No print command exists in the UI
+- [x] All UI strings come from `.resx` resources (English)
+- [x] Every command present is reachable by keyboard and carries an automation name
+- [x] An engine unit test and an Avalonia.Headless smoke test (window loads, document visible) pass
+- [x] A GitHub Actions matrix (Windows, macOS, Linux) runs build and tests on every PR
