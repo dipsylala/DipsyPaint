@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             x:Class="DipsyPaint.ZoomControl">
+  <StackPanel Orientation="Horizontal" Spacing="4">
+    <Button x:Name="FitToWindowButton" Click="OnFitToWindowClick" Padding="6"
+            AutomationProperties.Name="{x:Static res:ZoomStrings.FitToWindow}"
+            ToolTip.Tip="{x:Static res:ZoomStrings.FitToWindow}">
+      <PathIcon Width="12" Height="12"
+                Data="M1,1 H6 V2.5 H2.5 V6 H1 Z M15,1 V6 H13.5 V2.5 H10 V1 Z M1,15 V10 H2.5 V13.5 H6 V15 Z M15,15 H10 V13.5 H13.5 V10 H15 Z" />
+    </Button>
+    <Button x:Name="ZoomOutButton" Click="OnZoomOutClick" Padding="6"
+            AutomationProperties.Name="{x:Static res:ZoomStrings.ZoomOut}"
+            ToolTip.Tip="{x:Static res:ZoomStrings.ZoomOutToolTip}">
+      <PathIcon Width="12" Height="12" Data="M2,7 H14 V9 H2 Z" />
+    </Button>
+    <TextBlock x:Name="ZoomText" MinWidth="48" TextAlignment="Center" VerticalAlignment="Center"
+               AutomationProperties.Name="{x:Static res:ZoomStrings.ZoomLevelAutomationName}" />
+    <Button x:Name="ZoomInButton" Click="OnZoomInClick" Padding="6"
+            AutomationProperties.Name="{x:Static res:ZoomStrings.ZoomIn}"
+            ToolTip.Tip="{x:Static res:ZoomStrings.ZoomInToolTip}">
+      <PathIcon Width="12" Height="12" Data="M7,2 H9 V7 H14 V9 H9 V14 H7 V9 H2 V7 H7 Z" />
+    </Button>
+  </StackPanel>
+</UserControl>

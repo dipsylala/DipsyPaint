@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:res="using:DipsyPaint.Resources"
+        xmlns:local="using:DipsyPaint"
         x:Class="DipsyPaint.MainWindow"
         Title="{x:Static res:Strings.AppName}"
         Icon="avares://DipsyPaint/Assets/dipsypaint.ico"
@@ -10,13 +11,20 @@
             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
     <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Padding="12,4"
             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
-      <TextBlock x:Name="CanvasSizeText" />
+      <DockPanel>
+        <local:ZoomControl x:Name="Zoom" DockPanel.Dock="Right" Target="{Binding #CanvasZoom}" />
+        <TextBlock x:Name="CanvasSizeText" VerticalAlignment="Center" />
+      </DockPanel>
     </Border>
-    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+    <ScrollViewer x:Name="CanvasScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                   Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
-      <Border x:Name="Canvas" Background="White" Margin="24"
-              HorizontalAlignment="Left" VerticalAlignment="Top"
-              AutomationProperties.Name="{x:Static res:Strings.CanvasAutomationName}" />
+      <!-- Zoom scales this wrapper, not the canvas; nearest-neighbour keeps zoomed pixels crisp. -->
+      <LayoutTransformControl x:Name="CanvasZoom" Margin="24" HorizontalAlignment="Left" VerticalAlignment="Top"
+                              RenderOptions.BitmapInterpolationMode="None">
+        <Border x:Name="Canvas" Background="White"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                AutomationProperties.Name="{x:Static res:Strings.CanvasAutomationName}" />
+      </LayoutTransformControl>
     </ScrollViewer>
   </DockPanel>
 </Window>
