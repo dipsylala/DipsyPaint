@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] An unhandled exception writes a crash log containing the version, the OS and the stack trace, and no image data
-- [ ] File paths and usernames are stripped from the log where practical
-- [ ] "Report a problem" opens a pre-filled GitHub issue in the browser and submits nothing itself
-- [ ] The app makes no network requests (verified by test or inspection)
+- [x] An unhandled exception writes a crash log containing the version, the OS and the stack trace, and no image data
+- [x] File paths and usernames are stripped from the log where practical
+- [x] "Report a problem" opens a pre-filled GitHub issue in the browser and submits nothing itself
+- [x] The app makes no network requests (verified by test or inspection)

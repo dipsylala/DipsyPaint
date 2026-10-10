@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Help" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="ReportProblem" xml:space="preserve">
+    <value>Report a problem…</value>
+  </data>
+  <data name="IssueTitle" xml:space="preserve">
+    <value>Problem: </value>
+  </data>
+  <data name="IssueBody" xml:space="preserve">
+    <value>**What happened?**
+
+
+**Steps to reproduce**
+1.
+
+**Environment**
+- DipsyPaint version: {0}
+- OS: {1}
+- .NET: {2}</value>
+  </data>
+  <data name="CrashLogSection" xml:space="preserve">
+    <value>
+
+**Most recent crash log** (home folder and user name removed; please check it before submitting)
+```text
+{0}
+```</value>
+  </data>
+  <data name="Trimmed" xml:space="preserve">
+    <value>… (trimmed)</value>
+  </data>
+</root>

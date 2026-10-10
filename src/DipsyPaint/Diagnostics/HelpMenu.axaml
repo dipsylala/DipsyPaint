@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             x:Class="DipsyPaint.Diagnostics.HelpMenu">
+  <Menu VerticalAlignment="Center" Margin="8,0">
+    <MenuItem x:Name="HelpMenuItem" Header="{x:Static res:ReportStrings.Help}"
+              AutomationProperties.Name="{x:Static res:ReportStrings.Help}">
+      <MenuItem x:Name="ReportProblemItem" Header="{x:Static res:ReportStrings.ReportProblem}" Click="OnReportProblemClick"
+                AutomationProperties.Name="{x:Static res:ReportStrings.ReportProblem}" />
+    </MenuItem>
+  </Menu>
+</UserControl>
