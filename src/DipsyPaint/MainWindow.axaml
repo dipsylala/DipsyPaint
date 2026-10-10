@@ -12,6 +12,7 @@
     <Border x:Name="CommandBar" DockPanel.Dock="Top" MinHeight="48"
             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
       <StackPanel Orientation="Horizontal">
+        <local:HistoryControl />
         <tools:ToolPicker />
       </StackPanel>
     </Border>
