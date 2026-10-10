@@ -100,7 +100,11 @@ public static class ImageCodec
         image.Save(stream, encoder);
     }
 
-    private static void CheckSize(int width, int height, MemoryBudget budget)
+    /// <summary>
+    /// Throws an <see cref="ImageOpenException"/> unless an image of this size fits within
+    /// <see cref="Document.MaxSide"/> and, at <paramref name="costPerPixel"/> bytes per pixel, the budget.
+    /// </summary>
+    internal static void CheckSize(int width, int height, MemoryBudget budget, long costPerPixel = OpenCostPerPixel)
     {
         if (width < 1 || height < 1)
         {
@@ -113,10 +117,10 @@ public static class ImageCodec
                 $"The image is {width}×{height} px; documents are limited to {Document.MaxSide} px per side.");
         }
 
-        if (!budget.Allows((long)width * height * OpenCostPerPixel))
+        if (!budget.Allows((long)width * height * costPerPixel))
         {
             throw new ImageOpenException(OpenFailure.OverMemoryBudget,
-                $"Opening a {width}×{height} px image needs more memory than the budget allows.");
+                $"A {width}×{height} px image needs more memory than the budget allows.");
         }
     }
 

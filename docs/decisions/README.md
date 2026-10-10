@@ -9,7 +9,7 @@
 | [0005](0005-document-model-flat-layers.md) | Document model — flat 8-bit RGBA layers, region-diff undo | Accepted |
 | [0006](0006-project-format-openraster.md) | OpenRaster (.ora) is the native project format | Accepted |
 | [0007](0007-licence-mit.md) | The project is open source under the MIT licence | Accepted |
-| [0008](0008-codecs-imagesharp.md) | All file I/O through ImageSharp; Skia for rendering only | Accepted; format list superseded by 0019 |
+| [0008](0008-codecs-imagesharp.md) | All file I/O through ImageSharp; Skia for rendering only | Accepted; format list superseded by 0019; amended by 0021 |
 | [0009](0009-milestone-phasing.md) | Deliver parity in three milestones (M1/M2/M3) | Accepted |
 | [0010](0010-no-printing.md) | Printing is not supported | Accepted |
 | [0011](0011-additions-beyond-parity.md) | Features beyond reference Paint are allowed, case by case | Accepted |
@@ -22,6 +22,7 @@
 | [0018](0018-performance-targets.md) | Performance targets with non-blocking CI benchmark tracking | Accepted |
 | [0019](0019-file-formats-match-paint.md) | Flat file formats match reference Paint, minus HEIC | Accepted |
 | [0020](0020-imagesharp-licence-key.md) | ImageSharp 4 licence key: obtain one; CI falls back to Debug without it | Accepted |
+| [0021](0021-clipboard-image-formats.md) | Clipboard image formats per OS; Windows output through Avalonia's bitmap | Accepted |
 
 ## Open Questions
 

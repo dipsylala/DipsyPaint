@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Clipboard" xml:space="preserve">
+    <value>Clipboard</value>
+  </data>
+  <data name="Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="PasteToolTip" xml:space="preserve">
+    <value>Paste (Ctrl+V)</value>
+  </data>
+  <data name="Cut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="CutToolTip" xml:space="preserve">
+    <value>Cut (Ctrl+X)</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="CopyToolTip" xml:space="preserve">
+    <value>Copy (Ctrl+C)</value>
+  </data>
+  <data name="CouldNotPaste" xml:space="preserve">
+    <value>Could not paste the image on the clipboard.</value>
+  </data>
+  <data name="UnreadableReason" xml:space="preserve">
+    <value>The clipboard data is damaged or is not a supported image.</value>
+  </data>
+  <data name="TooLargeReason" xml:space="preserve">
+    <value>The image is larger than {0} pixels on a side.</value>
+  </data>
+  <data name="OverMemoryBudgetReason" xml:space="preserve">
+    <value>The image is too large to paste with the memory available.</value>
+  </data>
+  <data name="CouldNotCopy" xml:space="preserve">
+    <value>Could not put the selection on the clipboard.</value>
+  </data>
+</root>

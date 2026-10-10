@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] Copy, cut and paste work within the app, with reference Paint's shortcuts
+- [x] Copy, cut and paste work within the app, with reference Paint's shortcuts
 - [ ] An image copied in DipsyPaint pastes into another app, and vice versa, on Windows, macOS and Linux
-- [ ] Pasted content arrives as a movable selection, as in reference Paint
-- [ ] A pasted image larger than the canvas behaves as in reference Paint
-- [ ] Clipboard decode failures show a message and don't crash
+- [x] Pasted content arrives as a movable selection, as in reference Paint
+- [x] A pasted image larger than the canvas behaves as in reference Paint
+- [x] Clipboard decode failures show a message and don't crash
