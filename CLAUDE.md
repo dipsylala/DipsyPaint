@@ -10,6 +10,10 @@ DipsyPaint: an MIT-licensed, cross-platform (Windows, macOS, Linux) equivalent o
 - **Tickets:** `.scratch/dipsypaint-v1/issues/NN-<slug>.md`, one per tracer-bullet slice, each listing the tickets that block it.
 - **Parity rule:** when a ticket leaves a tool's behaviour unspecified, match reference Paint.
 
+## Building and testing
+
+`dotnet test` (Debug) works without setup. Release builds need a Six Labors licence key for ImageSharp, via the `SixLaborsLicenseKey` environment variable or a git-ignored `sixlabors.lic` (ADR-0020). Test Release only when that key is available. CI picks the configuration automatically.
+
 ## Ticket workflow
 
 Each ticket is delivered on its own branch and merged into `main` through a pull request. `main` receives changes only through merged PRs.

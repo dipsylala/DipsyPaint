@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-10
+- **Amended by:** [ADR-0020](0020-imagesharp-licence-key.md) (ImageSharp 4 requires a build-time licence key)
 
 ## Context
 
