@@ -122,7 +122,7 @@ jobs:
           make -C squashfs-tools-4.6.1/squashfs-tools -j"$(nproc)" mksquashfs
           install squashfs-tools-4.6.1/squashfs-tools/mksquashfs /usr/local/bin/
           rm -rf squashfs.tar.gz squashfs-tools-4.6.1
-          mksquashfs -version | head -n 1
+          mksquashfs -version
 
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
