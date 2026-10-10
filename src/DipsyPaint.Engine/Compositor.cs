@@ -2,17 +2,20 @@ namespace DipsyPaint.Engine;
 
 /// <summary>
 /// Holds the composite of a document's layers (source-over, bottom first) and
-/// recomposites only the rectangles reported as dirty (ADR-0018).
+/// recomposites only the rectangles reported as dirty (ADR-0018). An optional <see cref="Overlay"/>
+/// is composited directly above the active layer.
 /// </summary>
 public sealed class Compositor
 {
     private readonly Document _document;
+    private readonly Overlay? _overlay;
     private readonly Rgba[] _composite;
     private Rgba[] _row = [];
 
-    public Compositor(Document document)
+    public Compositor(Document document, Overlay? overlay = null)
     {
         _document = document;
+        _overlay = overlay;
         _composite = new Rgba[document.Width * document.Height];
         Update(new IntRect(0, 0, Width, Height));
     }
@@ -48,6 +51,11 @@ public sealed class Compositor
                 for (var x = 0; x < target.Length; x++)
                 {
                     target[x] = source[x].Over(target[x]);
+                }
+
+                if (layer == _document.ActiveLayer)
+                {
+                    _overlay?.CompositeRow(y, region.X, target);
                 }
             }
         }

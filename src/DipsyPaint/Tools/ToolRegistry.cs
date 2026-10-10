@@ -30,6 +30,13 @@ public static class ToolRegistry
     private static readonly StrokeSettings BrushSettings = new(size: 5);
     private static readonly StrokeSettings EraserSettings = new(size: 8);
 
+    // Bespoke: a square and a circle (the Fluent set's shape icons are not a good match), ADR-0012.
+    private const string ShapesIcon =
+        "M2 2h9v9H2zM3.5 3.5v6h6v-6zM16.5 11a5.5 5.5 0 1 1 0 11a5.5 5.5 0 1 1 0-11zm0 1.5a4 4 0 1 0 0 8a4 4 0 1 0 0-8z";
+
+    // Shape options are app-wide, as in reference Paint: every shape tool and options panel shares them.
+    private static readonly ShapeSettings ShapeSettings = new();
+
     public static IReadOnlyList<ToolDescriptor> Tools { get; } =
     [
         new("pencil", ToolStrings.Pencil, EditIcon, new KeyGesture(Key.P), () => new PencilTool()),
@@ -39,5 +46,6 @@ public static class ToolRegistry
             () => new BrushTool(BrushSettings), () => new StrokeSizeOptions(BrushSettings)),
         new("eraser", BrushStrings.Eraser, EraserIcon, new KeyGesture(Key.E),
             () => new EraserTool(EraserSettings), () => new StrokeSizeOptions(EraserSettings)),
+        new("shapes", ShapeStrings.Shapes, ShapesIcon, null, () => new ShapeTool(ShapeSettings), () => new ShapeOptions(ShapeSettings)),
     ];
 }
