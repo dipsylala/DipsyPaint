@@ -110,9 +110,19 @@ jobs:
     steps:
       - name: Linux prerequisites
         if: runner.os == 'Linux'
-        # clang and zlib for the NativeAOT linker; git for the checkout; libicu for the .NET SDK;
-        # which and squashfs-tools for vpk to build the AppImage.
-        run: dnf install -y --setopt=install_weak_deps=False clang lld zlib-devel git libicu findutils tar gzip which squashfs-tools
+        # clang and zlib for the NativeAOT linker; git for the checkout; libicu for the .NET SDK.
+        # vpk builds the AppImage with mksquashfs, which must be 4.5 or newer (AlmaLinux 8 has 4.3),
+        # so it is built from a pinned source release.
+        run: |
+          dnf install -y --setopt=install_weak_deps=False clang lld zlib-devel git libicu findutils tar gzip which gcc make
+          cd /tmp
+          curl -fsSL -o squashfs.tar.gz https://github.com/plougher/squashfs-tools/archive/refs/tags/4.6.1.tar.gz
+          echo "9c4974e07c61547dae14af4ed1f358b7d04618ae194e54d6be72ee126f0d2f53  squashfs.tar.gz" | sha256sum -c -
+          tar -xzf squashfs.tar.gz
+          make -C squashfs-tools-4.6.1/squashfs-tools -j"$(nproc)" mksquashfs
+          install squashfs-tools-4.6.1/squashfs-tools/mksquashfs /usr/local/bin/
+          rm -rf squashfs.tar.gz squashfs-tools-4.6.1
+          mksquashfs -version | head -n 1
 
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
