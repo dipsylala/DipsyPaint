@@ -16,6 +16,8 @@
     <!-- Same SkiaSharp as Avalonia.Skia uses. -->
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="3.119.4" />
+    <!-- Installer and auto-update (ADR-0015). MIT. -->
+    <PackageVersion Include="Velopack" Version="1.2.161" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>

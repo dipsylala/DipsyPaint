@@ -26,6 +26,13 @@ DipsyPaint is MIT-licensed (ADR-0007). It ships with the components below, each 
 - **Licence:** [MIT](https://github.com/mono/SkiaSharp/blob/main/LICENSE.md). Copyright © .NET Foundation and Contributors.
   SkiaSharp bundles Google's Skia, under its [BSD 3-Clause licence](https://skia.org/docs/dev/contrib/license/).
 
+## Velopack
+
+- **Use:** installers, portable packages and automatic updates from GitHub Releases (ADR-0015). Packages also contain
+  Velopack's updater program (`Update.exe`, `UpdateMac` or `UpdateNix`), under the same licence.
+- **Licence:** [MIT](https://github.com/velopack/velopack/blob/master/LICENSE). Copyright © 2021 Caelan Sayler,
+  Copyright © 2024 Velopack Ltd.
+
 ## Fluent UI System Icons
 
 - **Use:** tool and command icons (ADR-0012).
