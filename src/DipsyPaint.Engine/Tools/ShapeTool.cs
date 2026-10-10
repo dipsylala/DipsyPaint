@@ -3,8 +3,8 @@ namespace DipsyPaint.Engine.Tools;
 /// <summary>
 /// Draws lines, rectangles and ellipses as in reference Paint. Dragging draws the shape (Shift
 /// keeps it square, circular or at a multiple of 45°); it then stays pending in the overlay, where
-/// dragging a handle resizes it and dragging inside moves it, until a press outside it commits it
-/// (and starts the next shape). The left button outlines in the primary colour and fills in the
+/// dragging a handle resizes it and dragging inside moves it, until it is committed (a press outside
+/// it, which also starts the next shape; see <see cref="IPendingTool"/>). The left button outlines in the primary colour and fills in the
 /// secondary; the right button swaps them.
 /// </summary>
 public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
@@ -35,7 +35,6 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
     public IntRect Handle(ToolContext context, PointerInput input)
     {
         var pixel = (X: (int)Math.Floor(input.X), Y: (int)Math.Floor(input.Y));
-        var dirty = IntRect.Empty;
         if (input.Action == PointerAction.Down)
         {
             var hit = Adornment?.HitTest(input.X, input.Y, context.HandleTolerance) ?? FrameHandle.None;
@@ -45,10 +44,10 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
                 return IntRect.Empty;
             }
 
-            dirty = Commit(context);
+            // A press outside: the editor has committed the previous shape; draw a new one.
             (_gesture, _pending, _kind, _swapColors, _a, _b) =
                 (Gesture.Draw, true, settings.Kind, input.Button == PointerButton.Right, pixel, pixel);
-            return dirty;
+            return context.Overlay.Clear();
         }
 
         switch (_gesture)
@@ -73,7 +72,7 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
             }
         }
 
-        return dirty.Union(Render(context));
+        return Render(context);
     }
 
     public IntRect Commit(ToolContext context)

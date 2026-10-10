@@ -2,14 +2,19 @@ namespace DipsyPaint.Engine.Tools;
 
 /// <summary>
 /// A tool whose result stays pending between gestures: shown in <see cref="ToolContext.Overlay"/>
-/// (not on the layer, not in history) and adjustable until committed, as reference Paint's shapes
-/// and selections are. The tool commits by itself when a gesture starts outside its content; the
-/// <see cref="DocumentEditor"/> commits it on tool switch, undo and <see cref="DocumentEditor.CommitPending"/>
-/// (Enter), recording one history step, and cancels it on <see cref="DocumentEditor.CancelPending"/> (Esc).
+/// and adjustable until committed, as reference Paint's shapes and selections are. The
+/// <see cref="DocumentEditor"/> commits it when a press lands outside <see cref="Adornment"/>
+/// (before passing that press on), on tool switch, on undo and on <see cref="DocumentEditor.CommitPending"/>
+/// (Enter); it cancels it on <see cref="DocumentEditor.CancelPending"/> (Esc). Layer writes made
+/// through <see cref="ToolContext.Target"/> while content is pending (e.g. the hole a lifted
+/// selection leaves) and by <see cref="Commit"/> form one history step; cancelling reverts them.
 /// </summary>
 public interface IPendingTool : ITool
 {
-    /// <summary>The frame and handles to show around the pending content; null when there is none to adjust.</summary>
+    /// <summary>
+    /// The frame and handles around the pending content; non-null exactly while content is pending
+    /// between gestures (it may be null during the gesture that creates it).
+    /// </summary>
     Adornment? Adornment { get; }
 
     /// <summary>
@@ -18,7 +23,7 @@ public interface IPendingTool : ITool
     /// </summary>
     IntRect Commit(ToolContext context);
 
-    /// <summary>Discards the pending content without touching the layer. Returns the changed rectangle.</summary>
+    /// <summary>Discards the pending content from the overlay. Returns the changed rectangle.</summary>
     IntRect Cancel(ToolContext context);
 
     /// <summary>

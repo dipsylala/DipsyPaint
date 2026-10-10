@@ -6,16 +6,19 @@ namespace DipsyPaint.Engine;
 /// Routes pointer input to the active tool, records each stroke as a history step and keeps the
 /// composite up to date. The shell and scripted tests both drive editing through this class.
 /// An editor belongs to one document: replacing the document means a new editor and an empty history.
-/// Pending content of an <see cref="IPendingTool"/> is shown in <see cref="Overlay"/> and becomes
-/// one history step when committed.
+/// Pending content of an <see cref="IPendingTool"/> is shown in <see cref="Overlay"/>. Everything
+/// written to the layer from the gesture that creates it until it is committed (e.g. the hole left by
+/// lifting a selection) becomes one history step; cancelling reverts those writes.
 /// </summary>
 public sealed class DocumentEditor
 {
     /// <summary>Handle grab distance at 100% zoom, in document pixels.</summary>
     public const double DefaultHandleTolerance = 4;
 
-    // Records the active layer's before-pixels from pointer down to pointer up.
+    // Records the active layer's before-pixels from pointer down to pointer up, or until pending
+    // content is committed or cancelled.
     private PixelRecorder? _recorder;
+    private bool _inGesture;
     private ITool? _activeTool;
     private Rgba _primaryColor = Rgba.Black;
     private Rgba _secondaryColor = Rgba.White;
@@ -89,19 +92,22 @@ public sealed class DocumentEditor
             return;
         }
 
+        // A press outside pending content commits it, as in reference Paint; the tool then sees a fresh press.
+        if (input.Action == PointerAction.Down && !_inGesture
+            && Adornment?.HitTest(input.X, input.Y, HandleTolerance) == FrameHandle.None)
+        {
+            CommitPending();
+        }
+
+        _inGesture = input.Action != PointerAction.Up;
         _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
         var context = Context(_recorder);
         var dirty = ActiveTool.Handle(context, input);
         PrimaryColor = context.PrimaryColor;
         SecondaryColor = context.SecondaryColor;
-        if (input.Action == PointerAction.Up)
+        if (input.Action == PointerAction.Up && Adornment is null)
         {
-            if (_recorder.TakeStep() is { } step)
-            {
-                History.Record(step);
-            }
-
-            _recorder = null;
+            RecordStep();
         }
 
         Refresh(dirty);
@@ -122,29 +128,39 @@ public sealed class DocumentEditor
             return;
         }
 
-        if (_recorder is not null)
+        _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
+        var dirty = tool.Commit(Context(_recorder));
+        if (!_inGesture)
         {
-            Refresh(tool.Commit(Context(_recorder)));
-            return;
-        }
-
-        var recorder = new PixelRecorder(Document.ActiveLayer.Pixels);
-        var dirty = tool.Commit(Context(recorder));
-        if (recorder.TakeStep() is { } step)
-        {
-            History.Record(step);
+            RecordStep();
         }
 
         Refresh(dirty);
     }
 
-    /// <summary>Discards the active tool's pending content (Esc).</summary>
+    /// <summary>
+    /// Discards the active tool's pending content (Esc) and reverts what was written to the layer
+    /// while it was pending.
+    /// </summary>
     public void CancelPending()
     {
-        if (ActiveTool is IPendingTool tool)
+        if (ActiveTool is not IPendingTool tool)
         {
-            Refresh(tool.Cancel(Context(Document.ActiveLayer.Pixels)));
+            return;
         }
+
+        var dirty = tool.Cancel(Context(Document.ActiveLayer.Pixels));
+        if (!_inGesture)
+        {
+            if (_recorder?.TakeStep() is { } written)
+            {
+                dirty = dirty.Union(written.Undo());
+            }
+
+            _recorder = null;
+        }
+
+        Refresh(dirty);
     }
 
     /// <summary>Re-renders pending content after a colour or tool option changed.</summary>
@@ -162,7 +178,7 @@ public sealed class DocumentEditor
     /// </summary>
     public void Undo()
     {
-        if (_recorder is null)
+        if (!_inGesture)
         {
             CommitPending();
             Refresh(History.Undo());
@@ -172,10 +188,20 @@ public sealed class DocumentEditor
     /// <summary>Redoes the latest undone history step. Ignored while a stroke is in progress.</summary>
     public void Redo()
     {
-        if (_recorder is null)
+        if (!_inGesture)
         {
             Refresh(History.Redo());
         }
+    }
+
+    private void RecordStep()
+    {
+        if (_recorder?.TakeStep() is { } step)
+        {
+            History.Record(step);
+        }
+
+        _recorder = null;
     }
 
     private ToolContext Context(IPixelAccess target) =>
