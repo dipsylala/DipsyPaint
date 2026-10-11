@@ -299,6 +299,7 @@ public class LayersTests
 
         window.GetLogicalDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetName(b) == ToolStrings.Fill)
             .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout(); // the tool's options may rewrap the command bar and move the canvas
         window.MouseDown(InWindow(window, 5, 5), MouseButton.Left);
         window.MouseUp(InWindow(window, 5, 5), MouseButton.Left);
 
