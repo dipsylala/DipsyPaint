@@ -6,10 +6,16 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <!-- A bundled font (SIL OFL 1.1), so text golden images never depend on the system's fonts. -->
+    <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Shared with the engine's golden tests: PNG load/save and the update workflow. -->
+    <Compile Include="..\DipsyPaint.Engine.Tests\Golden\GoldenImage.cs" Link="Golden\GoldenImage.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\DipsyPaint\DipsyPaint.csproj" />

@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:DipsyPaint.Resources"
+        x:Class="DipsyPaint.Files.SaveChangesDialog"
+        Title="{x:Static res:Strings.AppName}"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="24" Spacing="24" MinWidth="320" MaxWidth="480">
+    <TextBlock x:Name="QuestionText" TextWrapping="Wrap" />
+    <!-- Enter = Save (IsDefault), Esc = Cancel (IsCancel), as in reference Paint. -->
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="SaveButton" IsDefault="True" MinWidth="80" Click="OnSaveClick"
+              Content="{x:Static res:SaveChangesStrings.Save}"
+              AutomationProperties.Name="{x:Static res:SaveChangesStrings.Save}" />
+      <Button x:Name="DontSaveButton" MinWidth="80" Click="OnDontSaveClick"
+              Content="{x:Static res:SaveChangesStrings.DontSave}"
+              AutomationProperties.Name="{x:Static res:SaveChangesStrings.DontSave}" />
+      <Button x:Name="CancelButton" IsCancel="True" MinWidth="80" Click="OnCancelClick"
+              Content="{x:Static res:SaveChangesStrings.Cancel}"
+              AutomationProperties.Name="{x:Static res:SaveChangesStrings.Cancel}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

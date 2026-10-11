@@ -6,12 +6,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] The editor exposes whether the document has unsaved changes, with a change notification; undoing back to the saved point clears it and redoing past it sets it again
-- [ ] New, Open, window close and "Restart to update" prompt only when there are unsaved changes
-- [ ] Save saves first (falling back to Save as for an untitled document) and continues only if the save succeeded; Don't save continues; Cancel leaves everything as it was
-- [ ] The prompt's wording, buttons and title-bar marker match reference Paint, with strings from `.resx` and automation names
-- [ ] The prompt is keyboard-operable (Enter = Save, Esc = Cancel)
-- [ ] Headless tests cover each trigger with each choice, and the undo/redo cases of the tracking
+- [x] The editor exposes whether the document has unsaved changes, with a change notification; undoing back to the saved point clears it and redoing past it sets it again
+- [x] New, Open, window close and "Restart to update" prompt only when there are unsaved changes
+- [x] Save saves first (falling back to Save as for an untitled document) and continues only if the save succeeded; Don't save continues; Cancel leaves everything as it was
+- [x] The prompt's wording, buttons and title-bar marker match reference Paint, with strings from `.resx` and automation names
+- [x] The prompt is keyboard-operable (Enter = Save, Esc = Cancel)
+- [x] Headless tests cover each trigger with each choice, and the undo/redo cases of the tracking
 
 ## Notes
 

@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] Every shape in reference Paint's shape gallery is present
-- [ ] Outline/fill options and adjust-before-commit match reference Paint
-- [ ] Golden images per shape
+- [x] Every shape in reference Paint's shape gallery is present
+- [x] Outline/fill options and adjust-before-commit match reference Paint
+- [x] Golden images per shape

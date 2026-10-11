@@ -1,6 +1,8 @@
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Media;
 using DipsyPaint.Engine;
 using DipsyPaint.Resources;
@@ -21,6 +23,7 @@ public partial class ToolPicker : UserControl
     private DocumentEditor? _editor;
     private ToolDescriptor? _active;
     private ToolDescriptor? _previous;
+    private TopLevel? _topLevel;
 
     public ToolPicker() : this(ToolRegistry.Tools)
     {
@@ -35,7 +38,6 @@ public partial class ToolPicker : UserControl
             var button = new ToggleButton
             {
                 Content = new PathIcon { Data = Geometry.Parse(tool.IconData) },
-                HotKey = tool.Shortcut,
                 Width = 40,
                 Height = 40,
             };
@@ -47,6 +49,33 @@ public partial class ToolPicker : UserControl
             ToolButtons.Children.Add(button);
             _buttons[tool] = button;
         }
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _topLevel = TopLevel.GetTopLevel(this);
+        _topLevel?.AddHandler(KeyDownEvent, OnTopLevelKeyDown);
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _topLevel?.RemoveHandler(KeyDownEvent, OnTopLevelKeyDown);
+        _topLevel = null;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    // Tool shortcuts are plain letters, so they must not fire while the user types into a text box
+    // (e.g. the text tool's): bubbling, and ignored when a text box has the keyboard focus.
+    private void OnTopLevelKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Source is TextBox || _tools.FirstOrDefault(t => t.Shortcut?.Matches(e) == true) is not { } tool)
+        {
+            return;
+        }
+
+        Select(tool);
+        e.Handled = true;
     }
 
     protected override void OnDataContextChanged(EventArgs e)

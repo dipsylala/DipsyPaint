@@ -44,6 +44,22 @@ public sealed partial class DocumentEditor
     public Compositor Compositor { get; }
     public History History { get; }
 
+    /// <summary>
+    /// Whether the document has <i>unsaved changes</i>: history steps made, undone or redone since it
+    /// was last saved, opened or created. Tracked by <see cref="History"/>, so every step type counts.
+    /// </summary>
+    public bool HasUnsavedChanges => History.HasUnsavedChanges;
+
+    /// <summary>Raised when <see cref="HasUnsavedChanges"/> changes.</summary>
+    public event EventHandler? UnsavedChangesChanged
+    {
+        add => History.UnsavedChangesChanged += value;
+        remove => History.UnsavedChangesChanged -= value;
+    }
+
+    /// <summary>Records that the document, as it is now, has been saved.</summary>
+    public void MarkSaved() => History.MarkSaved();
+
     /// <summary>Pending content, composited above the active layer but not yet part of it.</summary>
     public Overlay Overlay { get; }
 
@@ -81,6 +97,9 @@ public sealed partial class DocumentEditor
 
     /// <summary>The frame and handles to draw around pending content, or null.</summary>
     public Adornment? Adornment => (ActiveTool as IPendingTool)?.Adornment;
+
+    /// <summary>Whether the active tool has pending content, with or without an <see cref="Adornment"/> (Enter commits it, Esc cancels it).</summary>
+    public bool HasPending => (ActiveTool as IPendingTool)?.HasPending == true;
 
     /// <summary>The selection of the active <see cref="SelectionTool"/>, or null when there is none.</summary>
     public Selection? Selection => (ActiveTool as SelectionTool)?.Selection;
@@ -120,15 +139,17 @@ public sealed partial class DocumentEditor
         }
 
         // A press outside pending content commits it, as in reference Paint; the tool then sees a fresh press.
+        var committed = false;
         if (input.Action == PointerAction.Down && !_inGesture
             && Adornment?.HitTest(input.X, input.Y, HandleTolerance) == FrameHandle.None)
         {
             CommitPending();
+            committed = true;
         }
 
         _inGesture = input.Action != PointerAction.Up;
         _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
-        var context = Context(_recorder);
+        var context = Context(_recorder) with { CommittedByPress = committed };
         var dirty = ActiveTool.Handle(context, input);
         PrimaryColor = context.PrimaryColor;
         SecondaryColor = context.SecondaryColor;

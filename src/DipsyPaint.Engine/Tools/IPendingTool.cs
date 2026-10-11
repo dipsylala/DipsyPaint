@@ -18,6 +18,13 @@ public interface IPendingTool : ITool
     Adornment? Adornment { get; }
 
     /// <summary>
+    /// True while content is pending. Usually that is while <see cref="Adornment"/> is shown, but a
+    /// tool may build its content over several gestures (a curve's bends, a polygon's corners) with
+    /// no adornment, so that each press reaches the tool instead of committing.
+    /// </summary>
+    bool HasPending => Adornment is not null;
+
+    /// <summary>
     /// Writes the pending content to <see cref="ToolContext.Target"/> and clears it from the overlay.
     /// Returns the changed rectangle; empty when nothing was pending.
     /// </summary>

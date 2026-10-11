@@ -35,18 +35,21 @@ public partial class UpdateControl : UserControl
     }
 
     /// <summary>
-    /// Closes the window and, only if it really closes, has Velopack apply the update and restart the app.
+    /// Closes the window, after the "Save changes?" prompt if there are unsaved changes, and, only if
+    /// it really closes, has Velopack apply the update and restart the app.
     /// </summary>
-    public void RestartToUpdate()
+    public async Task RestartToUpdateAsync()
     {
-        if (_updater is not { } updater || TopLevel.GetTopLevel(this) is not Window window)
+        if (_updater is not { } updater || TopLevel.GetTopLevel(this) is not MainWindow window)
         {
             return;
         }
 
-        window.Closed += (_, _) => updater.ApplyAfterExitAndRestart();
-        window.Close();
+        if (await window.FileMenu.CloseWindowAsync())
+        {
+            updater.ApplyAfterExitAndRestart();
+        }
     }
 
-    private void OnRestartClick(object? sender, RoutedEventArgs e) => RestartToUpdate();
+    private async void OnRestartClick(object? sender, RoutedEventArgs e) => await RestartToUpdateAsync();
 }
