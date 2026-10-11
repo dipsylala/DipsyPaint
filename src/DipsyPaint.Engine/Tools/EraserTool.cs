@@ -3,7 +3,8 @@ namespace DipsyPaint.Engine.Tools;
 /// <summary>
 /// Reference Paint's eraser: a hard-edged square of <see cref="StrokeSettings.Size"/> pixels,
 /// centred on the pixel under the pointer, that erases the active layer to transparency (Paint
-/// shows the transparency as a checkerboard on a single-layer document). Both buttons erase.
+/// shows the transparency as a checkerboard on a single-layer document). Below 100 %
+/// <see cref="StrokeSettings.Opacity"/> it leaves pixels partially transparent. Both buttons erase.
 /// </summary>
 public sealed class EraserTool(StrokeSettings settings) : ITool
 {
@@ -16,7 +17,7 @@ public sealed class EraserTool(StrokeSettings settings) : ITool
     {
         if (input.Action == PointerAction.Down)
         {
-            _stroke = Stroke.Erase(context.Target);
+            _stroke = Stroke.Erase(context.Target, settings.OpacityFraction);
             _size = settings.Size;
         }
         else if (_stroke is null)

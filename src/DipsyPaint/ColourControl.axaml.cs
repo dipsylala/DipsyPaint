@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -5,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using DipsyPaint.Colours;
 using DipsyPaint.Engine;
 using DipsyPaint.Layout;
 using DipsyPaint.Resources;
@@ -14,13 +16,20 @@ namespace DipsyPaint;
 /// <summary>
 /// Command-bar colour group, as in reference Paint: the Colour 1 (primary) and Colour 2
 /// (secondary) swatches of the <see cref="DocumentEditor"/> in the DataContext, a swap button and
-/// the default palette. Left-clicking (or pressing) a palette swatch sets the selected colour
-/// slot; right-clicking one always sets Colour 2. On a side edge the palette's 2 × 10 grid turns
-/// into 10 × 2, each of its rows becoming a column.
+/// the default palette, a row of custom colours and Edit colours. Left-clicking (or pressing) a
+/// palette or custom swatch sets the selected colour slot; right-clicking one always sets Colour 2.
+/// Edit colours sets the selected slot to the colour chosen and adds it to the custom colours,
+/// which last for the session. On a side edge the palette's 2 × 10 grid turns into 10 × 2, each of
+/// its rows becoming a column, and the custom colours become a third column.
 /// </summary>
 public partial class ColourControl : UserControl
 {
+    /// <summary>How many custom colours the Colours group holds, as in reference Paint: one row.</summary>
+    public const int CustomColourSlots = 10;
+
     private readonly List<Button> _swatches = [];
+    private readonly List<Button> _customSwatches = [];
+    private readonly List<Rgba> _customColours = [];
     private DocumentEditor? _editor;
     private bool _colour2Selected;
 
@@ -50,9 +59,34 @@ public partial class ColourControl : UserControl
             _swatches.Add(swatch);
         }
 
+        for (var i = 0; i < CustomColourSlots; i++)
+        {
+            var slot = i;
+            var swatch = new Button { Width = 20, Height = 20, Padding = new Thickness(2) };
+            swatch.Click += (_, _) => SetColor(_colour2Selected, _customColours[slot]);
+            swatch.AddHandler(PointerReleasedEvent, (_, e) =>
+            {
+                if (e.InitialPressMouseButton == MouseButton.Right && slot < _customColours.Count)
+                {
+                    SetColor(secondary: true, _customColours[slot]);
+                    e.Handled = true;
+                }
+            }, handledEventsToo: true);
+            _customSwatches.Add(swatch);
+            CustomColoursGrid.Children.Add(swatch);
+        }
+
+        Dialogs = new WindowColourDialogs(this);
         ArrangePalette(CommandGroup.GetOrientation(this));
         UpdateSwatches();
+        UpdateCustomSwatches();
     }
+
+    /// <summary>The dialogs behind Edit colours; tests substitute their own.</summary>
+    public IColourDialogs Dialogs { get; set; }
+
+    /// <summary>The custom colours added this session, oldest first, at most <see cref="CustomColourSlots"/>.</summary>
+    public IReadOnlyList<Rgba> CustomColours => _customColours;
 
     /// <summary>
     /// Reference Paint's default palette: two rows of ten, top row first. These are classic Paint's
@@ -119,6 +153,9 @@ public partial class ColourControl : UserControl
     private void ArrangePalette(Orientation orientation)
     {
         var vertical = orientation == Orientation.Vertical;
+        PalettePanel.Orientation = vertical ? Orientation.Horizontal : Orientation.Vertical;
+        CustomColoursGrid.Rows = vertical ? CustomColourSlots : 1;
+        CustomColoursGrid.Columns = vertical ? 1 : CustomColourSlots;
         var half = _swatches.Count / 2;
         PaletteGrid.Rows = vertical ? half : 2;
         PaletteGrid.Columns = vertical ? 2 : half;
@@ -146,6 +183,60 @@ public partial class ColourControl : UserControl
     }
 
     private void OnColorsChanged(object? sender, EventArgs e) => UpdateSwatches();
+
+    /// <summary>
+    /// Adds <paramref name="color"/> to the custom colours: into the first empty slot or, when all
+    /// are full, at the end with the oldest dropped.
+    /// </summary>
+    public void AddCustomColour(Rgba color)
+    {
+        if (_customColours.Count == CustomColourSlots)
+        {
+            _customColours.RemoveAt(0);
+        }
+
+        _customColours.Add(color);
+        UpdateCustomSwatches();
+    }
+
+    // Empty slots show as outlines and can't be clicked or focused.
+    private void UpdateCustomSwatches()
+    {
+        for (var i = 0; i < _customSwatches.Count; i++)
+        {
+            var swatch = _customSwatches[i];
+            var filled = i < _customColours.Count;
+            var name = filled
+                ? string.Format(CultureInfo.CurrentCulture, ColourEditorStrings.CustomColour, EditColoursDialog.Hex(_customColours[i]))
+                : ColourEditorStrings.EmptyCustomColour;
+            swatch.IsEnabled = filled;
+            swatch.Content = new Border
+            {
+                Background = filled ? ToBrush(_customColours[i]) : null,
+                BorderBrush = filled ? Brushes.Gray : Brushes.LightGray,
+                BorderThickness = new Thickness(1),
+            };
+            AutomationProperties.SetName(swatch, name);
+            ToolTip.SetTip(swatch, name);
+        }
+    }
+
+    private async void OnEditColoursClick(object? sender, RoutedEventArgs e)
+    {
+        if (_editor is null)
+        {
+            return;
+        }
+
+        var selected = _colour2Selected ? _editor.SecondaryColor : _editor.PrimaryColor;
+        if (await Dialogs.EditColoursAsync(selected) is not { } color)
+        {
+            return;
+        }
+
+        SetColor(_colour2Selected, color);
+        AddCustomColour(color);
+    }
 
     private void UpdateSwatches()
     {

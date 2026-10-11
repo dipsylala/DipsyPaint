@@ -22,6 +22,34 @@
       <PathIcon Width="16" Height="16"
                 Data="M12.1464 3.14645C12.3417 2.95118 12.6583 2.95118 12.8536 3.14645L15.8536 6.14645C16.0488 6.34171 16.0488 6.65829 15.8536 6.85355L12.8536 9.85355C12.6583 10.0488 12.3417 10.0488 12.1464 9.85355C11.9512 9.65829 11.9512 9.34171 12.1464 9.14645L14.2929 7H4.5C4.22386 7 4 6.77614 4 6.5C4 6.22386 4.22386 6 4.5 6H14.2929L12.1464 3.85355C11.9512 3.65829 11.9512 3.34171 12.1464 3.14645ZM7.85355 10.1464C8.04882 10.3417 8.04882 10.6583 7.85355 10.8536L5.70711 13H15.5C15.7761 13 16 13.2239 16 13.5C16 13.7761 15.7761 14 15.5 14H5.70711L7.85355 16.1464C8.04882 16.3417 8.04882 16.6583 7.85355 16.8536C7.65829 17.0488 7.34171 17.0488 7.14645 16.8536L4.14645 13.8536C3.95118 13.6583 3.95118 13.3417 4.14645 13.1464L7.14645 10.1464C7.34171 9.95118 7.65829 9.95118 7.85355 10.1464Z" />
     </Button>
-    <UniformGrid x:Name="PaletteGrid" Rows="2" Columns="10" VerticalAlignment="Center" />
+    <!-- The custom colours row sits under the palette, or becomes a third column on a side edge. -->
+    <StackPanel x:Name="PalettePanel" VerticalAlignment="Center">
+      <UniformGrid x:Name="PaletteGrid" Rows="2" Columns="10" />
+      <UniformGrid x:Name="CustomColoursGrid" Rows="1" Columns="10" />
+    </StackPanel>
+    <Button x:Name="EditColoursButton" Click="OnEditColoursClick" Width="40" Height="40"
+            AutomationProperties.Name="{x:Static res:ColourEditorStrings.EditColours}"
+            ToolTip.Tip="{x:Static res:ColourEditorStrings.EditColoursToolTip}">
+      <!-- A colour wheel with a plus, like reference Paint's Edit colours icon. -->
+      <Panel Width="22" Height="22">
+        <Ellipse Width="20" Height="20" HorizontalAlignment="Left" VerticalAlignment="Top">
+          <Ellipse.Fill>
+            <ConicGradientBrush>
+              <GradientStop Offset="0" Color="#FF0000" />
+              <GradientStop Offset="0.17" Color="#FFFF00" />
+              <GradientStop Offset="0.33" Color="#00FF00" />
+              <GradientStop Offset="0.5" Color="#00FFFF" />
+              <GradientStop Offset="0.67" Color="#0000FF" />
+              <GradientStop Offset="0.83" Color="#FF00FF" />
+              <GradientStop Offset="1" Color="#FF0000" />
+            </ConicGradientBrush>
+          </Ellipse.Fill>
+        </Ellipse>
+        <Ellipse Width="11" Height="11" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                 Fill="White" Stroke="Gray" StrokeThickness="1" />
+        <Path Width="5" Height="5" Margin="0,0,3,3" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+              Data="M2.5,0 V5 M0,2.5 H5" Stroke="Black" StrokeThickness="1.2" />
+      </Panel>
+    </Button>
   </StackPanel>
 </UserControl>
