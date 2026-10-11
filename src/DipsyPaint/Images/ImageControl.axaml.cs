@@ -9,7 +9,8 @@ using DipsyPaint.Resources;
 namespace DipsyPaint.Images;
 
 /// <summary>
-/// Reference Paint's Image group: Crop (to the selection), Resize, and the Rotate menu (rotate right
+/// Reference Paint's Image group: the Selection menu (<see cref="Tools.SelectionMenu"/>), Crop (to the
+/// selection), Resize, and the Rotate menu (rotate right
 /// or left 90°, rotate 180°, flip vertical or horizontal), for the <see cref="DocumentEditor"/> in the
 /// DataContext. With a selection, resize, rotate and flip apply to it, else to the whole picture.
 /// Also handles Paint's shortcuts for the whole window: Ctrl+W (Resize) and Ctrl+Shift+X (Crop),

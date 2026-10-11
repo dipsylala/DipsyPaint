@@ -28,8 +28,9 @@ public class SelectionTests
         window.Show();
         window.UpdateLayout();
         window.GetLogicalDescendants().OfType<ToggleButton>()
-            .Single(b => AutomationProperties.GetName(b) == SelectionStrings.RectangleSelection)
+            .Single(b => AutomationProperties.GetName(b) == SelectionStrings.Select)
             .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout(); // the command bar may rewrap for the tool's options, moving the canvas
         return window;
     }
 
@@ -56,7 +57,7 @@ public class SelectionTests
     {
         var window = ShowWindowWithSelectionTool();
 
-        Assert.Contains(ToolRegistry.Tools, t => t.Id == "rectangle-selection");
+        Assert.Contains(ToolRegistry.Tools, t => t.Id == "selection");
         Assert.IsType<SelectionTool>(window.Editor.ActiveTool);
     }
 
