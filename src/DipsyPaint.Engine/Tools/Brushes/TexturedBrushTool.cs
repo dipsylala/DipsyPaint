@@ -6,12 +6,16 @@ namespace DipsyPaint.Engine.Tools.Brushes;
 /// primary colour, the right in the secondary, centred on the pixel under the pointer. The tip's
 /// texture follows the path, so nothing is painted until the pointer moves or is released; a click
 /// leaves one dab. Each stroke's texture is seeded from where it starts, so it is reproducible.
+/// Pen pressure scales the tip's width, tapering between events (<see cref="PenPressure"/>); the
+/// texture keeps the scale of the full-size tip.
 /// </summary>
 public abstract class TexturedBrushTool(StrokeSettings settings) : ITool
 {
     private PassStroke? _stroke;
     private TexturedTip? _tip;
     private bool _painted;
+    private double _size;
+    private double _lastScale;
     private double _startX;
     private double _startY;
     private double _lastX;
@@ -35,6 +39,8 @@ public abstract class TexturedBrushTool(StrokeSettings settings) : ITool
             var color = input.Button == PointerButton.Right ? context.SecondaryColor : context.PrimaryColor;
             var radius = settings.Size / 2.0;
             _tip = CreateTip(radius, ArtisticNoise.Seed(x, y));
+            _size = settings.Size;
+            _lastScale = PressureScale(input.Pressure);
             _stroke = new PassStroke(context.Target, color, settings.OpacityFraction, NewPassAfter(radius));
             _lag = Math.Max(3, 0.75 * radius);
             (_startX, _startY, _lastX, _lastY, _stringX, _stringY) = (x, y, x, y, x, y);
@@ -47,11 +53,14 @@ public abstract class TexturedBrushTool(StrokeSettings settings) : ITool
             return IntRect.Empty;
         }
 
+        var scale = input.Action == PointerAction.Up ? _lastScale : PressureScale(input.Pressure);
         if (x != _lastX || y != _lastY || (input.Action == PointerAction.Up && !_painted))
         {
-            TexturedPath.Segment(_stroke, _tip, _lastX, _lastY, x, y, PullString(x, y));
+            TexturedPath.Segment(_stroke, _tip, _lastX, _lastY, x, y, PullString(x, y), _lastScale, scale);
             (_lastX, _lastY, _painted) = (x, y, true);
         }
+
+        _lastScale = scale;
 
         var dirty = _stroke.TakeDirty();
         if (input.Action == PointerAction.Up)
@@ -61,6 +70,9 @@ public abstract class TexturedBrushTool(StrokeSettings settings) : ITool
 
         return dirty;
     }
+
+    /// <summary>How much pen pressure scales the tip, as a fraction of its full size.</summary>
+    private double PressureScale(float pressure) => PenPressure.ScaleSize(_size, pressure) / _size;
 
     /// <summary>The tip for one stroke.</summary>
     protected abstract TexturedTip CreateTip(double radius, ulong seed);

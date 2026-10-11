@@ -7,7 +7,8 @@ namespace DipsyPaint.Engine.Tools.Brushes;
 /// spraying while the pointer is held still (<see cref="IRepeatingTool"/>). Each dot covers its
 /// pixel fully at <see cref="StrokeSettings.Opacity"/>; dots landing on a pixel already sprayed in the
 /// same stroke add nothing. The spray is seeded from where the stroke starts, and times come from
-/// <see cref="PointerInput.Time"/>, so a scripted stroke always sprays the same dots.
+/// <see cref="PointerInput.Time"/>, so a scripted stroke always sprays the same dots. Pen pressure
+/// scales the disc's size, at the same density of dots (<see cref="PenPressure"/>).
 /// </summary>
 public sealed class AirbrushTool(StrokeSettings settings) : ITool, IRepeatingTool
 {
@@ -16,8 +17,8 @@ public sealed class AirbrushTool(StrokeSettings settings) : ITool, IRepeatingToo
 
     private Stroke? _stroke;
     private ArtisticNoise.Sequence _random;
+    private double _size;
     private double _radius;
-    private double _dotsPerSecond;
     private double _owed;
     private double _lastX;
     private double _lastY;
@@ -36,8 +37,8 @@ public sealed class AirbrushTool(StrokeSettings settings) : ITool, IRepeatingToo
             var color = input.Button == PointerButton.Right ? context.SecondaryColor : context.PrimaryColor;
             _stroke = new Stroke(context.Target, color, settings.OpacityFraction);
             _random = new ArtisticNoise.Sequence(ArtisticNoise.Seed(x, y));
-            _radius = settings.Size / 2.0;
-            _dotsPerSecond = DotsPerSecond(_radius);
+            _size = settings.Size;
+            _radius = PenPressure.ScaleSize(_size, input.Pressure) / 2.0;
             _owed = 0;
             (_lastX, _lastY) = (x, y);
             elapsed = PointerInput.NominalInterval; // a press sprays straight away
@@ -52,8 +53,9 @@ public sealed class AirbrushTool(StrokeSettings settings) : ITool, IRepeatingToo
         }
 
         _lastTime = input.Time;
-        Spray(_stroke, _lastX, _lastY, x, y, Math.Clamp(elapsed.TotalSeconds, 0, MaxElapsed.TotalSeconds));
-        (_lastX, _lastY) = (x, y);
+        var radius = input.Action == PointerAction.Up ? _radius : PenPressure.ScaleSize(_size, input.Pressure) / 2.0;
+        Spray(_stroke, _lastX, _lastY, x, y, _radius, radius, Math.Clamp(elapsed.TotalSeconds, 0, MaxElapsed.TotalSeconds));
+        (_lastX, _lastY, _radius) = (x, y, radius);
         var dirty = _stroke.TakeDirty();
         if (input.Action == PointerAction.Up)
         {
@@ -70,10 +72,13 @@ public sealed class AirbrushTool(StrokeSettings settings) : ITool, IRepeatingToo
     /// </summary>
     private static double DotsPerSecond(double radius) => 2 * Math.PI * radius * radius + 30;
 
-    /// <summary>Sprays the dots due for <paramref name="seconds"/>, spread evenly along the segment the pointer moved.</summary>
-    private void Spray(Stroke stroke, double x0, double y0, double x1, double y1, double seconds)
+    /// <summary>
+    /// Sprays the dots due for <paramref name="seconds"/>, spread evenly along the segment the pointer
+    /// moved, within a disc whose radius changes evenly from <paramref name="radius0"/> to <paramref name="radius1"/>.
+    /// </summary>
+    private void Spray(Stroke stroke, double x0, double y0, double x1, double y1, double radius0, double radius1, double seconds)
     {
-        _owed += _dotsPerSecond * seconds;
+        _owed += DotsPerSecond((radius0 + radius1) / 2) * seconds;
         var dots = (int)_owed;
         _owed -= dots;
         for (var i = 0; i < dots; i++)
@@ -87,9 +92,10 @@ public sealed class AirbrushTool(StrokeSettings settings) : ITool, IRepeatingToo
             }
             while (u * u + v * v > 1);
 
+            var radius = radius0 + t * (radius1 - radius0);
             stroke.Plot(
-                (int)Math.Floor(x0 + t * (x1 - x0) + u * _radius),
-                (int)Math.Floor(y0 + t * (y1 - y0) + v * _radius));
+                (int)Math.Floor(x0 + t * (x1 - x0) + u * radius),
+                (int)Math.Floor(y0 + t * (y1 - y0) + v * radius));
         }
     }
 }

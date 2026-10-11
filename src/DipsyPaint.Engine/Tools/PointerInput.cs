@@ -17,7 +17,8 @@ public enum PointerButton
 /// One pointer event as data, so tools can be scripted without a UI (ADR-0016).
 /// <paramref name="X"/> and <paramref name="Y"/> are in document pixels: pixel (i, j) covers
 /// [i, i+1) × [j, j+1). Move and Up carry the button that started the stroke.
-/// <paramref name="Pressure"/> is 0–1; 1 when the device reports none.
+/// <paramref name="Pressure"/> is 0–1; 1 when the device reports none (a mouse). Brushes scale their
+/// tip by it, and ignore it on Up, where a pen lifting off reports none (<see cref="PenPressure"/>).
 /// <paramref name="Shift"/> is whether Shift is held (it constrains shapes).
 /// <paramref name="Time"/> is when the event happened, from an arbitrary fixed origin; null when unknown
 /// (scripts), and tools that need it then assume events <see cref="NominalInterval"/> apart.

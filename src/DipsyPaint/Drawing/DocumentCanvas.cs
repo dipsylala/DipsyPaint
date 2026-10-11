@@ -330,11 +330,20 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
         var point = e.GetCurrentPoint(this);
         _lastPosition = point.Position;
         _lastInput = new PointerInput(
-            action, point.Position.X, point.Position.Y, _strokeButton!.Value, point.Properties.Pressure,
+            action, point.Position.X, point.Position.Y, _strokeButton!.Value, PressureOf(e.Pointer.Type, point.Properties.Pressure),
             e.KeyModifiers.HasFlag(KeyModifiers.Shift), Clock.GetElapsedTime(0));
         _editor?.Apply(_lastInput);
         InvalidateVisual(); // the adornment may change without the composite changing
     }
+
+    /// <summary>
+    /// The pressure (0–1) the engine takes for a pointer of <paramref name="type"/> that reports
+    /// <paramref name="reported"/>. Only a pen's pressure counts: Avalonia reports a fixed placeholder
+    /// for a mouse or touch, which is "no pressure" (1). A pen reporting 0 while it touches has no
+    /// pressure sensor, so it is "no pressure" too.
+    /// </summary>
+    public static float PressureOf(PointerType type, float reported) =>
+        type == PointerType.Pen && reported > 0f ? Math.Min(reported, 1f) : 1f;
 
     private void OnCompositeChanged(object? sender, IntRect dirty)
     {
