@@ -13,6 +13,7 @@ namespace DipsyPaint.Files;
 /// Reference Paint's File menu: New, Open, Save and Save as (PNG, JPEG, BMP). Owns the current file,
 /// shows its name in the window title ("name - DipsyPaint") and handles the File shortcuts for the
 /// whole window: Ctrl+N, Ctrl+O, Ctrl+S, and Ctrl+Shift+S or F12 for Save as (Cmd on macOS).
+/// The "Save changes?" prompt is in FileMenu.SaveChanges.cs.
 /// </summary>
 public partial class FileMenu : UserControl
 {
@@ -39,6 +40,11 @@ public partial class FileMenu : UserControl
     /// </summary>
     public async Task NewAsync()
     {
+        if (!await ConfirmDiscardChangesAsync())
+        {
+            return;
+        }
+
         if (await Dialogs.AskNewImageSizeAsync(Document.DefaultWidth, Document.DefaultHeight) is not var (width, height))
         {
             return;
@@ -56,6 +62,11 @@ public partial class FileMenu : UserControl
     /// <summary>Opens an image chosen by the user. On failure the current document stays as it was.</summary>
     public async Task OpenAsync()
     {
+        if (!await ConfirmDiscardChangesAsync())
+        {
+            return;
+        }
+
         if (await Dialogs.PickOpenAsync() is not { } file)
         {
             return;
@@ -82,34 +93,40 @@ public partial class FileMenu : UserControl
         ShowDocument(document, file);
     }
 
-    /// <summary>Saves to the current file, or asks where to save if there is none.</summary>
-    public async Task SaveAsync()
+    /// <summary>Saves to the current file, or asks where to save if there is none. Returns whether it saved.</summary>
+    public async Task<bool> SaveAsync()
     {
         if (_file is not null && ImageCodec.FormatOf(_file.Name) is { } format)
         {
-            await WriteAsync(_file, format);
+            return await WriteAsync(_file, format);
         }
         else
         {
-            await SaveAsAsync();
+            return await SaveAsAsync();
         }
     }
 
-    /// <summary>Asks where to save, offering <paramref name="format"/> (default: the current file's format, else PNG).</summary>
-    public async Task SaveAsAsync(ImageFormat? format = null)
+    /// <summary>
+    /// Asks where to save, offering <paramref name="format"/> (default: the current file's format, else PNG).
+    /// Returns whether it saved.
+    /// </summary>
+    public async Task<bool> SaveAsAsync(ImageFormat? format = null)
     {
         var offered = format ?? (_file is null ? null : ImageCodec.FormatOf(_file.Name)) ?? ImageFormat.Png;
         var suggestedName = _file is null ? FileStrings.Untitled : Path.GetFileNameWithoutExtension(_file.Name);
         if (await Dialogs.PickSaveAsync(suggestedName, offered) is not { } file)
         {
-            return;
+            return false;
         }
 
-        if (await WriteAsync(file, ImageCodec.FormatOf(file.Name) ?? offered))
+        if (!await WriteAsync(file, ImageCodec.FormatOf(file.Name) ?? offered))
         {
-            _file = file;
-            UpdateTitle();
+            return false;
         }
+
+        _file = file;
+        UpdateTitle();
+        return true;
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -122,6 +139,7 @@ public partial class FileMenu : UserControl
         }
 
         _window.AddHandler(KeyDownEvent, OnWindowKeyDown);
+        _window.Closing += OnWindowClosing;
         NewItem.InputGesture = new KeyGesture(Key.N, CommandModifiers);
         OpenItem.InputGesture = new KeyGesture(Key.O, CommandModifiers);
         SaveItem.InputGesture = new KeyGesture(Key.S, CommandModifiers);
@@ -132,6 +150,7 @@ public partial class FileMenu : UserControl
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _window?.RemoveHandler(KeyDownEvent, OnWindowKeyDown);
+        _window?.Closing -= OnWindowClosing;
         _window = null;
         base.OnDetachedFromVisualTree(e);
     }
@@ -143,8 +162,8 @@ public partial class FileMenu : UserControl
         UpdateTitle();
     }
 
-    private void UpdateTitle() =>
-        Window.Title = string.Format(FileStrings.TitleFormat, _file?.Name ?? FileStrings.Untitled, Strings.AppName);
+    private void UpdateTitle() => Window.Title = string.Format(
+        Window.Editor.HasUnsavedChanges ? SaveChangesStrings.UnsavedTitleFormat : FileStrings.TitleFormat, DocumentName, Strings.AppName);
 
     /// <summary>Exports the composite; encodes to memory first so a failed encode never truncates the file.</summary>
     private async Task<bool> WriteAsync(PickedFile file, ImageFormat format)
@@ -163,6 +182,7 @@ public partial class FileMenu : UserControl
                 stream.SetLength(stream.Position);
             }
 
+            Window.Editor.MarkSaved();
             return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)

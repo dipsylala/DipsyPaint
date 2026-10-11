@@ -57,6 +57,12 @@ public sealed class FileMenuTests : IDisposable
         }
     }
 
+    // These tests discard drawings without being asked; SaveChangesTests covers the prompt.
+    private sealed class DontSavePrompt : ISaveChangesPrompt
+    {
+        public Task<SaveChangesChoice> AskAsync(string documentName) => Task.FromResult(SaveChangesChoice.DontSave);
+    }
+
     private PickedFile FileOnDisk(string name, byte[]? content = null)
     {
         var path = Path.Combine(_folder, name);
@@ -84,6 +90,7 @@ public sealed class FileMenuTests : IDisposable
         var menu = window.FindControl<FileMenu>("FileMenu")!;
         var dialogs = new FakeDialogs();
         menu.Dialogs = dialogs;
+        menu.SaveChangesPrompt = new DontSavePrompt();
         return (window, menu, dialogs);
     }
 
@@ -182,7 +189,7 @@ public sealed class FileMenuTests : IDisposable
         Assert.True(window.Editor.History.CanUndo);
         Assert.Equal(Rgba.Black, window.Document.ActiveLayer.Pixels.GetPixel(2, 2));
         Assert.Equal("64 × 48px", StatusText(window));
-        Assert.Equal("Untitled - DipsyPaint", window.Title);
+        Assert.Equal("*Untitled - DipsyPaint", window.Title); // still unsaved
     }
 
     [AvaloniaFact]
