@@ -44,5 +44,9 @@ within a per-pixel tolerance. ADR-0016.
 
 ## Suggested (not yet agreed)
 
+**Command group** — a movable unit of the command bar (e.g. File, Tools, Colours) with a stable
+id, dockable to a window edge and saved in the per-user layout (ADR-0022). Distinct from a
+*tool*, which is one entry within the Tools group.
+
 **Selection** — a region of pixels lifted for move/rotate/skew before being
 committed back to a layer. Exact semantics to be agreed with tool scoping.

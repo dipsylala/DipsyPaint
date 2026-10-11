@@ -23,6 +23,7 @@
 | [0019](0019-file-formats-match-paint.md) | Flat file formats match reference Paint, minus HEIC | Accepted |
 | [0020](0020-imagesharp-licence-key.md) | ImageSharp 4 licence key: obtain one; CI falls back to Debug without it | Accepted |
 | [0021](0021-clipboard-image-formats.md) | Clipboard image formats per OS; Windows output through Avalonia's bitmap | Accepted |
+| [0022](0022-command-bar-layout.md) | Command bar wraps; command groups dock to window edges; layout is saved per user | Accepted |
 
 ## Open Questions
 

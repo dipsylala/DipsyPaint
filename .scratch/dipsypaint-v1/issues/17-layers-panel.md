@@ -1,6 +1,6 @@
 # 17: Layers panel
 
-**What to build:** The user can add, delete, duplicate, merge, hide and reorder *layers* in a panel on the right, as in reference Paint. The compositor caches the composite of the layers above and below the active layer. Spec: user story 21, AC17, ADR-0006, ADR-0018.
+**What to build:** The user can add, delete, duplicate, merge, hide and reorder *layers* in a panel on the right, as in reference Paint. The compositor caches the composite of the layers above and below the active layer. Spec: user story 21, AC17, ADR-0006, ADR-0018. If ticket 35 has landed, the panel is a command group (or panel) in its docking system, docked right by default (ADR-0022).
 
 **Blocked by:** 03 (Undo/redo with region-diff history steps)
 
