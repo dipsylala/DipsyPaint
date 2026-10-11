@@ -70,6 +70,7 @@ public class ImageTests
         window.GetLogicalDescendants().OfType<ToggleButton>()
             .Single(b => AutomationProperties.GetName(b) == SelectionStrings.Select)
             .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout(); // the command bar may rewrap for the tool's options, moving the canvas
         window.MouseDown(InWindow(window, from.X, from.Y), MouseButton.Left);
         window.MouseMove(InWindow(window, to.X, to.Y));
         window.MouseUp(InWindow(window, to.X, to.Y), MouseButton.Left);

@@ -30,6 +30,7 @@ public class SelectionTests
         window.GetLogicalDescendants().OfType<ToggleButton>()
             .Single(b => AutomationProperties.GetName(b) == SelectionStrings.Select)
             .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout(); // the command bar may rewrap for the tool's options, moving the canvas
         return window;
     }
 

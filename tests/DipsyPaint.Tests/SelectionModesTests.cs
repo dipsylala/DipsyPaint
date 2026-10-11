@@ -63,7 +63,18 @@ public sealed class SelectionModesTests : IDisposable
 
     private static MenuItem Item(Window window, string name) => Menu(window).FindControl<MenuItem>(name)!;
 
-    private static void Click(Window window, string item) => Item(window, item).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+    // Then lays out, as the command bar may rewrap for a new tool's options, moving the canvas.
+    private static void Click(Window window, string item)
+    {
+        Item(window, item).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        window.UpdateLayout();
+    }
+
+    private static void UseSelectTool(Window window)
+    {
+        SelectToolButton(window).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout();
+    }
 
     private static ToggleButton SelectToolButton(Window window) =>
         window.GetLogicalDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetName(b) == SelectionStrings.Select);
@@ -198,7 +209,7 @@ public sealed class SelectionModesTests : IDisposable
     public void CtrlShiftI_InvertsTheSelection()
     {
         var window = ShowWindow();
-        SelectToolButton(window).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        UseSelectTool(window);
         Drag(window, (10.5, 10.5), (29.5, 29.5)); // the red square
 
         Press(window, Key.I, Command(window) | RawInputModifiers.Shift);
@@ -257,7 +268,7 @@ public sealed class SelectionModesTests : IDisposable
         Assert.True(ToolRegistry.SelectionSettings.Transparent);
         Assert.Same(ToolRegistry.SelectionSettings, window.Editor.SelectionSettings);
 
-        SelectToolButton(window).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        UseSelectTool(window);
         Drag(window, (5.5, 5.5), (34.5, 34.5));   // the red square in a white border
         Drag(window, (20.5, 20.5), (40.5, 20.5)); // move by (20, 0)
         window.Editor.CommitPending();

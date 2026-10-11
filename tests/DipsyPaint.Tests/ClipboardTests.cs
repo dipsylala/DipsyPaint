@@ -60,6 +60,7 @@ public class ClipboardTests
         window.Show();
         window.UpdateLayout();
         ToolButton(window, SelectionStrings.Select).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout(); // the command bar may rewrap for the tool's options, moving the canvas
         return (window, window.GetLogicalDescendants().OfType<ClipboardControl>().Single());
     }
 
