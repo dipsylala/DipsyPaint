@@ -129,6 +129,8 @@ public sealed partial class DocumentCanvas : Control, ICustomHitTest
         _topLevel = TopLevel.GetTopLevel(this);
         _topLevel?.AddHandler(KeyDownEvent, OnTopLevelKeyDown);
         _topLevel?.AddHandler(KeyDownEvent, OnTopLevelArrowKeyDown, RoutingStrategies.Tunnel);
+        _topLevel?.AddHandler(KeyDownEvent, OnTopLevelShiftChanged, RoutingStrategies.Tunnel);
+        _topLevel?.AddHandler(KeyUpEvent, OnTopLevelShiftChanged, RoutingStrategies.Tunnel);
         LayoutUpdated += OnLayoutUpdated;
     }
 
@@ -137,6 +139,8 @@ public sealed partial class DocumentCanvas : Control, ICustomHitTest
         LayoutUpdated -= OnLayoutUpdated;
         _topLevel?.RemoveHandler(KeyDownEvent, OnTopLevelKeyDown);
         _topLevel?.RemoveHandler(KeyDownEvent, OnTopLevelArrowKeyDown);
+        _topLevel?.RemoveHandler(KeyDownEvent, OnTopLevelShiftChanged);
+        _topLevel?.RemoveHandler(KeyUpEvent, OnTopLevelShiftChanged);
         _topLevel = null;
         base.OnDetachedFromVisualTree(e);
     }
@@ -289,6 +293,21 @@ public sealed partial class DocumentCanvas : Control, ICustomHitTest
 
         e.Handled = true;
         InvalidateVisual();
+    }
+
+    // Pressing or releasing Shift during a drag of pending content (a shape, selection or text box) takes effect at
+    // once, without waiting for the pointer to move: the tool gets the same position again with the new Shift state.
+    // Those tools work a drag out from where it began, so the repeated position adds nothing else.
+    private void OnTopLevelShiftChanged(object? sender, KeyEventArgs e)
+    {
+        var shift = e.RoutedEvent == KeyDownEvent;
+        if (e.Key is Key.LeftShift or Key.RightShift && _strokeButton is not null
+            && _editor?.ActiveTool is IPendingTool && _lastInput.Shift != shift)
+        {
+            _lastInput = _lastInput with { Action = PointerAction.Move, Shift = shift, Time = Clock.GetElapsedTime(0) };
+            _editor.Apply(_lastInput);
+            InvalidateVisual();
+        }
     }
 
     private static (int X, int Y) NudgeOf(Key key) => key switch

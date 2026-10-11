@@ -28,7 +28,8 @@ public enum SelectionToolMode
 /// (<see cref="MagicWand"/>). With <see cref="SelectionToolMode.MoveSelection"/>, dragging inside the selection
 /// moves the outline alone; it may go partly off the canvas, where it selects nothing. With
 /// <see cref="SelectionToolMode.MoveSelectedPixels"/>, dragging inside the selection moves the selected pixels
-/// and dragging a handle of its bounding rectangle stretches them (nearest neighbour); the first such drag lifts
+/// and dragging a handle of its bounding rectangle stretches them (nearest neighbour; Shift on a corner keeps the
+/// ratio of width to height, see <see cref="Engine.Adornment.Drag"/>); the first such drag lifts
 /// them off the layer, leaving it transparent there, as the eraser does. "Inside" means on a selected pixel:
 /// for a free-form or magic-wand shape, within its edge, not just its bounding rectangle (issue #111). With
 /// either Move mode, Shift locks a move to horizontal or vertical, <see cref="Nudge"/> moves by whole pixels,
@@ -220,7 +221,7 @@ public sealed class SelectionTool : IRotatableTool
                     (dx, dy) = Math.Abs(dx) >= Math.Abs(dy) ? (dx, 0) : (0, dy);
                 }
 
-                var (a, b) = Engine.Adornment.Drag(_dragA, _dragB, _handle, dx, dy);
+                var (a, b) = Engine.Adornment.Drag(_dragA, _dragB, _handle, dx, dy, keepAspect: input.Shift);
                 dirty = Place(context, a, b, stretched: _handle != FrameHandle.Move);
                 break;
             case Gesture.Rotate:

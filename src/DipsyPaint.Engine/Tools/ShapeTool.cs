@@ -5,7 +5,7 @@ namespace DipsyPaint.Engine.Tools;
 /// <summary>
 /// Draws the shapes of reference Paint's gallery. Dragging draws the shape (Shift keeps it square,
 /// circular or at a multiple of 45°); it then stays pending in the overlay, where dragging a handle
-/// resizes it and dragging inside moves it, until it is committed (a press outside it, which also
+/// resizes it (Shift on a corner keeps the ratio of width to height) and dragging inside moves it, until it is committed (a press outside it, which also
 /// starts the next shape; see <see cref="IPendingTool"/>). The left button outlines in the primary
 /// colour and fills in the secondary; the right button swaps them.
 /// <para>
@@ -132,7 +132,8 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
                 _b = input.Shift ? Constrain(_a, pixel) : pixel;
                 break;
             case Gesture.Adjust:
-                (_a, _b) = Engine.Adornment.Drag(_dragA, _dragB, _handle, pixel.X - _dragStart.X, pixel.Y - _dragStart.Y);
+                (_a, _b) = Engine.Adornment.Drag(
+                    _dragA, _dragB, _handle, pixel.X - _dragStart.X, pixel.Y - _dragStart.Y, keepAspect: input.Shift);
                 break;
             case Gesture.Build:
                 Build(pixel, input.Shift);

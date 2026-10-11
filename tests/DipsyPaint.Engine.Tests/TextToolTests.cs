@@ -225,6 +225,26 @@ public class TextToolTests
     }
 
     [Fact]
+    public void ShiftDraggingACorner_ResizesTheBoxAsWithoutShift()
+    {
+        IntRect? Resized(bool shift)
+        {
+            var (editor, tool, _) = CreateEditor();
+            Script.Stroke(editor, PointerButton.Left, (10.5, 10.5), (49.5, 17.5));
+            Type(editor, tool, "abcdefgh");
+            var (right, bottom) = (50 + Margin, 18 + Margin); // the bottom-right handle
+
+            editor.Apply(new PointerInput(PointerAction.Down, right, bottom));
+            editor.Apply(new PointerInput(PointerAction.Move, right - 24, bottom + 10, Shift: shift));
+            editor.Apply(new PointerInput(PointerAction.Up, right - 24, bottom + 10, Shift: shift));
+            return tool.TextBounds;
+        }
+
+        Assert.Equal(Resized(shift: false), Resized(shift: true));
+        Assert.Equal(16, Resized(shift: true)!.Value.Width);
+    }
+
+    [Fact]
     public void Esc_DiscardsTheText()
     {
         var (editor, tool, _) = CreateEditor();

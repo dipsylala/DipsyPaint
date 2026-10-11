@@ -101,13 +101,20 @@ public readonly record struct Adornment(IntRect Frame)
     /// Only the coordinates on the dragged sides move, so dragging past the opposite side flips
     /// the frame; <see cref="FrameHandle.Move"/> moves both corners and <see cref="FrameHandle.Rotate"/>
     /// none (tools turn the content themselves, see <see cref="Tools.IRotatableTool"/>).
+    /// With <paramref name="keepAspect"/> (Shift), a corner drag keeps the frame's width-to-height ratio
+    /// (see <see cref="DragCornerKeepingAspect"/>); other handles ignore it.
     /// </summary>
     public static ((int X, int Y) A, (int X, int Y) B) Drag(
-        (int X, int Y) a, (int X, int Y) b, FrameHandle handle, int dx, int dy)
+        (int X, int Y) a, (int X, int Y) b, FrameHandle handle, int dx, int dy, bool keepAspect = false)
     {
         if (handle == FrameHandle.Move)
         {
             return ((a.X + dx, a.Y + dy), (b.X + dx, b.Y + dy));
+        }
+
+        if (keepAspect && handle is FrameHandle.TopLeft or FrameHandle.TopRight or FrameHandle.BottomRight or FrameHandle.BottomLeft)
+        {
+            return DragCornerKeepingAspect(a, b, handle, dx, dy);
         }
 
         var aIsLeft = a.X <= b.X;
@@ -133,6 +140,39 @@ public readonly record struct Adornment(IntRect Frame)
         }
 
         return (a, b);
+    }
+
+    /// <summary>
+    /// A corner drag that keeps the ratio of the frame's width to its height (in pixels) as it was when
+    /// the drag began; the opposite corner stays fixed. The frame takes the larger of the two proportional
+    /// changes the pointer makes, so the dragged corner follows the pointer along one axis. On each axis,
+    /// a corner dragged past the opposite one flips the frame, as an unconstrained drag does.
+    /// </summary>
+    private static ((int X, int Y) A, (int X, int Y) B) DragCornerKeepingAspect(
+        (int X, int Y) a, (int X, int Y) b, FrameHandle handle, int dx, int dy)
+    {
+        var left = handle is FrameHandle.TopLeft or FrameHandle.BottomLeft;
+        var top = handle is FrameHandle.TopLeft or FrameHandle.TopRight;
+
+        // Whether a holds the dragged corner's x (and y); the other point holds the fixed corner's.
+        var aMovesX = left == (a.X <= b.X);
+        var aMovesY = top == (a.Y <= b.Y);
+        var (fixedX, startX) = aMovesX ? (b.X, a.X) : (a.X, b.X);
+        var (fixedY, startY) = aMovesY ? (b.Y, a.Y) : (a.Y, b.Y);
+
+        // Spans from the fixed corner, signed, before and after the drag.
+        int spanX = startX - fixedX, spanY = startY - fixedY;
+        int toX = spanX + dx, toY = spanY + dy;
+        double width = Math.Abs(spanX) + 1, height = Math.Abs(spanY) + 1;
+        var scale = Math.Max((Math.Abs(toX) + 1) / width, (Math.Abs(toY) + 1) / height);
+
+        // Each axis faces the way the pointer is from the fixed corner; level with it, the way it faced.
+        int Extent(double size, int to, bool towardsLow) =>
+            ((int)Math.Round(size * scale, MidpointRounding.AwayFromZero) - 1) * (to != 0 ? Math.Sign(to) : towardsLow ? -1 : 1);
+
+        var x = fixedX + Extent(width, toX, spanX != 0 ? spanX < 0 : left);
+        var y = fixedY + Extent(height, toY, spanY != 0 ? spanY < 0 : top);
+        return ((aMovesX ? x : a.X, aMovesY ? y : a.Y), (aMovesX ? b.X : x, aMovesY ? b.Y : y));
     }
 
     /// <summary>The rectangle of pixels spanned by two corner pixels (inclusive), in either order.</summary>
