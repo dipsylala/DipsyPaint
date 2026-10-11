@@ -109,12 +109,12 @@ jobs:
     steps:
       - name: Linux prerequisites
         if: runner.os == 'Linux'
-        # clang and zlib for the NativeAOT linker; git for the checkout; libicu for the .NET SDK;
-        # zstd for vpk's delta packages (needed once a previous release exists).
+        # clang and zlib for the NativeAOT linker; git for the checkout; libicu for the .NET SDK.
         # vpk builds the AppImage with mksquashfs, which must be 4.5 or newer (AlmaLinux 8 has 4.3),
-        # so it is built from a pinned source release.
+        # and delta packages with `zstd --patch-from`, which needs zstd 1.4.5 or newer (AlmaLinux 8
+        # has 1.4.4), so both are built from pinned source releases.
         run: |
-          dnf install -y --setopt=install_weak_deps=False clang lld zlib-devel git libicu findutils tar gzip which gcc make zstd
+          dnf install -y --setopt=install_weak_deps=False clang lld zlib-devel git libicu findutils tar gzip which gcc make
           cd /tmp
           curl -fsSL -o squashfs.tar.gz https://github.com/plougher/squashfs-tools/archive/refs/tags/4.6.1.tar.gz
           echo "9c4974e07c61547dae14af4ed1f358b7d04618ae194e54d6be72ee126f0d2f53  squashfs.tar.gz" | sha256sum -c -
@@ -123,6 +123,13 @@ jobs:
           install squashfs-tools-4.6.1/squashfs-tools/mksquashfs /usr/local/bin/
           rm -rf squashfs.tar.gz squashfs-tools-4.6.1
           mksquashfs -version
+          curl -fsSL -o zstd.tar.gz https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz
+          echo "eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3  zstd.tar.gz" | sha256sum -c -
+          tar -xzf zstd.tar.gz
+          make -C zstd-1.5.7/programs -j"$(nproc)" zstd
+          install zstd-1.5.7/programs/zstd /usr/local/bin/
+          rm -rf zstd.tar.gz zstd-1.5.7
+          zstd --version
 
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -150,9 +157,12 @@ jobs:
                    sips -s format icns src/DipsyPaint/Assets/dipsypaint.png --out "$icon" ;;
             *)     exe=DipsyPaint; icon=src/DipsyPaint/Assets/dipsypaint.png ;;
           esac
-          # The latest published release of this channel, if any, so pack can also build a delta package.
-          "$vpk" --skip-updates -x download github --repoUrl "$RepoUrl" --token "$GITHUB_TOKEN" \
-            --channel "$RID" -o artifacts/releases
+          # For a version tag, fetch the latest published release of this channel, if any, so pack can
+          # also build a delta package. Validation and CI builds are versioned 0.0.N, below any release.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            "$vpk" --skip-updates -x download github --repoUrl "$RepoUrl" --token "$GITHUB_TOKEN" \
+              --channel "$RID" -o artifacts/releases
+          fi
           "$vpk" --skip-updates -x pack --packId DipsyPaint --packVersion "$Version" --packTitle DipsyPaint \
             --packAuthors "DipsyPaint contributors" --packDir artifacts/publish --mainExe "$exe" --icon "$icon" \
             --channel "$RID" --runtime "$RID" -o artifacts/releases
