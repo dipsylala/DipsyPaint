@@ -151,6 +151,29 @@ public sealed class CommandBarLayoutTests : IDisposable
         Assert.True(tops > 1);
     }
 
+    [AvaloniaTheory]
+    [InlineData(1100, DockEdge.Top)]
+    [InlineData(900, DockEdge.Top)]
+    [InlineData(700, DockEdge.Top)]
+    [InlineData(480, DockEdge.Top)]
+    [InlineData(1100, DockEdge.Left)]
+    [InlineData(1100, DockEdge.Right)]
+    public void SwitchingToolsNeverMovesTheCanvas(int width, DockEdge toolsEdge)
+    {
+        var window = ShowWindow(windowWidth: width);
+        Layout(window).Move("tools", toolsEdge, 0);
+        window.UpdateLayout();
+        var canvasArea = window.FindControl<ScrollViewer>("CanvasScroll")!;
+        var expected = RectOf(canvasArea, window);
+
+        foreach (var tool in Tools.ToolRegistry.Tools)
+        {
+            SelectTool(window, tool.DisplayName);
+            window.UpdateLayout();
+            Assert.True(expected == RectOf(canvasArea, window), $"the canvas area moved from {expected} to {RectOf(canvasArea, window)} for {tool.DisplayName}");
+        }
+    }
+
     [AvaloniaFact]
     public void WindowCannotBeNarrowerThanTheWidthTheCommandBarIsCheckedAt()
     {
