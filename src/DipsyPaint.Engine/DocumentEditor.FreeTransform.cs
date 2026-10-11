@@ -103,9 +103,9 @@ public sealed partial class DocumentEditor
             return ResizeResult.TooLarge;
         }
 
-        // The new layers, an intermediate, the composite and the shell's bitmap.
+        // The new layers, an intermediate, the composite, the shell's bitmap and the compositor's caches.
         var largest = Math.Max(width * (long)height, newWidth * (long)newHeight);
-        if (!(budget ?? MemoryBudget.Default).Allows((Document.Layers.Count + 3) * largest * Unsafe.SizeOf<Rgba>()))
+        if (!(budget ?? MemoryBudget.Default).Allows((Document.Layers.Count + 3 + CompositorCaches) * largest * Unsafe.SizeOf<Rgba>()))
         {
             return ResizeResult.OverMemoryBudget;
         }
