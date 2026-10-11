@@ -8,9 +8,11 @@
   <!-- Wrapping panels, so the group fits a narrow window or a side edge. -->
   <WrapPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}">
     <WrapPanel x:Name="ToolButtons" Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" ItemSpacing="4" LineSpacing="4" Margin="8,4" />
-    <!-- Sized for the largest options panel, so switching tools never rewraps the bar or moves the canvas. -->
+    <!-- Sized for the largest options panel, so switching tools never rewraps the bar or moves the canvas.
+         Options sit at the top, centred on the 40 px tool buttons when they are shorter. -->
     <tools:OptionsSlot x:Name="OptionsSlot">
-      <ContentControl x:Name="ToolOptions" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,4" />
+      <ContentControl x:Name="ToolOptions" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="40"
+                      VerticalContentAlignment="Center" Margin="8,4" />
     </tools:OptionsSlot>
   </WrapPanel>
 </UserControl>
