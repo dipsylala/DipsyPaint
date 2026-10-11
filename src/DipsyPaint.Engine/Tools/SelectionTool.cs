@@ -3,7 +3,9 @@ namespace DipsyPaint.Engine.Tools;
 /// <summary>
 /// Reference Paint's selection tool. Dragging marks out a new selection, kept within the canvas: a
 /// rectangle, or with <see cref="SelectionShape.FreeForm"/> the area the pointer's path encloses
-/// (<see cref="FreeFormPath"/> while dragging), framed by its bounding rectangle. Dragging inside the
+/// (<see cref="FreeFormPath"/> while dragging), or with <see cref="SelectionShape.MagicWand"/> the area of
+/// similar colour around the pressed pixel (<see cref="MagicWand"/>, see also <see cref="PassesThrough"/>),
+/// framed by its bounding rectangle. Dragging inside the
 /// frame moves the selected pixels and dragging a handle stretches them (nearest neighbour); the first
 /// such drag lifts them off the layer, leaving it transparent there, as the eraser does. Pixels outside
 /// the selection's shape (<see cref="Selection.Mask"/>) stay on the layer, and so do pixels of the
@@ -81,6 +83,17 @@ public sealed class SelectionTool : IRotatableTool
 
     private IntRect Bounds => Engine.Adornment.FrameOf(_a, _b);
 
+    /// <summary>
+    /// Whether a press at (<paramref name="x"/>, <paramref name="y"/>) within the selection's frame misses
+    /// it: with <see cref="SelectionShape.MagicWand"/>, only the selected pixels and the handles take a
+    /// press, so a click on an unselected pixel makes a new selection (the editor commits this one first).
+    /// </summary>
+    public bool PassesThrough(double x, double y, double tolerance) =>
+        _settings.Shape == SelectionShape.MagicWand
+        && Selection is { } selection
+        && Adornment?.HitTest(x, y, tolerance) == FrameHandle.Move
+        && !selection.Contains((int)Math.Floor(x), (int)Math.Floor(y));
+
     public IntRect Handle(ToolContext context, PointerInput input)
     {
         var pixel = (X: (int)Math.Floor(input.X), Y: (int)Math.Floor(input.Y));
@@ -109,7 +122,15 @@ public sealed class SelectionTool : IRotatableTool
             // A press outside: the editor has committed the previous selection; make a new one.
             var corner = Clamp(context.Target, pixel);
             (_lifted, _shown, _mask, _shownMask, _unturned) = (null, null, null, null, null);
-            if (_settings.Shape == SelectionShape.FreeForm)
+            if (_settings.Shape == SelectionShape.MagicWand)
+            {
+                (_gesture, _selected) = (Gesture.None, false);
+                if (MagicWand.Select(context.Target, pixel.X, pixel.Y, _settings.Tolerance) is { } region)
+                {
+                    SetShape(region.Bounds, region.Mask);
+                }
+            }
+            else if (_settings.Shape == SelectionShape.FreeForm)
             {
                 (_gesture, _selected) = (Gesture.FreeForm, false);
                 _path.Clear();

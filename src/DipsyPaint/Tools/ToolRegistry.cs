@@ -58,6 +58,7 @@ public static class ToolRegistry
         new("eraser", BrushStrings.Eraser, EraserIcon, new KeyGesture(Key.E),
             () => new EraserTool(EraserSettings), () => new StrokeSizeOptions(EraserSettings)),
         new("shapes", ShapeStrings.Shapes, ShapesIcon, null, () => new ShapeTool(ShapeSettings), () => new ShapeOptions(ShapeSettings)),
-        new("selection", SelectionStrings.Select, SelectionIcon, null, () => new SelectionTool(SelectionSettings)),
+        new("selection", SelectionStrings.Select, SelectionIcon, null, () => new SelectionTool(SelectionSettings),
+            () => new MagicWandOptions(SelectionSettings)),
     ];
 }

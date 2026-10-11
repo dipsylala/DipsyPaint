@@ -9,7 +9,8 @@ using DipsyPaint.Engine.Tools;
 namespace DipsyPaint.Tools;
 
 /// <summary>
-/// Reference Paint's Selection menu (in the Image group): rectangle or free-form selection, select
+/// Reference Paint's Selection menu (in the Image group): rectangle or free-form selection (plus our
+/// magic wand, ADR-0011), select
 /// all, invert selection, delete and transparent selection, for the <see cref="DocumentEditor"/> in
 /// the DataContext. Picking a shape (or selecting all, or inverting) switches to the selection tool.
 /// The options are <see cref="ToolRegistry.SelectionSettings"/>, which this menu also gives the editor
@@ -109,6 +110,7 @@ public partial class SelectionMenu : UserControl
     {
         RectangleItem.IsChecked = _settings.Shape == SelectionShape.Rectangle;
         FreeFormItem.IsChecked = _settings.Shape == SelectionShape.FreeForm;
+        MagicWandItem.IsChecked = _settings.Shape == SelectionShape.MagicWand;
         TransparentItem.IsChecked = _settings.Transparent;
         DeleteItem.IsEnabled = _editor?.Selection is not null;
     }
@@ -116,6 +118,8 @@ public partial class SelectionMenu : UserControl
     private void OnRectangleClick(object? sender, RoutedEventArgs e) => UseShape(SelectionShape.Rectangle);
 
     private void OnFreeFormClick(object? sender, RoutedEventArgs e) => UseShape(SelectionShape.FreeForm);
+
+    private void OnMagicWandClick(object? sender, RoutedEventArgs e) => UseShape(SelectionShape.MagicWand);
 
     private void OnSelectAllClick(object? sender, RoutedEventArgs e) => SelectAll();
 
