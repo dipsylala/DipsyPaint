@@ -45,12 +45,15 @@ public static class ToolRegistry
             settings => new ArtisticBrushTool(settings, BrushTip.CalligraphyBrush)),
         new("calligraphy-pen", ArtisticBrushes1Strings.CalligraphyPen, ArtisticBrushes1Icons.CalligraphyPen,
             settings => new ArtisticBrushTool(settings, BrushTip.CalligraphyPen)),
+        ArtisticBrushes2Entries.Airbrush,
+        ArtisticBrushes2Entries.OilBrush,
         new("crayon", ArtisticBrushes1Strings.Crayon, ArtisticBrushes1Icons.Crayon,
             settings => new ArtisticBrushTool(settings, BrushTip.Crayon)),
         new("marker", ArtisticBrushes1Strings.Marker, ArtisticBrushes1Icons.Marker,
             settings => new ArtisticBrushTool(settings, BrushTip.Marker)),
         new("natural-pencil", ArtisticBrushes1Strings.NaturalPencil, ArtisticBrushes1Icons.NaturalPencil,
             settings => new ArtisticBrushTool(settings, BrushTip.NaturalPencil)),
+        ArtisticBrushes2Entries.WatercolourBrush,
     ]);
 
     // Bespoke: a square and a circle (the Fluent set's shape icons are not a good match), ADR-0012.

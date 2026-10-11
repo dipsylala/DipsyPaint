@@ -6,9 +6,10 @@ using DipsyPaint.Engine.Tools.Brushes;
 namespace DipsyPaint.Benchmarks;
 
 /// <summary>
-/// AC31 for the artistic brushes (ticket 28): the same stroke as <see cref="BrushBenchmarks"/>
+/// AC31 for the artistic brushes (tickets 28 and 29): the same stroke as <see cref="BrushBenchmarks"/>
 /// (4K document, 20 layers, down, 20 moves 10 px apart, up, through the editor) at the largest
-/// size, once per brush; the result is the mean cost per pointer event.
+/// size, once per brush; the result is the mean cost per pointer event. The airbrush sprays for the
+/// nominal 16 ms between events that carry no time.
 /// </summary>
 public class ArtisticBrushBenchmarks
 {
@@ -17,7 +18,7 @@ public class ArtisticBrushBenchmarks
 
     private DocumentEditor _editor = null!;
 
-    [Params("calligraphy-brush", "calligraphy-pen", "crayon", "marker", "natural-pencil")]
+    [Params("calligraphy-brush", "calligraphy-pen", "airbrush", "oil-brush", "crayon", "marker", "natural-pencil", "watercolour-brush")]
     public string Brush { get; set; } = "";
 
     [GlobalSetup]
@@ -29,15 +30,19 @@ public class ArtisticBrushBenchmarks
             document.AddLayer();
         }
 
-        var tip = Brush switch
+        var settings = new StrokeSettings(StrokeSettings.MaxSize);
+        ITool tool = Brush switch
         {
-            "calligraphy-brush" => BrushTip.CalligraphyBrush,
-            "calligraphy-pen" => BrushTip.CalligraphyPen,
-            "crayon" => BrushTip.Crayon,
-            "marker" => BrushTip.Marker,
-            _ => BrushTip.NaturalPencil,
+            "calligraphy-brush" => new ArtisticBrushTool(settings, BrushTip.CalligraphyBrush),
+            "calligraphy-pen" => new ArtisticBrushTool(settings, BrushTip.CalligraphyPen),
+            "airbrush" => new AirbrushTool(settings),
+            "oil-brush" => new OilBrushTool(settings),
+            "crayon" => new ArtisticBrushTool(settings, BrushTip.Crayon),
+            "marker" => new ArtisticBrushTool(settings, BrushTip.Marker),
+            "natural-pencil" => new ArtisticBrushTool(settings, BrushTip.NaturalPencil),
+            _ => new WatercolourBrushTool(settings),
         };
-        _editor = new DocumentEditor(document) { ActiveTool = new ArtisticBrushTool(new StrokeSettings(StrokeSettings.MaxSize), tip) };
+        _editor = new DocumentEditor(document) { ActiveTool = tool };
     }
 
     [Benchmark(OperationsPerInvoke = Events)]
