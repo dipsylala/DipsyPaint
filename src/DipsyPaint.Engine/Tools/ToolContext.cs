@@ -20,4 +20,10 @@ public sealed record ToolContext(IPixelAccess Target, Rgba PrimaryColor, Rgba Se
 
     /// <summary>How far from a handle, in document pixels, the pointer still grabs it; follows the zoom.</summary>
     public double HandleTolerance { get; init; } = DocumentEditor.DefaultHandleTolerance;
+
+    /// <summary>
+    /// True for a press that landed outside pending content, which the editor committed just before
+    /// passing the press on. A tool may ignore such a press (the text tool does, as in reference Paint).
+    /// </summary>
+    public bool CommittedByPress { get; init; }
 }

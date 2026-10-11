@@ -138,7 +138,7 @@ public sealed class CommandBarLayoutTests : IDisposable
         var window = ShowWindow(windowWidth: width);
         Assert.Equal(width, window.ClientSize.Width);
 
-        foreach (var tool in new[] { ToolStrings.Pencil, BrushStrings.Brush, ShapeStrings.Shapes })
+        foreach (var tool in new[] { ToolStrings.Pencil, BrushStrings.Brush, ShapeStrings.Shapes, TextStrings.Text })
         {
             SelectTool(window, tool);
             window.UpdateLayout();
@@ -268,7 +268,7 @@ public sealed class CommandBarLayoutTests : IDisposable
         Assert.Single(toolButtons.Children.Select(b => RectOf(b, window).Left).Distinct());
         Assert.Equal(Dock.Top, DockPanel.GetDock(colours.Grip));
 
-        foreach (var tool in new[] { ToolStrings.Pencil, BrushStrings.Brush, ShapeStrings.Shapes })
+        foreach (var tool in new[] { ToolStrings.Pencil, BrushStrings.Brush, ShapeStrings.Shapes, TextStrings.Text })
         {
             SelectTool(window, tool);
             window.UpdateLayout();

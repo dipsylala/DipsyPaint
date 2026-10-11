@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             xmlns:layout="using:DipsyPaint.Layout"
+             x:Class="DipsyPaint.Text.TextOptions">
+  <WrapPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" ItemSpacing="8" LineSpacing="4" VerticalAlignment="Center">
+    <ComboBox x:Name="FontBox" Width="160" MaxDropDownHeight="400"
+              AutomationProperties.Name="{x:Static res:TextStrings.FontFamily}"
+              ToolTip.Tip="{x:Static res:TextStrings.FontFamily}" />
+    <ComboBox x:Name="SizeBox" Width="80" IsEditable="True"
+              AutomationProperties.Name="{x:Static res:TextStrings.FontSize}"
+              ToolTip.Tip="{x:Static res:TextStrings.FontSize}" />
+    <StackPanel Orientation="Horizontal" Spacing="2">
+      <ToggleButton x:Name="BoldButton" Width="32" Height="32" Padding="0"
+                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                    AutomationProperties.Name="{x:Static res:TextStrings.Bold}"
+                    ToolTip.Tip="{x:Static res:TextStrings.Bold}">
+        <TextBlock Text="{x:Static res:TextStrings.BoldGlyph}" FontWeight="Bold" />
+      </ToggleButton>
+      <ToggleButton x:Name="ItalicButton" Width="32" Height="32" Padding="0"
+                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                    AutomationProperties.Name="{x:Static res:TextStrings.Italic}"
+                    ToolTip.Tip="{x:Static res:TextStrings.Italic}">
+        <TextBlock Text="{x:Static res:TextStrings.ItalicGlyph}" FontStyle="Italic" />
+      </ToggleButton>
+      <ToggleButton x:Name="UnderlineButton" Width="32" Height="32" Padding="0"
+                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                    AutomationProperties.Name="{x:Static res:TextStrings.Underline}"
+                    ToolTip.Tip="{x:Static res:TextStrings.Underline}">
+        <TextBlock Text="{x:Static res:TextStrings.UnderlineGlyph}" TextDecorations="Underline" />
+      </ToggleButton>
+      <ToggleButton x:Name="StrikethroughButton" Width="32" Height="32" Padding="0"
+                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                    AutomationProperties.Name="{x:Static res:TextStrings.Strikethrough}"
+                    ToolTip.Tip="{x:Static res:TextStrings.Strikethrough}">
+        <TextBlock Text="{x:Static res:TextStrings.StrikethroughGlyph}" TextDecorations="Strikethrough" />
+      </ToggleButton>
+    </StackPanel>
+    <!-- Bespoke icon: a filled square with a T cut out of it, ADR-0012. -->
+    <ToggleButton x:Name="FillBackgroundButton" Width="32" Height="32" Padding="0"
+                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                  AutomationProperties.Name="{x:Static res:TextStrings.FillBackground}"
+                  ToolTip.Tip="{x:Static res:TextStrings.FillBackground}">
+      <PathIcon Data="F0 M3 3h18v18H3z M7 7h10v2.5h-3.75V18h-2.5V9.5H7z" />
+    </ToggleButton>
+  </WrapPanel>
+</UserControl>

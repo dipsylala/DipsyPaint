@@ -10,6 +10,7 @@ public static class TestAppBuilder
 {
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
+            .WithInterFont() // a bundled font for text golden images: "fonts:Inter#Inter"
             .UseSkia() // real rendering, so tests can capture frames and check pixels
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
 }

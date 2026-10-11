@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="FontFamily" xml:space="preserve">
+    <value>Font family</value>
+  </data>
+  <data name="FontSize" xml:space="preserve">
+    <value>Font size</value>
+  </data>
+  <data name="Bold" xml:space="preserve">
+    <value>Bold</value>
+  </data>
+  <data name="Italic" xml:space="preserve">
+    <value>Italic</value>
+  </data>
+  <data name="Underline" xml:space="preserve">
+    <value>Underline</value>
+  </data>
+  <data name="Strikethrough" xml:space="preserve">
+    <value>Strikethrough</value>
+  </data>
+  <data name="BoldGlyph" xml:space="preserve">
+    <value>B</value>
+    <comment>Letter shown on the Bold button</comment>
+  </data>
+  <data name="ItalicGlyph" xml:space="preserve">
+    <value>I</value>
+    <comment>Letter shown on the Italic button</comment>
+  </data>
+  <data name="UnderlineGlyph" xml:space="preserve">
+    <value>U</value>
+    <comment>Letter shown on the Underline button</comment>
+  </data>
+  <data name="StrikethroughGlyph" xml:space="preserve">
+    <value>S</value>
+    <comment>Letter shown on the Strikethrough button</comment>
+  </data>
+  <data name="FillBackground" xml:space="preserve">
+    <value>Fill background</value>
+  </data>
+  <data name="TextBox" xml:space="preserve">
+    <value>Text box</value>
+    <comment>Automation name of the box the user types text into on the canvas</comment>
+  </data>
+</root>
