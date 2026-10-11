@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:DipsyPaint.Resources"
+        x:Class="DipsyPaint.Files.LossySaveWarning"
+        Title="{x:Static res:Strings.AppName}"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="24" Spacing="16" MaxWidth="420">
+    <TextBlock x:Name="MessageText" Text="{x:Static res:FormatStrings.LossySaveWarning}" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="OkButton" IsDefault="True" MinWidth="80" Click="OnOkClick"
+              Content="{x:Static res:FileStrings.Ok}"
+              AutomationProperties.Name="{x:Static res:FileStrings.Ok}" />
+      <Button x:Name="CancelButton" IsCancel="True" MinWidth="80" Click="OnCancelClick"
+              Content="{x:Static res:FileStrings.Cancel}"
+              AutomationProperties.Name="{x:Static res:FileStrings.Cancel}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

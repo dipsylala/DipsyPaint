@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] The editor matches reference Paint's colour editor
-- [ ] A chosen colour can be set as primary/secondary and added to the palette
-- [ ] Keyboard-reachable with automation names
+- [x] The editor matches reference Paint's colour editor
+- [x] A chosen colour can be set as primary/secondary and added to the palette
+- [x] Keyboard-reachable with automation names

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SaveAsGif" xml:space="preserve">
+    <value>GIF image</value>
+  </data>
+  <data name="SaveAsOtherFormats" xml:space="preserve">
+    <value>Other formats</value>
+  </data>
+  <data name="Bmp256FileType" xml:space="preserve">
+    <value>256 Colour Bitmap</value>
+  </data>
+  <data name="Bmp16FileType" xml:space="preserve">
+    <value>16 Colour Bitmap</value>
+  </data>
+  <data name="BmpMonochromeFileType" xml:space="preserve">
+    <value>Monochrome Bitmap</value>
+  </data>
+  <data name="GifFileType" xml:space="preserve">
+    <value>GIF</value>
+  </data>
+  <data name="TiffFileType" xml:space="preserve">
+    <value>TIFF</value>
+  </data>
+  <data name="IcoFileType" xml:space="preserve">
+    <value>ICO</value>
+  </data>
+  <data name="WebpFileType" xml:space="preserve">
+    <value>WebP</value>
+  </data>
+  <data name="LossySaveWarning" xml:space="preserve">
+    <value>Saving into this format may cause some loss of colour information. Do you want to continue?</value>
+    <comment>Reference Paint's warning before saving as GIF or as a 256-colour, 16-colour or monochrome bitmap.</comment>
+  </data>
+</root>

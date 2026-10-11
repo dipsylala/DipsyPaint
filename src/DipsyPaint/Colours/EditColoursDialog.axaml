@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:DipsyPaint.Resources"
+        xmlns:primitives="using:Avalonia.Controls.Primitives"
+        x:Class="DipsyPaint.Colours.EditColoursDialog"
+        Title="{x:Static res:ColourEditorStrings.DialogTitle}"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <Window.Styles>
+    <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+  </Window.Styles>
+  <StackPanel Margin="24" Spacing="16">
+    <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="24">
+      <StackPanel Spacing="12">
+        <primitives:ColorSpectrum x:Name="Spectrum" Width="240" Height="240"
+                                  Shape="Ring" Components="HueSaturation" Focusable="True"
+                                  AutomationProperties.Name="{x:Static res:ColourEditorStrings.Spectrum}" />
+        <primitives:ColorSlider x:Name="BrightnessSlider" Orientation="Horizontal"
+                                ColorModel="Hsva" ColorComponent="Component3" IsPerceptive="False"
+                                AutomationProperties.Name="{x:Static res:ColourEditorStrings.Brightness}"
+                                ToolTip.Tip="{x:Static res:ColourEditorStrings.Brightness}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Spacing="8" MinWidth="200">
+        <Border x:Name="Preview" Height="48" CornerRadius="4" BorderBrush="Gray" BorderThickness="1"
+                AutomationProperties.Name="{x:Static res:ColourEditorStrings.Preview}" />
+        <ComboBox x:Name="ModelBox" SelectedIndex="0" HorizontalAlignment="Stretch"
+                  AutomationProperties.Name="{x:Static res:ColourEditorStrings.ColourModel}">
+          <ComboBoxItem Content="{x:Static res:ColourEditorStrings.Rgb}" />
+          <ComboBoxItem Content="{x:Static res:ColourEditorStrings.Hsv}" />
+        </ComboBox>
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="12">
+          <Label x:Name="Label1" Target="Box1" VerticalAlignment="Center" />
+          <NumericUpDown x:Name="Box1" Grid.Column="1" Minimum="0" Increment="1"
+                         FormatString="0" ParsingNumberStyle="Integer" />
+          <Label x:Name="Label2" Grid.Row="1" Target="Box2" VerticalAlignment="Center" />
+          <NumericUpDown x:Name="Box2" Grid.Row="1" Grid.Column="1" Minimum="0" Increment="1"
+                         FormatString="0" ParsingNumberStyle="Integer" />
+          <Label x:Name="Label3" Grid.Row="2" Target="Box3" VerticalAlignment="Center" />
+          <NumericUpDown x:Name="Box3" Grid.Row="2" Grid.Column="1" Minimum="0" Increment="1"
+                         FormatString="0" ParsingNumberStyle="Integer" />
+          <Label Grid.Row="3" Content="{x:Static res:ColourEditorStrings.Hex}" Target="HexBox" VerticalAlignment="Center" />
+          <TextBox x:Name="HexBox" Grid.Row="3" Grid.Column="1" MaxLength="7"
+                   AutomationProperties.Name="{x:Static res:ColourEditorStrings.Hex}" />
+        </Grid>
+      </StackPanel>
+    </Grid>
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="OkButton" IsDefault="True" MinWidth="80" Click="OnOkClick"
+              Content="{x:Static res:ColourEditorStrings.Ok}"
+              AutomationProperties.Name="{x:Static res:ColourEditorStrings.Ok}" />
+      <Button x:Name="CancelButton" IsCancel="True" MinWidth="80" Click="OnCancelClick"
+              Content="{x:Static res:ColourEditorStrings.Cancel}"
+              AutomationProperties.Name="{x:Static res:ColourEditorStrings.Cancel}" />
+    </StackPanel>
+  </StackPanel>
+</Window>
