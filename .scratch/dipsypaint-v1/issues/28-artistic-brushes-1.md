@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] The five brushes are present and their strokes resemble reference Paint's
-- [ ] Size and opacity controls apply
-- [ ] Golden images per brush
-- [ ] Bespoke icons only where Fluent UI System Icons lack a suitable one
+- [x] The five brushes are present and their strokes resemble reference Paint's
+- [x] Size and opacity controls apply
+- [x] Golden images per brush
+- [x] Bespoke icons only where Fluent UI System Icons lack a suitable one

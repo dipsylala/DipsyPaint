@@ -35,6 +35,12 @@ public sealed class Stroke
     /// <summary>Creates a stroke that erases to transparency at <paramref name="opacity"/> (0–1).</summary>
     public static Stroke Erase(IPixelAccess target, float opacity = 1f) => new(target, Rgba.Transparent, opacity, erase: true);
 
+    /// <summary>Width of the target in pixels; pixels from here on are off it.</summary>
+    public int Width => _target.Width;
+
+    /// <summary>Height of the target in pixels; pixels from here on are off it.</summary>
+    public int Height => _target.Height;
+
     /// <summary>
     /// Marks <paramref name="coverage"/> (0–1) of one pixel as covered by the stroke. Lower or equal
     /// coverage than the pixel already has in this stroke is ignored; pixels off the layer are ignored.

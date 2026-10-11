@@ -10,6 +10,7 @@ milestone release, someone runs them on reference hardware (see the checklist be
 | Benchmark | Measures | Target |
 | --- | --- | --- |
 | `Brush.StrokeEvent [Size=5\|100]` | One brush stroke on a 3840×2160 document with 20 layers, drawing on the top layer: pointer down, 20 moves 10 px apart, pointer up, all through `DocumentEditor.Apply`. Covers painting, the history step and recompositing the dirty rectangle. Reported as the mean cost per pointer event, at the shell's default brush size (5) and the largest (100). | ≤ 16 ms (AC31) |
+| `ArtisticBrush.StrokeEvent [Brush=calligraphy-brush\|calligraphy-pen\|crayon\|marker\|natural-pencil]` | The `Brush.StrokeEvent` stroke at size 100 with each artistic brush of ticket 28. | ≤ 16 ms (AC31) |
 | `Transform.RotateEvent` | A drag of the rotate handle of a 3840×2160 selection (the whole canvas of a 20-layer document, lifted off the top layer): pointer down, 20 moves turning it 2° each, pointer up, all through `DocumentEditor.Apply`. Covers the preview shown while dragging, the exact turn on release and recompositing. Drags alternate between 10°–50° and back, so each does the same work. Reported as the mean cost per pointer event. | ≤ 16 ms (ADR-0023) |
 | `Transform.StretchEvent` | The same selection stretched by its bottom-right handle: pointer down, 20 moves 10 px apart, pointer up, alternately in and back out. Mean cost per pointer event. | ≤ 16 ms (ADR-0023) |
 | `Fill.FloodFill [Layers=1\|20]` | A flood fill of a whole 3840×2160 layer through the editor: region search, write, history step and recompositing. Measured on a one-layer document and with 20 layers. | ≤ 200 ms (AC32) |
@@ -76,7 +77,7 @@ an Intel Core i5-10210U or an AMD Ryzen 5 4500U.
 
 - [ ] Plug in the laptop, choose the balanced or performance power plan, and close other programs.
 - [ ] Record the CPU, RAM, GPU, OS version and the commit being measured.
-- [ ] Engine benchmarks (default job, no `--job short`): `Brush.StrokeEvent` ≤ 16 ms per event at both sizes; `Transform.RotateEvent` and `Transform.StretchEvent` ≤ 16 ms per event; `Fill.FloodFill` ≤ 200 ms.
+- [ ] Engine benchmarks (default job, no `--job short`): `Brush.StrokeEvent` ≤ 16 ms per event at both sizes, and `ArtisticBrush.StrokeEvent` for every brush; `Transform.RotateEvent` and `Transform.StretchEvent` ≤ 16 ms per event; `Fill.FloodFill` ≤ 200 ms.
 - [ ] Cold start with the release package (the publish mode chosen in ticket 14), `--runs 10`: median ≤ 2 s. Note the first run after a reboot as well.
 - [ ] By hand on a 3840×2160 document with 20 layers: brush strokes keep up with the pointer, with no visible lag; so do turning and stretching a selection of the whole canvas by its handles.
 - [ ] By hand: a flood fill of the whole canvas feels instant, and the window stays responsive during large operations (AC34).
