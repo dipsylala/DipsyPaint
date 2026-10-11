@@ -26,12 +26,16 @@ public static class TexturedPath
 {
     /// <summary>
     /// Sweeps <paramref name="tip"/> in a straight line from (x0, y0) to (x1, y1), in document
-    /// pixels, round at both ends, with its texture laid in <paramref name="frame"/>.
+    /// pixels, round at both ends, with its texture laid in <paramref name="frame"/>. The tip's size
+    /// is scaled by <paramref name="startScale"/> at the start, changing evenly to
+    /// <paramref name="endScale"/> at the end (pen pressure), so the sweep tapers between them.
     /// </summary>
-    public static void Segment(PassStroke stroke, TexturedTip tip, double x0, double y0, double x1, double y1, TextureFrame frame)
+    public static void Segment(
+        PassStroke stroke, TexturedTip tip, double x0, double y0, double x1, double y1, TextureFrame frame,
+        double startScale = 1, double endScale = 1)
     {
         var target = stroke.Target;
-        var reach = tip.Radius + 0.5;
+        var reach = tip.Radius * Math.Max(startScale, endScale) + 0.5;
         var left = Math.Max(0, (int)Math.Floor(Math.Min(x0, x1) - reach));
         var top = Math.Max(0, (int)Math.Floor(Math.Min(y0, y1) - reach));
         var right = Math.Min(target.Width - 1, (int)Math.Ceiling(Math.Max(x0, x1) + reach));
@@ -40,6 +44,7 @@ public static class TexturedPath
         double dx = x1 - x0, dy = y1 - y0;
         var length = Math.Sqrt(dx * dx + dy * dy);
         double ux = length > 0 ? dx / length : 1, uy = length > 0 ? dy / length : 0;
+        var scaleChange = endScale - startScale;
         for (var py = top; py <= bottom; py++)
         {
             for (var px = left; px <= right; px++)
@@ -47,9 +52,18 @@ public static class TexturedPath
                 double cx = px + 0.5 - x0, cy = py + 0.5 - y0;
                 var projection = cx * ux + cy * uy;
                 var t = Math.Clamp(projection, 0, length);
-                double ex = cx - t * ux, ey = cy - t * uy;
+                var scale = startScale;
+                var nearest = t;
+                if (scaleChange != 0)
+                {
+                    // Measure from the point of the tapering sweep that reaches furthest towards the pixel.
+                    var fraction = PenPressure.Nearest(cx, cy, dx, dy, tip.Radius * scaleChange);
+                    (nearest, scale) = (fraction * length, startScale + fraction * scaleChange);
+                }
+
+                double ex = cx - nearest * ux, ey = cy - nearest * uy;
                 var distance = Math.Sqrt(ex * ex + ey * ey);
-                if (distance >= reach)
+                if (distance >= tip.Radius * scale + 0.5)
                 {
                     continue;
                 }
@@ -57,7 +71,7 @@ public static class TexturedPath
                 double fx = px + 0.5 - frame.OriginX, fy = py + 0.5 - frame.OriginY;
                 var across = fy * frame.DirectionX - fx * frame.DirectionY;
                 var along = frame.Along + fx * frame.DirectionX + fy * frame.DirectionY;
-                var tipReach = tip.Reach(along, across < 0 ? -1 : 1);
+                var tipReach = tip.Reach(along, across < 0 ? -1 : 1) * scale;
                 var rim = (tipReach - distance + 0.5) / tip.Softness;
                 if (rim <= 0)
                 {
