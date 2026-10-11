@@ -11,6 +11,7 @@
         xmlns:layout="using:DipsyPaint.Layout"
         xmlns:layers="using:DipsyPaint.Layers"
         xmlns:text="using:DipsyPaint.Text"
+        xmlns:view="using:DipsyPaint.View"
         x:Class="DipsyPaint.MainWindow"
         Title="{x:Static res:Strings.AppName}"
         Icon="avares://DipsyPaint/Assets/dipsypaint.ico"
@@ -30,6 +31,7 @@
             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
       <WrapPanel x:Name="TopEdge">
         <files:FileMenu x:Name="FileMenu" layout:CommandGroup.Id="file" layout:CommandGroup.Title="{x:Static res:FileStrings.File}" />
+        <view:ViewMenu x:Name="ViewMenu" layout:CommandGroup.Id="view" layout:CommandGroup.Title="{x:Static res:ViewStrings.View}" />
         <local:HistoryControl layout:CommandGroup.Id="history" layout:CommandGroup.Title="{x:Static res:LayoutStrings.HistoryGroupName}" />
         <local:ClipboardControl layout:CommandGroup.Id="clipboard" layout:CommandGroup.Title="{x:Static res:ClipboardStrings.Clipboard}" />
         <images:ImageControl x:Name="ImageGroup" layout:CommandGroup.Id="image" layout:CommandGroup.Title="{x:Static res:ImageStrings.ImageGroupName}" />
@@ -50,6 +52,7 @@
         <layers:LayersPanel x:Name="Layers" layout:CommandGroup.Id="layers" layout:CommandGroup.Title="{x:Static res:LayerStrings.Layers}" />
       </WrapPanel>
     </Border>
+    <view:CanvasRulers x:Name="Rulers" Canvas="{Binding #Canvas}">
     <ScrollViewer x:Name="CanvasScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                   Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
       <!-- Zoom scales this wrapper, not the canvas; nearest-neighbour keeps zoomed pixels crisp. -->
@@ -60,10 +63,12 @@
                 AutomationProperties.Name="{x:Static res:Strings.CanvasAutomationName}">
           <Panel>
             <drawing:DocumentCanvas x:Name="DocumentView" />
+            <view:Gridlines x:Name="Gridlines" />
             <text:TextEntry x:Name="TextEntry" />
           </Panel>
         </Border>
       </LayoutTransformControl>
     </ScrollViewer>
+    </view:CanvasRulers>
   </DockPanel>
 </Window>

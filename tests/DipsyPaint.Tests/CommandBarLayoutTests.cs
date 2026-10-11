@@ -18,7 +18,7 @@ namespace DipsyPaint.Tests;
 
 public sealed class CommandBarLayoutTests : IDisposable
 {
-    private static readonly string[] DefaultOrder = ["file", "history", "clipboard", "image", "tools", "colours", "help", "update"];
+    private static readonly string[] DefaultOrder = ["file", "view", "history", "clipboard", "image", "tools", "colours", "help", "update"];
 
     // Never the real user profile.
     private readonly string _settingsDirectory = Path.Combine(Path.GetTempPath(), "DipsyPaintTests-" + Guid.NewGuid().ToString("N"));
@@ -312,7 +312,7 @@ public sealed class CommandBarLayoutTests : IDisposable
         // Within the top edge: History dropped before File.
         var file = RectOf(Layout(window).Host("file"), window);
         Drag(window, Layout(window).Host("history").Grip, new Point(file.Left + 2, file.Center.Y));
-        Assert.Equal(["history", "file", "clipboard", "help", "update"], Layout(window).Arrangement[DockEdge.Top]);
+        Assert.Equal(["history", "file", "view", "clipboard", "help", "update"], Layout(window).Arrangement[DockEdge.Top]);
 
         // Below the canvas: the bottom edge.
         Drag(window, Layout(window).Host("help").Grip, new Point(canvasArea.Center.X, canvasArea.Bottom - 5));
@@ -455,7 +455,7 @@ public sealed class CommandBarLayoutTests : IDisposable
 
         var window = ShowWindow(Store());
 
-        Assert.Equal(["file", "history", "clipboard", "image", "tools", "help", "update"], Layout(window).Arrangement[DockEdge.Top]);
+        Assert.Equal(["file", "view", "history", "clipboard", "image", "tools", "help", "update"], Layout(window).Arrangement[DockEdge.Top]);
         Assert.Equal(["colours"], Layout(window).Arrangement[DockEdge.Left]);
         Assert.Equal(["layers"], Layout(window).Arrangement[DockEdge.Right]);
     }

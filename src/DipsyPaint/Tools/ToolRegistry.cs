@@ -2,6 +2,7 @@ using Avalonia.Input;
 using DipsyPaint.Engine.Tools;
 using DipsyPaint.Resources;
 using DipsyPaint.Text;
+using DipsyPaint.View;
 
 namespace DipsyPaint.Tools;
 
@@ -32,6 +33,15 @@ public static class ToolRegistry
     private static readonly StrokeSettings BrushSettings = new(size: 5);
     private static readonly StrokeSettings EraserSettings = new(size: 8);
 
+    /// <summary>
+    /// The brushes the Brush tool offers, in menu order, sharing <see cref="BrushSettings"/>. To add a
+    /// brush, add its descriptor here.
+    /// </summary>
+    public static BrushGallery Brushes { get; } = new(
+    [
+        new("brush", BrushStrings.Brush, PaintBrushIcon, settings => new BrushTool(settings)),
+    ]);
+
     // Bespoke: a square and a circle (the Fluent set's shape icons are not a good match), ADR-0012.
     private const string ShapesIcon =
         "M2 2h9v9H2zM3.5 3.5v6h6v-6zM16.5 11a5.5 5.5 0 1 1 0 11a5.5 5.5 0 1 1 0-11zm0 1.5a4 4 0 1 0 0 8a4 4 0 1 0 0-8z";
@@ -53,8 +63,9 @@ public static class ToolRegistry
         new("fill", ToolStrings.Fill, PaintBucketIcon, null, () => new FillTool()),
         TextToolEntry.Descriptor,
         new("colour-picker", ColourStrings.ColourPicker, EyedropperIcon, null, () => new ColorPickerTool(), ReturnsToPreviousTool: true),
+        MagnifierTool.Descriptor,
         new("brush", BrushStrings.Brush, PaintBrushIcon, null,
-            () => new BrushTool(BrushSettings), () => new StrokeSizeOptions(BrushSettings)),
+            () => Brushes.Selected.CreateTool(BrushSettings), () => new BrushOptions(BrushSettings, Brushes)),
         new("eraser", BrushStrings.Eraser, EraserIcon, new KeyGesture(Key.E),
             () => new EraserTool(EraserSettings), () => new StrokeSizeOptions(EraserSettings)),
         new("shapes", ShapeStrings.Shapes, ShapesIcon, null, () => new ShapeTool(ShapeSettings), () => new ShapeOptions(ShapeSettings)),
