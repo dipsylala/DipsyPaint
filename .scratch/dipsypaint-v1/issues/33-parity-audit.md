@@ -2,7 +2,7 @@
 
 **What to build:** A systematic comparison of DipsyPaint against reference Paint (Windows 11 Paint, current stable), completing M3. Every gap is either closed via a new ticket or recorded as a deviation. Spec: AC1 to AC3, AC5, Further Notes.
 
-**Blocked by:** 06–12, 17–32, 34–39 (all feature tickets)
+**Blocked by:** 06–12, 17–32, 34–42 (all feature tickets)
 
 **Status:** ready-for-agent
 
