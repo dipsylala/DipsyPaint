@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] The outline and fill options list the same styles as reference Paint
-- [ ] Each textured style renders like the matching artistic brush, along the outline and across the fill
-- [ ] Changing the style while adjusting a shape before commit updates the shape, as in reference Paint
-- [ ] Golden images per style on at least one closed and one open shape; randomised textures are seeded so they are deterministic
+- [x] The outline and fill options list the same styles as reference Paint
+- [x] Each textured style renders like the matching artistic brush, along the outline and across the fill
+- [x] Changing the style while adjusting a shape before commit updates the shape, as in reference Paint
+- [x] Golden images per style on at least one closed and one open shape; randomised textures are seeded so they are deterministic

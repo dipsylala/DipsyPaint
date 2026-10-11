@@ -55,4 +55,11 @@ public abstract class BrushTip
     /// with the tip's texture.
     /// </summary>
     public abstract void Fill(Stroke stroke, int x, int y, float coverage);
+
+    /// <summary>
+    /// The coverage (0–1) the tip's texture leaves on pixel (x, y) deep inside a filled area: what
+    /// <see cref="Fill"/> covers there at full coverage. Unlike <see cref="Fill"/>, it needs no
+    /// <see cref="Stroke"/>, so large areas can be computed in parallel rows.
+    /// </summary>
+    public virtual float Interior(int x, int y) => 1f;
 }

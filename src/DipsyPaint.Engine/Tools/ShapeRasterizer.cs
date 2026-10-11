@@ -58,6 +58,26 @@ internal static class ShapeRasterizer
     /// </summary>
     public static Rgba[] Closed(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours, int thickness, Rgba outline, Rgba fill)
     {
+        var inside = Inside(bounds, contours);
+        var edge = Edge(bounds, contours, thickness);
+        var pixels = new Rgba[inside.Length];
+        ForEachRow(pixels.Length, bounds.Height, () => 0, (y, _) =>
+        {
+            for (var i = y * bounds.Width; i < (y + 1) * bounds.Width; i++)
+            {
+                pixels[i] = !inside[i] ? Rgba.Transparent : edge[i] ? outline : fill;
+            }
+        });
+
+        return pixels;
+    }
+
+    /// <summary>
+    /// The pixels of <paramref name="bounds"/> (row-major) whose centre is inside the closed
+    /// polygons, even-odd; see <see cref="Closed"/>.
+    /// </summary>
+    public static bool[] Inside(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours)
+    {
         var inside = new bool[bounds.Width * bounds.Height];
         // Rows are independent, so a large shape (e.g. one being turned) is filled in parallel rows.
         ForEachRow(inside.Length, bounds.Height, () => new List<double>(), (y, crossings) =>
@@ -86,11 +106,21 @@ internal static class ShapeRasterizer
             }
         });
 
+        return inside;
+    }
+
+    /// <summary>
+    /// The pixels of <paramref name="bounds"/> (row-major) whose centre is nearer than
+    /// <paramref name="thickness"/> to an edge of the closed polygons (none for 0): the outline
+    /// band of <see cref="Closed"/> where it is inside.
+    /// </summary>
+    public static bool[] Edge(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours, int thickness)
+    {
         // An edge through pixel centres (e.g. an arrow's shaft at three quarters of an even height)
         // leaves the pixels beside it exactly a whole number of pixels away; counting those keeps the
         // outline `thickness` pixels wide there. Edges along pixel edges are unaffected.
         var reach = thickness + 1e-9;
-        var edge = new bool[inside.Length];
+        var edge = new bool[bounds.Width * bounds.Height];
         if (thickness > 0)
         {
             foreach (var contour in contours)
@@ -103,21 +133,12 @@ internal static class ShapeRasterizer
             }
         }
 
-        var pixels = new Rgba[inside.Length];
-        ForEachRow(pixels.Length, bounds.Height, () => 0, (y, _) =>
-        {
-            for (var i = y * bounds.Width; i < (y + 1) * bounds.Width; i++)
-            {
-                pixels[i] = !inside[i] ? Rgba.Transparent : edge[i] ? outline : fill;
-            }
-        });
-
-        return pixels;
+        return edge;
     }
 
     // Calls `row` for rows 0..height of a bitmap of `size` pixels, in parallel when it is large, with
     // a scratch value from `scratch` per thread.
-    private static void ForEachRow<T>(int size, int height, Func<T> scratch, Action<int, T> row)
+    public static void ForEachRow<T>(int size, int height, Func<T> scratch, Action<int, T> row)
     {
         if (size < 1 << 16)
         {

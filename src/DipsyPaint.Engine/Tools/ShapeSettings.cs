@@ -32,14 +32,19 @@ public enum ShapeKind
 }
 
 /// <summary>
-/// How a shape's outline or fill is painted. Reference Paint also offers crayon, marker, oil,
-/// natural pencil and watercolour; those arrive with the artistic brushes (ticket 37) as further
-/// members. The options panel lists the members in order.
+/// How a shape's outline or fill is painted, in the order of reference Paint's Outline and Fill
+/// menus, which the options panel lists by index. The members after <see cref="Solid"/> paint
+/// with the texture of the matching artistic brush (see <see cref="TexturedShapes"/>).
 /// </summary>
 public enum ShapeStyle
 {
     None,
     Solid,
+    Crayon,
+    Marker,
+    Oil,
+    NaturalPencil,
+    Watercolour,
 }
 
 /// <summary>

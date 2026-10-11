@@ -6,17 +6,28 @@
   <WrapPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" ItemSpacing="8" LineSpacing="4" VerticalAlignment="Center">
     <!-- Columns follow the command group's orientation (see ShapeOptions.ArrangeGallery). -->
     <UniformGrid x:Name="ShapeButtons" HorizontalAlignment="Left" AutomationProperties.Name="{x:Static res:ShapeStrings.Shapes}" />
+    <!-- Outline and fill list reference Paint's styles in its order, which is ShapeStyle's. -->
     <ComboBox x:Name="OutlineBox" SelectionChanged="OnOutlineChanged" MinWidth="120"
               AutomationProperties.Name="{x:Static res:ShapeStrings.Outline}"
               ToolTip.Tip="{x:Static res:ShapeStrings.Outline}">
       <ComboBoxItem Content="{x:Static res:ShapeStrings.NoOutline}" />
       <ComboBoxItem Content="{x:Static res:ShapeStrings.SolidColor}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.Crayon}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.Marker}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.Oil}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.NaturalPencil}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.Watercolour}" />
     </ComboBox>
     <ComboBox x:Name="FillBox" SelectionChanged="OnFillChanged" MinWidth="120"
               AutomationProperties.Name="{x:Static res:ShapeStrings.Fill}"
               ToolTip.Tip="{x:Static res:ShapeStrings.Fill}">
       <ComboBoxItem Content="{x:Static res:ShapeStrings.NoFill}" />
       <ComboBoxItem Content="{x:Static res:ShapeStrings.SolidColor}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.Crayon}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.Marker}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.Oil}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.NaturalPencil}" />
+      <ComboBoxItem Content="{x:Static res:TexturedShapeStrings.Watercolour}" />
     </ComboBox>
     <ComboBox x:Name="SizeBox" SelectionChanged="OnSizeChanged" MinWidth="80"
               AutomationProperties.Name="{x:Static res:ShapeStrings.Size}"

@@ -1,3 +1,5 @@
+using DipsyPaint.Engine.Tools.Brushes;
+
 namespace DipsyPaint.Engine.Tools;
 
 /// <summary>
@@ -35,6 +37,10 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
     private bool _pending;
     private ShapeKind _kind;
     private bool _swapColors;
+
+    // Seeds a textured outline's or fill's randomness; taken from where the shape was started, so it
+    // stays the same while the shape is adjusted.
+    private ulong _seed;
 
     // The frame corners (box shapes, finished curves and polygons) or end points (line, and the
     // first drag of a curve or polygon), in pixels, inclusive.
@@ -106,7 +112,7 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
             // A press outside: the editor has committed the previous shape; draw a new one.
             (_gesture, _pending, _kind, _swapColors, _a, _b) =
                 (Gesture.Draw, true, settings.Kind, input.Button == PointerButton.Right, pixel, pixel);
-            (_contours, _angle) = (null, 0);
+            (_contours, _angle, _seed) = (null, 0, ArtisticNoise.Seed(pixel.X, pixel.Y));
             _points.Clear();
             return context.Overlay.Clear();
         }
@@ -376,6 +382,11 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
     private (IntRect Bounds, Rgba[] Pixels) RenderShape(Rgba outline, Rgba fill)
     {
         var size = Math.Max(1, settings.Size);
+        if (TexturedShapes.IsTextured(settings.Outline) || TexturedShapes.IsTextured(settings.Fill))
+        {
+            return RenderTextured(outline, fill, size);
+        }
+
         if (_contours is not null)
         {
             var bounds = Frame;
@@ -412,6 +423,46 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
         var thickness = settings.Outline == ShapeStyle.None ? 0 : size;
         var fillPaint = settings.Fill == ShapeStyle.None ? Rgba.Transparent : fill;
         return (frame, ShapeRasterizer.Closed(frame, [polygon], thickness, outline, fillPaint));
+    }
+
+    // As RenderShape, with a textured outline or fill (see TexturedShapes).
+    private (IntRect Bounds, Rgba[] Pixels) RenderTextured(Rgba outline, Rgba fill, int size)
+    {
+        (IntRect Bounds, Rgba[] Pixels) Open(IReadOnlyList<(double X, double Y)> points) => settings.Outline switch
+        {
+            ShapeStyle.None => (IntRect.Empty, []),
+            ShapeStyle.Solid => ShapeRasterizer.Polyline(points, size, outline),
+            _ => TexturedShapes.Open(points, settings.Outline, size, outline, _seed),
+        };
+
+        if (_kind == ShapeKind.Line || (_kind is ShapeKind.Curve or ShapeKind.Polygon && _gesture == Gesture.Draw))
+        {
+            return Open([_a, _b]);
+        }
+
+        if (_kind == ShapeKind.Curve)
+        {
+            return Open(CurvePoints(ScaledPoints()));
+        }
+
+        var frame = Frame;
+        if (_kind != ShapeKind.Polygon)
+        {
+            return (frame, TexturedShapes.Closed(frame, Geometry(), settings.Outline, settings.Fill, size, outline, fill, _seed));
+        }
+
+        // As RenderShape: a polygon being built, or one with no inside, shows its sides.
+        var points = ScaledPoints();
+        if (_building || points.Count < 3 || frame.Width < 2 || frame.Height < 2)
+        {
+            return settings.Outline != ShapeStyle.None ? Open(points)
+                : settings.Fill != ShapeStyle.None ? ShapeRasterizer.Polyline(points, 1, fill)
+                : (IntRect.Empty, []);
+        }
+
+        double sx = frame.Width / (frame.Width - 1.0), sy = frame.Height / (frame.Height - 1.0);
+        (double X, double Y)[] polygon = [.. points.Select(p => (frame.X + (p.X - frame.X) * sx, frame.Y + (p.Y - frame.Y) * sy))];
+        return (frame, TexturedShapes.Closed(frame, [polygon], settings.Outline, settings.Fill, size, outline, fill, _seed));
     }
 
     /// <summary>Square or circle for a box; horizontal, vertical or 45° for a line.</summary>
