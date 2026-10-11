@@ -11,6 +11,10 @@ public sealed class Overlay
 {
     private Rgba[] _pixels = [];
 
+    // Content shown by ShowTurned instead of _pixels, and the colour it leaves out; null otherwise.
+    private TurnedPixels? _turned;
+    private Rgba? _hidden;
+
     /// <summary>Where the pixels sit, in document pixels; empty when nothing is shown.</summary>
     public IntRect Bounds { get; private set; }
 
@@ -28,6 +32,24 @@ public sealed class Overlay
         var dirty = Bounds.Union(bounds);
         Bounds = bounds.IsEmpty ? IntRect.Empty : bounds;
         _pixels = bounds.IsEmpty ? [] : pixels;
+        (_turned, _hidden) = (null, null);
+        return dirty;
+    }
+
+    /// <summary>
+    /// Shows a <paramref name="width"/>×<paramref name="height"/> bitmap (row-major, premultiplied) turned by
+    /// <paramref name="transform"/> into <paramref name="bounds"/>, the upright rectangle around it, in place of
+    /// the current content: a quick, nearest-neighbour preview of what <see cref="LinearTransform"/>'s bilinear
+    /// warp gives, sampled only where it is composited, for showing a turn while it is dragged. Pixels equal to
+    /// <paramref name="hidden"/> are left out. The overlay keeps <paramref name="source"/> without copying.
+    /// Returns the rectangle to recomposite: the old and new bounds.
+    /// </summary>
+    internal IntRect ShowTurned(IntRect bounds, Rgba[] source, int width, int height, LinearTransform transform, Rgba? hidden)
+    {
+        var dirty = Bounds.Union(bounds);
+        (Bounds, _pixels) = (bounds, []);
+        _turned = new TurnedPixels(source, width, height, transform, bounds.Width, bounds.Height);
+        _hidden = hidden;
         return dirty;
     }
 
@@ -35,10 +57,22 @@ public sealed class Overlay
     public IntRect Clear() => Show(IntRect.Empty, []);
 
     /// <summary>The overlay pixel at a document position; transparent outside <see cref="Bounds"/>.</summary>
-    public Rgba GetPixel(int x, int y) =>
-        x >= Bounds.X && x < Bounds.Right && y >= Bounds.Y && y < Bounds.Bottom
-            ? _pixels[(y - Bounds.Y) * Bounds.Width + x - Bounds.X]
-            : Rgba.Transparent;
+    public Rgba GetPixel(int x, int y)
+    {
+        if (x < Bounds.X || x >= Bounds.Right || y < Bounds.Y || y >= Bounds.Bottom)
+        {
+            return Rgba.Transparent;
+        }
+
+        if (_turned is not null)
+        {
+            var pixel = Rgba.Transparent;
+            CompositeRow(y, x, new Span<Rgba>(ref pixel));
+            return pixel;
+        }
+
+        return _pixels[(y - Bounds.Y) * Bounds.Width + x - Bounds.X];
+    }
 
     /// <summary>
     /// Composites the content source-over onto <paramref name="target"/> (normally the active
@@ -74,6 +108,16 @@ public sealed class Overlay
 
         var from = Math.Max(x, Bounds.X);
         var to = Math.Min(x + destination.Length, Bounds.Right);
+        if (_turned is not null)
+        {
+            if (from < to)
+            {
+                _turned.CompositeRow(y - Bounds.Y, from - Bounds.X, destination[(from - x)..(to - x)], _hidden);
+            }
+
+            return;
+        }
+
         var source = _pixels.AsSpan((y - Bounds.Y) * Bounds.Width);
         for (var i = from; i < to; i++)
         {

@@ -1,6 +1,6 @@
 name: Benchmarks
 
-# Tracks the ADR-0018 performance targets (docs/benchmarks.md). Results go to the job summary and
+# Tracks the ADR-0018 and ADR-0023 performance targets (docs/benchmarks.md). Results go to the job summary and
 # an artifact; misses and regressions are flagged as warnings and never fail the run.
 on:
   push:

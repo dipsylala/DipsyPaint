@@ -59,8 +59,8 @@ internal static class ShapeRasterizer
     public static Rgba[] Closed(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours, int thickness, Rgba outline, Rgba fill)
     {
         var inside = new bool[bounds.Width * bounds.Height];
-        var crossings = new List<double>();
-        for (var y = 0; y < bounds.Height; y++)
+        // Rows are independent, so a large shape (e.g. one being turned) is filled in parallel rows.
+        ForEachRow(inside.Length, bounds.Height, () => new List<double>(), (y, crossings) =>
         {
             var cy = bounds.Y + y + 0.5;
             crossings.Clear();
@@ -84,7 +84,7 @@ internal static class ShapeRasterizer
                 var to = Math.Min(bounds.Width, (int)Math.Ceiling(crossings[k + 1] - bounds.X - 0.5));
                 Array.Fill(inside, true, y * bounds.Width + from, Math.Max(0, to - from));
             }
-        }
+        });
 
         // An edge through pixel centres (e.g. an arrow's shaft at three quarters of an even height)
         // leaves the pixels beside it exactly a whole number of pixels away; counting those keeps the
@@ -104,12 +104,37 @@ internal static class ShapeRasterizer
         }
 
         var pixels = new Rgba[inside.Length];
-        for (var i = 0; i < pixels.Length; i++)
+        ForEachRow(pixels.Length, bounds.Height, () => 0, (y, _) =>
         {
-            pixels[i] = !inside[i] ? Rgba.Transparent : edge[i] ? outline : fill;
-        }
+            for (var i = y * bounds.Width; i < (y + 1) * bounds.Width; i++)
+            {
+                pixels[i] = !inside[i] ? Rgba.Transparent : edge[i] ? outline : fill;
+            }
+        });
 
         return pixels;
+    }
+
+    // Calls `row` for rows 0..height of a bitmap of `size` pixels, in parallel when it is large, with
+    // a scratch value from `scratch` per thread.
+    private static void ForEachRow<T>(int size, int height, Func<T> scratch, Action<int, T> row)
+    {
+        if (size < 1 << 16)
+        {
+            var value = scratch();
+            for (var y = 0; y < height; y++)
+            {
+                row(y, value);
+            }
+
+            return;
+        }
+
+        Parallel.For(0, height, scratch, (y, _, value) =>
+        {
+            row(y, value);
+            return value;
+        }, _ => { });
     }
 
     /// <summary>

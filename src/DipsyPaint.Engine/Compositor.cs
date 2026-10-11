@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace DipsyPaint.Engine;
 
 /// <summary>
@@ -14,6 +16,10 @@ namespace DipsyPaint.Engine;
 /// </remarks>
 public sealed class Compositor
 {
+    // Regions of at least this many pixels are composited in parallel bands of BandHeight rows.
+    private const int ParallelArea = 1 << 16;
+    private const int BandHeight = 32;
+
     private readonly Document _document;
     private readonly Overlay? _overlay;
     private Rgba[] _composite = [];
@@ -200,9 +206,23 @@ public sealed class Compositor
 
     private void Compose(IntRect region)
     {
+        if (region.Width * (long)region.Height < ParallelArea)
+        {
+            ComposeRows(region, region.Y, region.Bottom, Row(region.Width));
+            return;
+        }
+
+        // Rows are independent, so a large region (e.g. a moved or turned selection) is composited in
+        // parallel bands, each with its own row buffer; the result does not depend on the order.
+        Parallel.ForEach(Partitioner.Create(region.Y, region.Bottom, BandHeight), band =>
+            ComposeRows(region, band.Item1, band.Item2, new Rgba[region.Width]));
+    }
+
+    // Composites rows from..to (exclusive) of region, using source as the row buffer.
+    private void ComposeRows(IntRect region, int from, int to, Span<Rgba> source)
+    {
         var active = _document.ActiveLayer;
-        var source = Row(region.Width);
-        for (var y = region.Y; y < region.Bottom; y++)
+        for (var y = from; y < to; y++)
         {
             var offset = y * Width + region.X;
             var target = _composite.AsSpan(offset, region.Width);
@@ -244,7 +264,16 @@ public sealed class Compositor
         {
             for (var x = 0; x < target.Length; x++)
             {
-                target[x] = source[x].Over(target[x]);
+                // Shortcuts that give what Over gives: an opaque pixel replaces, a transparent one changes nothing.
+                var pixel = source[x];
+                if (pixel.A == 255)
+                {
+                    target[x] = pixel;
+                }
+                else if (pixel != Rgba.Transparent)
+                {
+                    target[x] = pixel.Over(target[x]);
+                }
             }
         }
         else if (opacity > 0)
