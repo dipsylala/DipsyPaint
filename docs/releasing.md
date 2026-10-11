@@ -21,9 +21,10 @@ of updates depends on the GitHub account and on who can release.
    - Add a tag ruleset (Settings → Rules → Rulesets → New tag ruleset): target `v*`, enable
      *Restrict creations*, *Restrict updates* and *Restrict deletions*, and add only the
      maintainer (or the admin role) to the bypass list.
-   - The upload job runs in the `release` environment (created on first use). Under Settings →
-     Environments → `release`, add the maintainer as a required reviewer and allow only tags
-     matching `v*`.
+   - The upload job runs in the `release` environment. It requires the maintainer's approval and
+     accepts only tags matching `v*` (Settings → Environments → `release`). An environment that
+     doesn't exist yet is created on first use **without** these rules, so set them up before the
+     first tag on a new repository.
    - Settings → Actions → General → Workflow permissions: keep *Read repository contents*. Only
      the upload job asks for write access.
 
