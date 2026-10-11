@@ -4,10 +4,12 @@
              xmlns:layout="using:DipsyPaint.Layout"
              x:Class="DipsyPaint.Text.TextOptions">
   <WrapPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" ItemSpacing="8" LineSpacing="4" VerticalAlignment="Center">
-    <ComboBox x:Name="FontBox" Width="160" MaxDropDownHeight="400"
+    <!-- Fixed heights: before its text is set, the editable size box would measure several lines tall,
+         and the command bar keeps room for the largest options panel. -->
+    <ComboBox x:Name="FontBox" Width="160" Height="32" MaxDropDownHeight="400"
               AutomationProperties.Name="{x:Static res:TextStrings.FontFamily}"
               ToolTip.Tip="{x:Static res:TextStrings.FontFamily}" />
-    <ComboBox x:Name="SizeBox" Width="80" IsEditable="True"
+    <ComboBox x:Name="SizeBox" Width="80" Height="32" IsEditable="True"
               AutomationProperties.Name="{x:Static res:TextStrings.FontSize}"
               ToolTip.Tip="{x:Static res:TextStrings.FontSize}" />
     <StackPanel Orientation="Horizontal" Spacing="2">

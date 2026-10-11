@@ -174,6 +174,30 @@ public sealed class CommandBarLayoutTests : IDisposable
         }
     }
 
+    // The room kept for tool options must come from how the panels really lay out, or the bar grows for nothing.
+    [AvaloniaTheory]
+    [InlineData(DockEdge.Top)]
+    [InlineData(DockEdge.Left)]
+    public void RoomKeptForToolOptionsIsNoBiggerThanTheLargestPanelShown(DockEdge toolsEdge)
+    {
+        var window = ShowWindow(windowWidth: 1100);
+        Layout(window).Move("tools", toolsEdge, 0);
+        window.UpdateLayout();
+        var picker = window.GetVisualDescendants().OfType<Tools.ToolPicker>().Single();
+        var options = picker.FindControl<ContentControl>("ToolOptions")!;
+        var largest = default(Size);
+        foreach (var tool in Tools.ToolRegistry.Tools)
+        {
+            SelectTool(window, tool.DisplayName);
+            window.UpdateLayout();
+            largest = new Size(Math.Max(largest.Width, options.DesiredSize.Width), Math.Max(largest.Height, options.DesiredSize.Height));
+        }
+
+        var reserve = picker.FindControl<Tools.OptionsSlot>("OptionsSlot")!.Reserve;
+        Assert.True(reserve.Width <= largest.Width + 0.5 && reserve.Height <= largest.Height + 0.5,
+            $"kept {reserve} for options, but the largest panel shown is {largest}");
+    }
+
     // At the default width the options share the tool buttons' row; narrower, they wrap below.
     [AvaloniaFact]
     public void ToolOptionSlidersLineUpWithTheToolButtons()
