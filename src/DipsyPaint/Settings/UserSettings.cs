@@ -16,8 +16,21 @@ public sealed class UserSettings
     /// <summary>Crash-recovery snapshots (ADR-0013), or null for the defaults.</summary>
     public RecoverySettings? Recovery { get; set; }
 
+    /// <summary>The View menu's display options (rulers, gridlines, status bar), or null for the defaults.</summary>
+    public ViewSettings? View { get; set; }
+
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Other { get; set; }
+}
+
+/// <summary>Which display options the View menu shows; a null value means its default.</summary>
+public sealed class ViewSettings
+{
+    public bool? Rulers { get; set; }
+
+    public bool? Gridlines { get; set; }
+
+    public bool? StatusBar { get; set; }
 }
 
 /// <summary>The command group ids docked to each window edge, in order.</summary>

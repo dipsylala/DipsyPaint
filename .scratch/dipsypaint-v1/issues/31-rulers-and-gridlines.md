@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] Rulers and gridlines toggle from the View options, as in reference Paint
-- [ ] Both scale correctly with zoom
-- [ ] Neither is ever saved into the image
+- [x] Rulers and gridlines toggle from the View options, as in reference Paint
+- [x] Both scale correctly with zoom
+- [x] Neither is ever saved into the image

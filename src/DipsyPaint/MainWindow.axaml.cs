@@ -20,13 +20,14 @@ public partial class MainWindow : Window
 
     /// <param name="document">The document to show.</param>
     /// <param name="settings">
-    /// Where the user's settings (the command bar layout) are restored from and saved to; null keeps
+    /// Where the user's settings (the command bar layout, the View menu's display options) are restored from and saved to; null keeps
     /// them for this window only, as in tests.
     /// </param>
     public MainWindow(Document document, SettingsStore? settings = null)
     {
         InitializeComponent();
         CommandBarLayout = new CommandBarDock(this, CanvasScroll, TopEdge, BottomEdge, LeftEdge, RightEdge);
+        ViewMenu.Connect(Zoom, StatusBar, Rulers, Gridlines);
         if (settings is not null)
         {
             var saved = settings.Load();
@@ -34,6 +35,12 @@ public partial class MainWindow : Window
             CommandBarLayout.Changed += (_, _) =>
             {
                 saved.CommandBar = CommandBarLayout.Arrangement.ToSettings();
+                settings.Save(saved);
+            };
+            ViewMenu.Restore(saved.View);
+            ViewMenu.Changed += (_, _) =>
+            {
+                saved.View = ViewMenu.ToSettings();
                 settings.Save(saved);
             };
         }
