@@ -5,7 +5,7 @@ public enum FrameHandle
 {
     None,
 
-    /// <summary>Inside the frame, away from the handles: dragging moves the content.</summary>
+    /// <summary>Inside the frame (on a pixel of <see cref="Adornment.Mask"/>, when it has one), away from the handles: dragging moves the content.</summary>
     Move,
     TopLeft,
     Top,
@@ -32,6 +32,12 @@ public readonly record struct Adornment(IntRect Frame)
 {
     /// <summary>Whether the frame has resize and rotate handles; true unless set otherwise.</summary>
     public bool HasHandles { get; init; } = true;
+
+    /// <summary>
+    /// Which pixels within the frame (row-major, <see cref="Frame"/>-sized) take a press that moves the content:
+    /// a free-form or magic-wand selection's shape (issue #111). Null for the whole frame. Callers must not change it.
+    /// </summary>
+    public bool[]? Mask { get; init; }
 
     /// <summary>How far the rotate handle sits above the frame, in multiples of the handle tolerance (so constant on screen).</summary>
     public const double RotateHandleDistance = 4;
@@ -64,8 +70,8 @@ public readonly record struct Adornment(IntRect Frame)
 
     /// <summary>
     /// The handle within <paramref name="tolerance"/> document pixels of the point (corners win, then
-    /// edges, then the rotate handle; none without <see cref="HasHandles"/>), else <see cref="FrameHandle.Move"/> inside the frame, else
-    /// <see cref="FrameHandle.None"/>.
+    /// edges, then the rotate handle; none without <see cref="HasHandles"/>), else <see cref="FrameHandle.Move"/> inside the frame
+    /// (on a pixel of <see cref="Mask"/>, when it has one), else <see cref="FrameHandle.None"/>.
     /// </summary>
     public FrameHandle HitTest(double x, double y, double tolerance)
     {
@@ -83,7 +89,10 @@ public readonly record struct Adornment(IntRect Frame)
             return FrameHandle.Rotate;
         }
 
-        return x >= Frame.X && x < Frame.Right && y >= Frame.Y && y < Frame.Bottom ? FrameHandle.Move : FrameHandle.None;
+        return x >= Frame.X && x < Frame.Right && y >= Frame.Y && y < Frame.Bottom
+            && (Mask is null || Mask[((int)Math.Floor(y) - Frame.Y) * Frame.Width + (int)Math.Floor(x) - Frame.X])
+            ? FrameHandle.Move
+            : FrameHandle.None;
     }
 
     /// <summary>

@@ -19,11 +19,12 @@ namespace DipsyPaint.Drawing;
 /// it (e.g. zoom) still yields document pixels. Transparent pixels show a checkerboard, as in
 /// reference Paint. Also draws the frame and handles around pending content
 /// (<see cref="DocumentEditor.Adornment"/>) at a constant on-screen size, with the rotate handle
-/// above it, and handles Enter (commit; a selection stays) and Esc (cancel) for it, and Delete and the
-/// arrow keys (<see cref="DocumentEditor.Nudge"/>: 1 pixel, 10 with Shift) for a selection. Handles
-/// that stick out past the canvas still take presses (<see cref="ICustomHitTest"/>).
+/// above it, and the edge of a free-form or magic-wand selection in place of its frame (issue #111), and
+/// handles Enter (commit; a selection stays) and Esc (cancel) for it, and Delete and the arrow keys
+/// (<see cref="DocumentEditor.Nudge"/>: 1 pixel, 10 with Shift) for a selection. Handles that stick out
+/// past the canvas still take presses (<see cref="ICustomHitTest"/>).
 /// </summary>
-public sealed class DocumentCanvas : Control, ICustomHitTest
+public sealed partial class DocumentCanvas : Control, ICustomHitTest
 {
     /// <summary>Pixels an arrow key moves a selection with Shift held; 1 without.</summary>
     private const int ShiftNudge = 10;
@@ -35,6 +36,9 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
     private const double HandleReach = HandleSize / 2 + 1;
 
     private static readonly IBrush FrameBrush = new SolidColorBrush(Color.FromRgb(0, 103, 192));
+
+    // The bounding rectangle of a shaped selection, under its edge, carrying the handles.
+    private static readonly IBrush FaintFrameBrush = new SolidColorBrush(Color.FromArgb(0x60, 0, 103, 192));
 
     // 8×8 document-pixel squares, light grey on white.
     internal static readonly IBrush Checkerboard = new DrawingBrush(new DrawingGroup
@@ -145,9 +149,20 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
             context.DrawImage(_bitmap, new Rect(_bitmap.Size));
         }
 
-        if (_editor?.Adornment is { } adornment)
+        // A free-form or magic-wand selection shows its edge instead of its frame (issue #111). With handles, a faint
+        // frame under the edge carries them.
+        var adornment = _editor?.Adornment;
+        var shaped = _editor?.Selection is { Mask: not null } selection ? selection : (Selection?)null;
+        if (adornment is { } frame && (shaped is null || frame.HasHandles))
         {
-            DrawAdornment(context, adornment);
+            DrawFrame(context, frame.Frame, faint: shaped is not null);
+        }
+
+        DrawOutline(context, shaped);
+
+        if (adornment is { } handles)
+        {
+            DrawHandles(context, handles);
         }
 
         if ((_editor?.ActiveTool as SelectionTool)?.FreeFormPath is { Count: > 1 } path)
@@ -177,14 +192,20 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
         context.DrawGeometry(null, new Pen(Brushes.Black, unit, new DashStyle([4, 4], 0)), geometry);
     }
 
-    // Drawn in document coordinates with sizes divided by the zoom, so it is the same size on screen at any zoom.
-    private void DrawAdornment(DrawingContext context, Adornment adornment)
+    // The adornment's frame and handles are drawn in document coordinates with sizes divided by the zoom, so they are
+    // the same size on screen at any zoom. The frame sits just outside the content, so it covers none of its pixels
+    // and stays crisp.
+    private void DrawFrame(DrawingContext context, IntRect frame, bool faint)
+    {
+        var unit = 1 / _scale;
+        var dashed = new Pen(faint ? FaintFrameBrush : FrameBrush, unit, new DashStyle([4, 4], 0));
+        context.DrawRectangle(null, dashed, new Rect(frame.X, frame.Y, frame.Width, frame.Height).Inflate(unit / 2));
+    }
+
+    private void DrawHandles(DrawingContext context, Adornment adornment)
     {
         var unit = 1 / _scale;
         var frame = adornment.Frame;
-        var dashed = new Pen(FrameBrush, unit, new DashStyle([4, 4], 0));
-        // Just outside the content, so it covers none of its pixels and stays crisp.
-        context.DrawRectangle(null, dashed, new Rect(frame.X, frame.Y, frame.Width, frame.Height).Inflate(unit / 2));
         var solid = new Pen(FrameBrush, unit);
         var half = HandleSize / 2 * unit;
         foreach (var (_, x, y) in adornment.Handles)
@@ -210,7 +231,14 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
 
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
-        var scale = _topLevel is null ? 1 : this.TransformToVisual(_topLevel)?.M11 ?? 1;
+        var toWindow = _topLevel is null ? null : this.TransformToVisual(_topLevel);
+        if (toWindow != _toWindow)
+        {
+            _toWindow = toWindow;
+            OnViewChanged();
+        }
+
+        var scale = toWindow?.M11 ?? 1;
         if (scale > 0 && scale != _scale)
         {
             _scale = scale;

@@ -6,11 +6,14 @@ public enum SelectionToolMode
     /// <summary>Select: any drag makes a new selection. Shows the outline with no handles.</summary>
     Select,
 
-    /// <summary>Move selection: dragging inside the selection, or the arrow keys, move the outline; no pixels change. No handles.</summary>
+    /// <summary>
+    /// Move selection: dragging inside the selection (on a selected pixel), or the arrow keys, move the outline;
+    /// no pixels change. No handles.
+    /// </summary>
     MoveSelection,
 
     /// <summary>
-    /// Move selected pixels: dragging inside the selection, or the arrow keys, lift and move its pixels
+    /// Move selected pixels: dragging inside the selection (on a selected pixel), or the arrow keys, lift and move its pixels
     /// (floating pixels); the handles stretch and rotate them.
     /// </summary>
     MoveSelectedPixels,
@@ -22,13 +25,14 @@ public enum SelectionToolMode
 /// canvas: a rectangle (Shift gives a square), or with <see cref="SelectionShape.FreeForm"/> the area the
 /// pointer's path encloses (<see cref="FreeFormPath"/> while dragging), or with
 /// <see cref="SelectionShape.MagicWand"/> the area of similar colour around the pressed pixel
-/// (<see cref="MagicWand"/>), framed by its bounding rectangle. With
-/// <see cref="SelectionToolMode.MoveSelection"/>, dragging inside the frame moves the outline alone; it may
-/// go partly off the canvas, where it selects nothing. With <see cref="SelectionToolMode.MoveSelectedPixels"/>,
-/// dragging inside the frame moves the selected pixels and dragging a handle stretches them (nearest
-/// neighbour); the first such drag lifts them off the layer, leaving it transparent there, as the eraser
-/// does. With either Move mode, Shift locks a move to horizontal or vertical, <see cref="Nudge"/> moves by
-/// whole pixels, and a press outside the frame, or with nothing selected, does nothing. Pixels outside the
+/// (<see cref="MagicWand"/>). With <see cref="SelectionToolMode.MoveSelection"/>, dragging inside the selection
+/// moves the outline alone; it may go partly off the canvas, where it selects nothing. With
+/// <see cref="SelectionToolMode.MoveSelectedPixels"/>, dragging inside the selection moves the selected pixels
+/// and dragging a handle of its bounding rectangle stretches them (nearest neighbour); the first such drag lifts
+/// them off the layer, leaving it transparent there, as the eraser does. "Inside" means on a selected pixel:
+/// for a free-form or magic-wand shape, within its edge, not just its bounding rectangle (issue #111). With
+/// either Move mode, Shift locks a move to horizontal or vertical, <see cref="Nudge"/> moves by whole pixels,
+/// and a press outside the selection, or with nothing selected, does nothing. Pixels outside the
 /// selection's shape (<see cref="Selection.Mask"/>) stay on the layer, and so do pixels of the
 /// secondary colour with <see cref="SelectionSettings.Transparent"/>. The selection stays pending (see
 /// <see cref="IPendingTool"/>) until committed, which composites lifted pixels source-over at their new
@@ -105,9 +109,26 @@ public sealed class SelectionTool : IRotatableTool
     /// <summary>Which of the three selection tools this is; <see cref="SelectionToolMode.Select"/> by default.</summary>
     public SelectionToolMode Mode { get; init; }
 
-    /// <summary>The frame around the selection; with handles only for <see cref="SelectionToolMode.MoveSelectedPixels"/>.</summary>
+    /// <summary>
+    /// The selection's bounding rectangle; with handles only for <see cref="SelectionToolMode.MoveSelectedPixels"/>, and
+    /// with the selection's shape as its <see cref="Engine.Adornment.Mask"/>, so a move starts only on a selected pixel.
+    /// </summary>
     public Adornment? Adornment =>
-        _selected ? new Adornment(_preview?.Frame ?? Bounds) { HasHandles = Mode == SelectionToolMode.MoveSelectedPixels } : null;
+        _selected
+            ? new Adornment(_preview?.Frame ?? Bounds)
+            {
+                HasHandles = Mode == SelectionToolMode.MoveSelectedPixels,
+                Mask = _preview is null ? _shownMask : null, // no press reaches it during a rotate drag
+            }
+            : null;
+
+    /// <summary>
+    /// While the rotate handle is dragged, the turn the overlay's preview adds to <see cref="Selection"/>, which stays
+    /// as it was at the press: degrees clockwise about (<c>CentreX</c>, <c>CentreY</c>), in document pixels, for the
+    /// shell to turn the selection's edge by. Null otherwise.
+    /// </summary>
+    public (double Degrees, double CentreX, double CentreY)? PreviewTurn =>
+        _preview is { } preview ? (preview.Angle - _angle, _turnCentre.X, _turnCentre.Y) : null;
 
     /// <summary>
     /// The current selection, or null when there is none. While the rotate handle is dragged it stays as it

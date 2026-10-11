@@ -55,8 +55,8 @@ public class SelectionModesTests
 
         var selection = Assert.IsType<Selection>(editor.Selection);
         Assert.Equal(new IntRect(4, 4, 8, 8), selection.Bounds);
-        Assert.Equal(new Adornment(new IntRect(4, 4, 8, 8)) { HasHandles = false }, editor.Adornment);
         Assert.NotNull(selection.Mask);
+        Assert.Equal(new Adornment(new IntRect(4, 4, 8, 8)) { HasHandles = false, Mask = selection.Mask }, editor.Adornment);
         for (var y = 0; y < 32; y++)
         {
             for (var x = 0; x < 32; x++)
