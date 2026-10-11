@@ -59,6 +59,17 @@ public sealed class History
     }
 
     /// <summary>
+    /// Records that the document as it is now is not saved anywhere, e.g. one restored from a
+    /// recovery snapshot (ADR-0013). Unsaved changes stay until the next <see cref="MarkSaved"/>.
+    /// </summary>
+    public void MarkUnsaved()
+    {
+        var wasUnsaved = HasUnsavedChanges;
+        _saved = -1;
+        RaiseUnsavedChangesChanged(wasUnsaved);
+    }
+
+    /// <summary>
     /// Adds a step that has just been applied. Discards the redoable steps, then drops the
     /// oldest steps until the history fits its cap (possibly <paramref name="step"/> itself).
     /// </summary>

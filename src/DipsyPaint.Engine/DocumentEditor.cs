@@ -292,8 +292,8 @@ public sealed partial class DocumentEditor
         var (oldWidth, oldHeight) = (Document.Width, Document.Height);
         var width = Math.Clamp(x + image.Width, oldWidth, Document.MaxSide);
         var height = Math.Clamp(y + image.Height, oldHeight, Document.MaxSide);
-        // As for Resize: the new layers, the composite and the shell's bitmap.
-        var bytes = (Document.Layers.Count + 2) * (long)width * height * Unsafe.SizeOf<Rgba>();
+        // As for Resize: the new layers, the composite, the shell's bitmap and the compositor's caches.
+        var bytes = (Document.Layers.Count + 2 + CompositorCaches) * (long)width * height * Unsafe.SizeOf<Rgba>();
         if ((width, height) != (oldWidth, oldHeight) && (budget ?? MemoryBudget.Default).Allows(bytes))
         {
             ReplaceCanvas(width, height, (layer, pixels) =>
@@ -409,8 +409,9 @@ public sealed partial class DocumentEditor
 
         var tool = ActiveTool as SelectionTool;
         var selection = tool?.Selection;
-        // The new layers (or selection), the resampler's intermediate, the composite and the shell's bitmap.
-        var bitmaps = selection is null ? Document.Layers.Count + 3 : 2;
+        // The new layers (or selection), the resampler's intermediate, the composite, the shell's bitmap
+        // and, with more than one layer, the compositor's two caches.
+        var bitmaps = selection is null ? Document.Layers.Count + 3 + CompositorCaches : 2;
         if (!(budget ?? MemoryBudget.Default).Allows(bitmaps * width * (long)height * Unsafe.SizeOf<Rgba>()))
         {
             return ResizeResult.OverMemoryBudget;

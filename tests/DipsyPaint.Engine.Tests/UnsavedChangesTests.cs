@@ -175,4 +175,23 @@ public class UnsavedChangesTests
 
         Assert.Equal([true, false, true, false], seen);
     }
+
+    [Fact]
+    public void MarkUnsaved_MakesUnsavedChanges_ThatUndoingCannotClear_UntilSaved()
+    {
+        var editor = CreateEditor();
+        var raised = 0;
+        editor.UnsavedChangesChanged += (_, _) => raised++;
+
+        editor.History.MarkUnsaved();
+        Assert.True(editor.HasUnsavedChanges);
+        Assert.Equal(1, raised);
+
+        Dot(editor, 1, 1);
+        editor.Undo();
+        Assert.True(editor.HasUnsavedChanges);
+
+        editor.MarkSaved();
+        Assert.False(editor.HasUnsavedChanges);
+    }
 }

@@ -130,6 +130,17 @@ public class FreeTransformTests
     }
 
     [Fact]
+    public void Rotate_WithLayers_AlsoCountsTheCompositorCaches()
+    {
+        var editor = new DocumentEditor(Document.CreateBlank(10, 10));
+        editor.AddLayer();
+
+        // Two layers, intermediate, composite, on-screen bitmap and the two caches: 7 bitmaps.
+        Assert.Equal(ResizeResult.OverMemoryBudget, editor.Rotate(180, new MemoryBudget(7 * 4 * 10 * 10 - 1)));
+        Assert.Equal(ResizeResult.Resized, editor.Rotate(180, new MemoryBudget(7 * 4 * 10 * 10)));
+    }
+
+    [Fact]
     public void Rotate_ASelection_TurnsItAboutItsCentre_AndStaysPending_ThenCommitsAsOneStep()
     {
         var editor = CreateEditor(40, 40, new SelectionTool());

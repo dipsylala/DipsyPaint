@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:DipsyPaint.Resources"
+        x:Class="DipsyPaint.Recovery.RecoveryDialog"
+        Title="{x:Static res:Strings.AppName}"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="24" Spacing="24" MinWidth="320" MaxWidth="480">
+    <TextBlock x:Name="QuestionText" TextWrapping="Wrap" />
+    <!-- Enter = Restore (IsDefault), Esc = Decide later (IsCancel). -->
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="RestoreButton" IsDefault="True" MinWidth="80" Click="OnRestoreClick"
+              Content="{x:Static res:RecoveryStrings.Restore}"
+              AutomationProperties.Name="{x:Static res:RecoveryStrings.Restore}" />
+      <Button x:Name="DiscardButton" MinWidth="80" Click="OnDiscardClick"
+              Content="{x:Static res:RecoveryStrings.Discard}"
+              AutomationProperties.Name="{x:Static res:RecoveryStrings.Discard}" />
+      <Button x:Name="LaterButton" IsCancel="True" MinWidth="80" Click="OnLaterClick"
+              Content="{x:Static res:RecoveryStrings.Later}"
+              AutomationProperties.Name="{x:Static res:RecoveryStrings.Later}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

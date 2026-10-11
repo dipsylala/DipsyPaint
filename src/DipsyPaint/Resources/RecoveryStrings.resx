@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Question" xml:space="preserve">
+    <value>DipsyPaint closed unexpectedly. Do you want to restore the unsaved changes to {0}, last recovered at {1}?</value>
+    <comment>{0} is the document's file name, or "Untitled"; {1} is the local date and time of the recovery snapshot.</comment>
+  </data>
+  <data name="Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="Discard" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="Later" xml:space="preserve">
+    <value>Decide later</value>
+  </data>
+  <data name="CouldNotRestore" xml:space="preserve">
+    <value>The unsaved changes to {0} could not be restored.</value>
+    <comment>{0} is the document's file name, or "Untitled". A reason may follow on the next line.</comment>
+  </data>
+  <data name="Damaged" xml:space="preserve">
+    <value>The recovery snapshot is damaged.</value>
+  </data>
+  <data name="OverMemoryBudget" xml:space="preserve">
+    <value>There isn't enough memory to restore it.</value>
+  </data>
+</root>
