@@ -1,9 +1,10 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:res="using:DipsyPaint.Resources"
+             xmlns:layout="using:DipsyPaint.Layout"
              x:Class="DipsyPaint.ColourControl"
              AutomationProperties.Name="{x:Static res:ColourStrings.ColoursGroupName}">
-  <StackPanel Orientation="Horizontal" Spacing="4" Margin="8,4">
+  <StackPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" Spacing="4" Margin="8,4">
     <ToggleButton x:Name="Colour1Button" Click="OnColour1Click" Width="40" Height="40" Padding="4"
                   AutomationProperties.Name="{x:Static res:ColourStrings.Colour1}"
                   ToolTip.Tip="{x:Static res:ColourStrings.Colour1ToolTip}">

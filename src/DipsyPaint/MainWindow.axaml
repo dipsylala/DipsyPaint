@@ -8,30 +8,43 @@
         xmlns:diagnostics="using:DipsyPaint.Diagnostics"
         xmlns:images="using:DipsyPaint.Images"
         xmlns:updates="using:DipsyPaint.Updates"
+        xmlns:layout="using:DipsyPaint.Layout"
         x:Class="DipsyPaint.MainWindow"
         Title="{x:Static res:Strings.AppName}"
         Icon="avares://DipsyPaint/Assets/dipsypaint.ico"
-        Width="1100" Height="750">
+        Width="1100" Height="750" MinWidth="480" MinHeight="400">
   <DockPanel>
-    <Border x:Name="CommandBar" DockPanel.Dock="Top" MinHeight="48"
-            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
-      <StackPanel Orientation="Horizontal">
-        <files:FileMenu x:Name="FileMenu" />
-        <local:HistoryControl />
-        <local:ClipboardControl />
-        <images:ImageControl x:Name="ImageGroup" />
-        <tools:ToolPicker />
-        <local:ColourControl />
-        <diagnostics:HelpMenu x:Name="HelpMenu" />
-        <updates:UpdateControl x:Name="Updates" />
-      </StackPanel>
-    </Border>
     <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Padding="12,4"
             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
       <DockPanel>
         <local:ZoomControl x:Name="Zoom" DockPanel.Dock="Right" Target="{Binding #CanvasZoom}" />
         <TextBlock x:Name="CanvasSizeText" VerticalAlignment="Center" />
       </DockPanel>
+    </Border>
+    <!-- The command bar: one wrapping panel per window edge (ADR-0022). A command group is registered
+         with one line in the edge panel where it sits by default, with a stable layout:CommandGroup.Id;
+         the order here is the default order. Users can then move groups to any edge. -->
+    <Border x:Name="CommandBar" DockPanel.Dock="Top"
+            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+      <WrapPanel x:Name="TopEdge">
+        <files:FileMenu x:Name="FileMenu" layout:CommandGroup.Id="file" layout:CommandGroup.Title="{x:Static res:FileStrings.File}" />
+        <local:HistoryControl layout:CommandGroup.Id="history" layout:CommandGroup.Title="{x:Static res:LayoutStrings.HistoryGroupName}" />
+        <local:ClipboardControl layout:CommandGroup.Id="clipboard" layout:CommandGroup.Title="{x:Static res:ClipboardStrings.Clipboard}" />
+        <images:ImageControl x:Name="ImageGroup" layout:CommandGroup.Id="image" layout:CommandGroup.Title="{x:Static res:ImageStrings.ImageGroupName}" />
+        <tools:ToolPicker layout:CommandGroup.Id="tools" layout:CommandGroup.Title="{x:Static res:ToolStrings.ToolsGroupName}" />
+        <local:ColourControl layout:CommandGroup.Id="colours" layout:CommandGroup.Title="{x:Static res:ColourStrings.ColoursGroupName}" />
+        <diagnostics:HelpMenu x:Name="HelpMenu" layout:CommandGroup.Id="help" layout:CommandGroup.Title="{x:Static res:ReportStrings.Help}" />
+        <updates:UpdateControl x:Name="Updates" layout:CommandGroup.Id="update" layout:CommandGroup.Title="{x:Static res:LayoutStrings.UpdateGroupName}" />
+      </WrapPanel>
+    </Border>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+      <WrapPanel x:Name="BottomEdge" />
+    </Border>
+    <Border DockPanel.Dock="Left" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+      <WrapPanel x:Name="LeftEdge" Orientation="Vertical" layout:CommandGroup.Orientation="Vertical" />
+    </Border>
+    <Border DockPanel.Dock="Right" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+      <WrapPanel x:Name="RightEdge" Orientation="Vertical" layout:CommandGroup.Orientation="Vertical" />
     </Border>
     <ScrollViewer x:Name="CanvasScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                   Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">

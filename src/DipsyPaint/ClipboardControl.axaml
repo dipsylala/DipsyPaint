@@ -1,10 +1,11 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:res="using:DipsyPaint.Resources"
+             xmlns:layout="using:DipsyPaint.Layout"
              x:Class="DipsyPaint.ClipboardControl"
              AutomationProperties.Name="{x:Static res:ClipboardStrings.Clipboard}">
   <!-- Icons: Fluent UI System Icons (MIT licence, © Microsoft Corporation), ADR-0012. -->
-  <StackPanel Orientation="Horizontal" Spacing="4" Margin="8,4">
+  <StackPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" Spacing="4" Margin="8,4">
     <Button x:Name="PasteButton" Click="OnPasteClick" Width="40" Height="40"
             AutomationProperties.Name="{x:Static res:ClipboardStrings.Paste}"
             ToolTip.Tip="{x:Static res:ClipboardStrings.PasteToolTip}">

@@ -6,15 +6,15 @@
 
 **Status:** ready-for-agent
 
-- [ ] At the default window size and at narrower widths, no command-bar control is clipped or off-screen: groups wrap to extra rows (top/bottom) or columns (left/right)
-- [ ] Any command group can be docked to the top, bottom, left or right edge and reordered within an edge, by drag and drop
-- [ ] The same moves can be made without a mouse (e.g. a "Move to" command on each group), with automation names and strings from `.resx`
-- [ ] Groups docked left or right lay out vertically and stay usable (palette, tool options, buttons)
-- [ ] The canvas area resizes to the space left; fit-to-window and zoom use it
-- [ ] The layout is saved to a per-user settings file in local app data and restored at start; nothing is sent anywhere
-- [ ] A corrupt or unknown saved layout falls back to the default without crashing; groups added in later versions appear in their default place
-- [ ] Reset layout restores the default arrangement (reference Paint's single top bar, current group order)
-- [ ] Headless tests cover wrapping at narrow widths, docking via the keyboard command, the save/restore round trip, corrupt-file fallback and Reset layout
+- [x] At the default window size and at narrower widths, no command-bar control is clipped or off-screen: groups wrap to extra rows (top/bottom) or columns (left/right)
+- [x] Any command group can be docked to the top, bottom, left or right edge and reordered within an edge, by drag and drop
+- [x] The same moves can be made without a mouse (e.g. a "Move to" command on each group), with automation names and strings from `.resx`
+- [x] Groups docked left or right lay out vertically and stay usable (palette, tool options, buttons)
+- [x] The canvas area resizes to the space left; fit-to-window and zoom use it
+- [x] The layout is saved to a per-user settings file in local app data and restored at start; nothing is sent anywhere
+- [x] A corrupt or unknown saved layout falls back to the default without crashing; groups added in later versions appear in their default place
+- [x] Reset layout restores the default arrangement (reference Paint's single top bar, current group order)
+- [x] Headless tests cover wrapping at narrow widths, docking via the keyboard command, the save/restore round trip, corrupt-file fallback and Reset layout
 
 ## Notes
 

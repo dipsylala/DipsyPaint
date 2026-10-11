@@ -3,8 +3,10 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
 using DipsyPaint.Engine;
+using DipsyPaint.Layout;
 using DipsyPaint.Resources;
 
 namespace DipsyPaint;
@@ -13,10 +15,12 @@ namespace DipsyPaint;
 /// Command-bar colour group, as in reference Paint: the Colour 1 (primary) and Colour 2
 /// (secondary) swatches of the <see cref="DocumentEditor"/> in the DataContext, a swap button and
 /// the default palette. Left-clicking (or pressing) a palette swatch sets the selected colour
-/// slot; right-clicking one always sets Colour 2.
+/// slot; right-clicking one always sets Colour 2. On a side edge the palette's 2 × 10 grid turns
+/// into 10 × 2, each of its rows becoming a column.
 /// </summary>
 public partial class ColourControl : UserControl
 {
+    private readonly List<Button> _swatches = [];
     private DocumentEditor? _editor;
     private bool _colour2Selected;
 
@@ -43,9 +47,10 @@ public partial class ColourControl : UserControl
                     e.Handled = true;
                 }
             }, handledEventsToo: true);
-            PaletteGrid.Children.Add(swatch);
+            _swatches.Add(swatch);
         }
 
+        ArrangePalette(CommandGroup.GetOrientation(this));
         UpdateSwatches();
     }
 
@@ -94,10 +99,33 @@ public partial class ColourControl : UserControl
         UpdateSwatches();
     }
 
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == CommandGroup.OrientationProperty)
+        {
+            ArrangePalette(change.GetNewValue<Orientation>());
+        }
+    }
+
     private static IBrush ToBrush(Rgba color)
     {
         var straight = color.ToOpaque();
         return new SolidColorBrush(Color.FromArgb(color.A, straight.R, straight.G, straight.B));
+    }
+
+    // Horizontal: two rows of ten, as Palette. Vertical: ten rows of two, the top row becoming the
+    // left column; the grid fills row by row, so the swatches go in as (top[i], bottom[i]) pairs.
+    private void ArrangePalette(Orientation orientation)
+    {
+        var vertical = orientation == Orientation.Vertical;
+        var half = _swatches.Count / 2;
+        PaletteGrid.Rows = vertical ? half : 2;
+        PaletteGrid.Columns = vertical ? 2 : half;
+        PaletteGrid.Children.Clear();
+        PaletteGrid.Children.AddRange(vertical
+            ? Enumerable.Range(0, half).SelectMany(i => new[] { _swatches[i], _swatches[i + half] })
+            : _swatches);
     }
 
     private void SetColor(bool secondary, Rgba color)
