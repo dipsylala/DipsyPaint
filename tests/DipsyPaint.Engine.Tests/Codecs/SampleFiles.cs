@@ -32,8 +32,11 @@ public static class SampleFiles
 
     public static Document Open(byte[] file, MemoryBudget? budget = null) => ImageCodec.Open(new MemoryStream(file), budget);
 
-    /// <summary>A PNG with the given header and raw IDAT payload (valid CRCs unless <paramref name="breakCrc"/>).</summary>
-    public static byte[] Png(int width, int height, byte[]? idat = null, bool breakCrc = false)
+    /// <summary>
+    /// A PNG with the given header and raw IDAT payload (valid CRCs unless <paramref name="breakCrc"/>),
+    /// and a <c>pHYs</c> chunk holding <paramref name="phys"/> if given.
+    /// </summary>
+    public static byte[] Png(int width, int height, byte[]? idat = null, bool breakCrc = false, byte[]? phys = null)
     {
         using var file = new MemoryStream();
         file.Write([0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A]);
@@ -43,6 +46,11 @@ public static class SampleFiles
         header[8] = 8; // bit depth
         header[9] = 6; // RGBA
         WriteChunk(file, "IHDR", header, breakCrc);
+        if (phys is not null)
+        {
+            WriteChunk(file, "pHYs", phys);
+        }
+
         if (idat is not null)
         {
             WriteChunk(file, "IDAT", idat);

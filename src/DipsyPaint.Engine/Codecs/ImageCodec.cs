@@ -38,6 +38,13 @@ public static class ImageCodec
         SkipMetadata = true,
     };
 
+    // Only for reading resolution from EXIF, after the image has decoded (FileResolution).
+    private static readonly DecoderOptions MetadataDecoding = new()
+    {
+        Configuration = Formats,
+        MaxFrames = 1,
+    };
+
     // The standard Windows 16-colour palette, which 16-colour bitmaps use.
     private static readonly Color[] SixteenColours =
     [
@@ -112,7 +119,8 @@ public static class ImageCodec
     /// format by content. Only the first frame of an animated or multi-page image is read. The size
     /// declared in the header is checked against <see cref="Document.MaxSide"/> and
     /// <paramref name="budget"/> before any pixels are decoded. A ZIP archive is read as an OpenRaster
-    /// project file, keeping its layers (<see cref="OpenRasterCodec.Open"/>).
+    /// project file, keeping its layers (<see cref="OpenRasterCodec.Open"/>). The file's resolution is
+    /// kept as stored; a missing or unusable one gives the default (<see cref="Document.ResolutionWasInvalid"/>).
     /// </summary>
     /// <exception cref="ImageOpenException">The file could not be opened, for any reason.</exception>
     public static Document Open(Stream stream, MemoryBudget? budget = null)
@@ -136,7 +144,10 @@ public static class ImageCodec
             source.Position = start;
             using var image = Image.Load<Rgba32>(Decoding, source);
             CheckSize(image.Width, image.Height, budget);
-            return PixelBridge.ToDocument(image);
+            var (resolution, invalid) = FileResolution.Read(source, start, info.Metadata.DecodedImageFormat, MetadataDecoding);
+            var document = PixelBridge.ToDocument(image, resolution);
+            document.ResolutionWasInvalid = invalid;
+            return document;
         }
         catch (Exception e) when (e is not ImageOpenException)
         {
@@ -152,7 +163,8 @@ public static class ImageCodec
     /// </summary>
     /// <remarks>
     /// Only PNG keeps alpha (ImageSharp writes TIFF without it); for the other formats the composite is
-    /// flattened onto white first.
+    /// flattened onto white first. The document's resolution is written in its own unit where the
+    /// format has one, so re-saving an opened file writes the same values; GIF is saved without it.
     /// Palette formats (<see cref="UsesPalette"/>) are quantised with dithering: 256-colour BMP and GIF
     /// to a palette fitted to the image, 16-colour BMP to the standard Windows 16 colours, and
     /// monochrome BMP to black and white.
@@ -181,6 +193,12 @@ public static class ImageCodec
         };
         var background = format == ImageFormat.Png ? (Rgba?)null : Rgba.White;
         using var image = PixelBridge.ToImage(compositor, Formats, background);
+        // GIF has no resolution field (ADR-0024).
+        if (format != ImageFormat.Gif)
+        {
+            FileResolution.Write(image.Metadata, compositor.Document.Resolution);
+        }
+
         image.Save(stream, encoder);
     }
 

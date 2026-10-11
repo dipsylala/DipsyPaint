@@ -28,11 +28,11 @@ public sealed class FileMenuTests : IDisposable
         public List<string> Errors { get; } = [];
 
         /// <summary>What the New dialog returns; null means Cancel. By default it accepts the prefilled size.</summary>
-        public Func<int, int, (int Width, int Height)?> NewSize { get; set; } = (width, height) => (width, height);
+        public Func<int, int, (int Width, int Height, Resolution Resolution)?> NewSize { get; set; } = (width, height) => (width, height, Resolution.Default);
 
         public List<(int Width, int Height)> NewSizeRequests { get; } = [];
 
-        public Task<(int Width, int Height)?> AskNewImageSizeAsync(int width, int height)
+        public Task<(int Width, int Height, Resolution Resolution)?> AskNewImageSizeAsync(int width, int height)
         {
             NewSizeRequests.Add((width, height));
             return Task.FromResult(NewSize(width, height));
@@ -145,7 +145,7 @@ public sealed class FileMenuTests : IDisposable
         Assert.Equal((Document.DefaultWidth, Document.DefaultHeight), (window.Document.Width, window.Document.Height));
         Assert.Equal(Rgba.White, window.Document.ActiveLayer.Pixels.GetPixel(3, 3));
         Assert.False(window.Editor.History.CanUndo);
-        Assert.Equal($"{Document.DefaultWidth} × {Document.DefaultHeight}px", StatusText(window));
+        Assert.Equal($"{Document.DefaultWidth} × {Document.DefaultHeight} px · 96 dpi", StatusText(window));
         Assert.Equal(new Size(Document.DefaultWidth, Document.DefaultHeight), window.FindControl<DocumentCanvas>("DocumentView")!.Bounds.Size);
         Assert.IsType<PencilTool>(window.Editor.ActiveTool);
         Assert.Equal("Untitled - DipsyPaint", window.Title);
@@ -166,7 +166,7 @@ public sealed class FileMenuTests : IDisposable
         Assert.Equal((40, 30), (window.Document.Width, window.Document.Height));
         Assert.Equal(new Rgba(0, 0, 255, 255), window.Editor.Compositor.Pixels[6 * 40 + 5]);
         Assert.False(window.Editor.History.CanUndo);
-        Assert.Equal("40 × 30px", StatusText(window));
+        Assert.Equal("40 × 30 px · 96 dpi", StatusText(window));
         Assert.Equal(new Size(40, 30), window.FindControl<Border>("Canvas")!.Bounds.Size);
         Assert.Equal("picture.png - DipsyPaint", window.Title);
         Assert.Empty(dialogs.Errors);
@@ -190,7 +190,7 @@ public sealed class FileMenuTests : IDisposable
         Assert.Same(before, window.Document);
         Assert.True(window.Editor.History.CanUndo);
         Assert.Equal(Rgba.Black, window.Document.ActiveLayer.Pixels.GetPixel(2, 2));
-        Assert.Equal("64 × 48px", StatusText(window));
+        Assert.Equal("64 × 48 px · 96 dpi", StatusText(window));
         Assert.Equal("*Untitled - DipsyPaint", window.Title); // still unsaved
     }
 
@@ -222,15 +222,28 @@ public sealed class FileMenuTests : IDisposable
     public async Task NewUsesTheSizeChosenInTheDialog()
     {
         var (window, menu, dialogs) = ShowWindow(64, 48);
-        dialogs.NewSize = (_, _) => (320, 200);
+        dialogs.NewSize = (_, _) => (320, 200, Resolution.Default);
 
         await menu.NewAsync();
         window.UpdateLayout();
 
         Assert.Equal((320, 200), (window.Document.Width, window.Document.Height));
-        Assert.Equal("320 × 200px", StatusText(window));
+        Assert.Equal("320 × 200 px · 96 dpi", StatusText(window));
         Assert.Equal(new Size(320, 200), window.FindControl<DocumentCanvas>("DocumentView")!.Bounds.Size);
         Assert.False(window.Editor.History.CanUndo);
+    }
+
+    [AvaloniaFact]
+    public async Task NewUsesTheResolutionChosenInTheDialog()
+    {
+        var (window, menu, dialogs) = ShowWindow(64, 48);
+        dialogs.NewSize = (_, _) => (2480, 3508, new Resolution(300, 300));
+
+        await menu.NewAsync();
+        window.UpdateLayout();
+
+        Assert.Equal(new Resolution(300, 300), window.Document.Resolution);
+        Assert.Equal("2480 × 3508 px · 300 dpi", StatusText(window));
     }
 
     [AvaloniaFact]
@@ -253,7 +266,7 @@ public sealed class FileMenuTests : IDisposable
     {
         var (window, menu, dialogs) = ShowWindow(64, 48);
         var before = window.Document;
-        dialogs.NewSize = (_, _) => (Document.MaxSide, Document.MaxSide);
+        dialogs.NewSize = (_, _) => (Document.MaxSide, Document.MaxSide, Resolution.Default);
 
         await menu.NewAsync();
 
@@ -274,7 +287,7 @@ public sealed class FileMenuTests : IDisposable
         height.Value = 768;
         dialog.FindControl<Button>("OkButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
-        Assert.Equal((1024, 768), dialog.Result);
+        Assert.Equal((1024, 768, Resolution.Default), dialog.Result);
     }
 
     [AvaloniaFact]

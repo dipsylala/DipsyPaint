@@ -19,6 +19,6 @@
     <value>Canvas</value>
   </data>
   <data name="CanvasSizeFormat" xml:space="preserve">
-    <value>{0} × {1}px</value>
+    <value>{0} × {1} px</value>
   </data>
 </root>
