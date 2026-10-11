@@ -125,6 +125,32 @@ public sealed class DocumentCanvas : Control
         {
             DrawAdornment(context, adornment);
         }
+
+        if ((_editor?.ActiveTool as SelectionTool)?.FreeFormPath is { Count: > 1 } path)
+        {
+            DrawFreeFormPath(context, path);
+        }
+    }
+
+    // The path of a free-form selection being dragged, through pixel centres: black dashes on white,
+    // one screen pixel wide, so it shows on any colour.
+    private void DrawFreeFormPath(DrawingContext context, IReadOnlyList<(int X, int Y)> path)
+    {
+        var unit = 1 / _scale;
+        var geometry = new StreamGeometry();
+        using (var figure = geometry.Open())
+        {
+            figure.BeginFigure(new Point(path[0].X + 0.5, path[0].Y + 0.5), false);
+            foreach (var (x, y) in path.Skip(1))
+            {
+                figure.LineTo(new Point(x + 0.5, y + 0.5));
+            }
+
+            figure.EndFigure(false);
+        }
+
+        context.DrawGeometry(null, new Pen(Brushes.White, unit), geometry);
+        context.DrawGeometry(null, new Pen(Brushes.Black, unit, new DashStyle([4, 4], 0)), geometry);
     }
 
     // Drawn in document coordinates with sizes divided by the zoom, so it is the same size on screen at any zoom.

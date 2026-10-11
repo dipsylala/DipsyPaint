@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Free-form selection, select all, invert and transparent selection behave as in reference Paint
-- [ ] Move/delete/copy work for all selection shapes
-- [ ] Golden images for each mode
-- [ ] Shortcuts match reference Paint
+- [x] Free-form selection, select all, invert and transparent selection behave as in reference Paint
+- [x] Move/delete/copy work for all selection shapes
+- [x] Golden images for each mode
+- [x] Shortcuts match reference Paint

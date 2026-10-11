@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             x:Class="DipsyPaint.Tools.SelectionMenu">
+  <!-- Bespoke icon: a dashed square with a drop-down arrow, ADR-0012. -->
+  <Button x:Name="SelectionButton" Width="40" Height="40"
+          AutomationProperties.Name="{x:Static res:SelectionStrings.Selection}"
+          ToolTip.Tip="{x:Static res:SelectionStrings.Selection}">
+    <PathIcon Width="18" Height="18"
+              Data="M2 2h4v1.5H3.5V6H2zM8 2h4v1.5H8zM14 2h4v4h-1.5V3.5H14zM16.5 8H18v4h-1.5zM2 8h1.5v4H2zM2 14h1.5v2.5H6V18H2zM8 16.5h4V18H8zM14 15h8l-4 5z" />
+    <Button.Flyout>
+      <MenuFlyout>
+        <MenuItem x:Name="RectangleItem" Header="{x:Static res:SelectionStrings.RectangleSelection}" Click="OnRectangleClick"
+                  ToggleType="Radio" AutomationProperties.Name="{x:Static res:SelectionStrings.RectangleSelection}" />
+        <MenuItem x:Name="FreeFormItem" Header="{x:Static res:SelectionStrings.FreeFormSelection}" Click="OnFreeFormClick"
+                  ToggleType="Radio" AutomationProperties.Name="{x:Static res:SelectionStrings.FreeFormSelection}" />
+        <Separator />
+        <MenuItem x:Name="SelectAllItem" Header="{x:Static res:SelectionStrings.SelectAll}" Click="OnSelectAllClick"
+                  AutomationProperties.Name="{x:Static res:SelectionStrings.SelectAll}" />
+        <MenuItem x:Name="InvertItem" Header="{x:Static res:SelectionStrings.InvertSelection}" Click="OnInvertClick"
+                  AutomationProperties.Name="{x:Static res:SelectionStrings.InvertSelection}" />
+        <MenuItem x:Name="DeleteItem" Header="{x:Static res:SelectionStrings.Delete}" Click="OnDeleteClick" InputGesture="Delete"
+                  AutomationProperties.Name="{x:Static res:SelectionStrings.Delete}" />
+        <Separator />
+        <MenuItem x:Name="TransparentItem" Header="{x:Static res:SelectionStrings.TransparentSelection}" Click="OnTransparentClick"
+                  ToggleType="CheckBox" AutomationProperties.Name="{x:Static res:SelectionStrings.TransparentSelection}" />
+      </MenuFlyout>
+    </Button.Flyout>
+  </Button>
+</UserControl>
