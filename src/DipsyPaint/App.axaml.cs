@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using DipsyPaint.Engine;
+using DipsyPaint.Settings;
 using DipsyPaint.Updates;
 
 namespace DipsyPaint;
@@ -14,7 +15,7 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var window = new MainWindow(Document.CreateBlank());
+            var window = new MainWindow(Document.CreateBlank(), new SettingsStore(SettingsStore.DefaultPath));
             desktop.MainWindow = window;
             StartupProbe.Attach(desktop, window);
 

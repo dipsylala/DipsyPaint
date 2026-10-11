@@ -1,8 +1,9 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:res="using:DipsyPaint.Resources"
+             xmlns:layout="using:DipsyPaint.Layout"
              x:Class="DipsyPaint.Tools.StrokeSizeOptions">
-  <StackPanel Orientation="Horizontal" Spacing="8">
+  <StackPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" Spacing="8">
     <TextBlock Text="{x:Static res:BrushStrings.Size}" VerticalAlignment="Center" />
     <Slider x:Name="SizeSlider" Width="140" VerticalAlignment="Center"
             SmallChange="1" LargeChange="10" TickFrequency="1" IsSnapToTickEnabled="True"

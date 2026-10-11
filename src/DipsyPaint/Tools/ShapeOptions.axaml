@@ -1,8 +1,9 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:res="using:DipsyPaint.Resources"
+             xmlns:layout="using:DipsyPaint.Layout"
              x:Class="DipsyPaint.Tools.ShapeOptions">
-  <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+  <WrapPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" ItemSpacing="8" LineSpacing="4" VerticalAlignment="Center">
     <StackPanel x:Name="ShapeButtons" Orientation="Horizontal" Spacing="2" />
     <ComboBox x:Name="OutlineBox" SelectionChanged="OnOutlineChanged" MinWidth="120"
               AutomationProperties.Name="{x:Static res:ShapeStrings.Outline}"
@@ -19,5 +20,5 @@
     <ComboBox x:Name="SizeBox" SelectionChanged="OnSizeChanged" MinWidth="80"
               AutomationProperties.Name="{x:Static res:ShapeStrings.Size}"
               ToolTip.Tip="{x:Static res:ShapeStrings.Size}" />
-  </StackPanel>
+  </WrapPanel>
 </UserControl>

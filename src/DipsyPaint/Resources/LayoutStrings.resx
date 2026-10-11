@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="MoveGroupFormat" xml:space="preserve">
+    <value>Move {0}</value>
+    <comment>Automation name of a command group's move handle; {0} is the group name, e.g. "Colours".</comment>
+  </data>
+  <data name="MoveGroupToolTipFormat" xml:space="preserve">
+    <value>{0}: drag to move, or click for layout options</value>
+  </data>
+  <data name="MoveToTop" xml:space="preserve">
+    <value>Move to top</value>
+  </data>
+  <data name="MoveToBottom" xml:space="preserve">
+    <value>Move to bottom</value>
+  </data>
+  <data name="MoveToLeft" xml:space="preserve">
+    <value>Move to left side</value>
+  </data>
+  <data name="MoveToRight" xml:space="preserve">
+    <value>Move to right side</value>
+  </data>
+  <data name="MoveEarlier" xml:space="preserve">
+    <value>Move earlier</value>
+  </data>
+  <data name="MoveLater" xml:space="preserve">
+    <value>Move later</value>
+  </data>
+  <data name="ResetLayout" xml:space="preserve">
+    <value>Reset layout</value>
+  </data>
+  <data name="HistoryGroupName" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="UpdateGroupName" xml:space="preserve">
+    <value>Update</value>
+  </data>
+</root>

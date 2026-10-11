@@ -1,10 +1,12 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:res="using:DipsyPaint.Resources"
+             xmlns:layout="using:DipsyPaint.Layout"
              x:Class="DipsyPaint.Tools.ToolPicker"
              AutomationProperties.Name="{x:Static res:ToolStrings.ToolsGroupName}">
-  <StackPanel Orientation="Horizontal">
-    <StackPanel x:Name="ToolButtons" Orientation="Horizontal" Spacing="4" Margin="8,4" />
+  <!-- Wrapping panels, so the group fits a narrow window or a side edge. -->
+  <WrapPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}">
+    <WrapPanel x:Name="ToolButtons" Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" ItemSpacing="4" LineSpacing="4" Margin="8,4" />
     <ContentControl x:Name="ToolOptions" VerticalAlignment="Center" Margin="8,4" />
-  </StackPanel>
+  </WrapPanel>
 </UserControl>
