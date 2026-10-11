@@ -11,9 +11,9 @@ namespace DipsyPaint.Engine.Codecs;
 internal static class PixelBridge
 {
     /// <summary>Creates a one-layer document holding <paramref name="image"/>'s pixels.</summary>
-    public static Document ToDocument(Image<Rgba32> image)
+    public static Document ToDocument(Image<Rgba32> image, Resolution resolution)
     {
-        var document = Document.CreateBlank(image.Width, image.Height);
+        var document = Document.CreateBlank(image.Width, image.Height, resolution);
         var layer = document.ActiveLayer.Pixels;
         var row = new Rgba[image.Width];
         image.ProcessPixelRows(accessor =>

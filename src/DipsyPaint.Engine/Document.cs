@@ -20,6 +20,18 @@ public sealed class Document
     public int Width { get; private set; }
     public int Height { get; private set; }
 
+    /// <summary>
+    /// The resolution files are saved with (ADR-0024). Set when the document is created or opened;
+    /// image operations that change the pixels leave it as it is.
+    /// </summary>
+    public Resolution Resolution { get; }
+
+    /// <summary>
+    /// Whether the file this document was opened from stated a resolution that could not be used
+    /// (zero, negative, unreadable or out of range), so <see cref="Resolution"/> is the default instead.
+    /// </summary>
+    public bool ResolutionWasInvalid { get; internal set; }
+
     /// <summary>The layers, bottom first.</summary>
     public IReadOnlyList<Layer> Layers => _layers;
 
@@ -32,22 +44,33 @@ public sealed class Document
             : throw new ArgumentException("The layer does not belong to this document.", nameof(value));
     }
 
-    private Document(int width, int height)
+    private Document(int width, int height, Resolution resolution)
     {
         Width = width;
         Height = height;
+        Resolution = resolution;
         _activeLayer = new Layer(width, height, Rgba.White);
         _layers.Add(_activeLayer);
     }
 
-    /// <summary>Creates a document with a single opaque white layer, as reference Paint does.</summary>
-    public static Document CreateBlank(int width = DefaultWidth, int height = DefaultHeight)
+    /// <summary>
+    /// Creates a document with a single opaque white layer, as reference Paint does, with
+    /// <paramref name="resolution"/> (default <see cref="Resolution.Default"/>, 96 × 96 DPI).
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">A side is outside 1 to <see cref="MaxSide"/>, or the resolution is not <see cref="Resolution.IsValid"/>.</exception>
+    public static Document CreateBlank(int width = DefaultWidth, int height = DefaultHeight, Resolution? resolution = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(width, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(height, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(width, MaxSide);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(height, MaxSide);
-        return new Document(width, height);
+        if (resolution is { IsValid: false })
+        {
+            throw new ArgumentOutOfRangeException(nameof(resolution), resolution,
+                $"Each direction must be from {Resolution.MinDpi} to {Resolution.MaxDpi} DPI.");
+        }
+
+        return new Document(width, height, resolution ?? Resolution.Default);
     }
 
     /// <summary>Adds a transparent layer on top of the stack and makes it the active layer.</summary>

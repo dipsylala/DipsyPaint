@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="StatusFormat" xml:space="preserve">
+    <value>{0} · {1}</value>
+    <comment>Status bar: {0} is the canvas size, {1} the resolution.</comment>
+  </data>
+  <data name="DpiFormat" xml:space="preserve">
+    <value>{0:0.#} dpi</value>
+  </data>
+  <data name="DpiPairFormat" xml:space="preserve">
+    <value>{0:0.#} × {1:0.#} dpi</value>
+    <comment>Horizontal × vertical, when they differ.</comment>
+  </data>
+  <data name="InvalidDpiFormat" xml:space="preserve">
+    <value>{0:0.#} dpi (file's value was invalid)</value>
+  </data>
+</root>

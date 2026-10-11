@@ -67,7 +67,8 @@ public static class OpenRasterCodec
 
     /// <summary>
     /// Reads an <c>.ora</c> file into a new document with its layers' order, names, visibility,
-    /// opacity and offsets; the layer marked <c>selected</c> (else the top one) becomes active.
+    /// opacity and offsets, and its resolution (<c>xres</c>, <c>yres</c>); the layer marked <c>selected</c>
+    /// (else the top one) becomes active.
     /// Nested stacks (groups) are flattened into their layers, which take on the groups' visibility
     /// and opacity. Blend modes other than normal are read as normal.
     /// </summary>
@@ -100,7 +101,10 @@ public static class OpenRasterCodec
             }
 
             ImageCodec.CheckSize(width, height, budget, OpenCostPerPixel(layers.Count));
-            return BuildDocument(zip, width, height, layers);
+            var (resolution, invalid) = ResolutionOf(image);
+            var document = BuildDocument(zip, width, height, resolution, layers);
+            document.ResolutionWasInvalid = invalid;
+            return document;
         }
         catch (Exception e) when (e is not ImageOpenException)
         {
@@ -198,9 +202,28 @@ public static class OpenRasterCodec
         return XDocument.Load(reader);
     }
 
-    private static Document BuildDocument(ZipArchive zip, int width, int height, List<XElement> elements)
+    /// <summary>
+    /// The image's <c>xres</c> and <c>yres</c>, in DPI. Neither gives the default; anything else that is
+    /// not a valid resolution gives the default and counts as invalid (ADR-0024).
+    /// </summary>
+    private static (Resolution Resolution, bool Invalid) ResolutionOf(XElement image)
     {
-        var document = Document.CreateBlank(width, height);
+        var (x, y) = (image.Attribute("xres")?.Value, image.Attribute("yres")?.Value);
+        if (x is null && y is null)
+        {
+            return (Resolution.Default, false);
+        }
+
+        var resolution = new Resolution(ParseDpi(x), ParseDpi(y));
+        return resolution.IsValid ? (resolution, false) : (Resolution.Default, true);
+    }
+
+    private static double ParseDpi(string? value) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var dpi) ? dpi : double.NaN;
+
+    private static Document BuildDocument(ZipArchive zip, int width, int height, Resolution resolution, List<XElement> elements)
+    {
+        var document = Document.CreateBlank(width, height, resolution);
         var blank = document.ActiveLayer;
         Layer? selected = null;
         foreach (var element in elements)

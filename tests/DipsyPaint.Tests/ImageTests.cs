@@ -84,7 +84,7 @@ public class ImageTests
     {
         window.UpdateLayout();
         Assert.Equal((width, height), (window.Document.Width, window.Document.Height));
-        Assert.Equal(string.Format(Strings.CanvasSizeFormat, width, height), StatusText(window));
+        Assert.Equal($"{width} × {height} px · 96 dpi", StatusText(window));
         var canvas = window.FindControl<DocumentCanvas>("DocumentView")!;
         Assert.Equal(new Size(width, height), canvas.Bounds.Size);
     }
