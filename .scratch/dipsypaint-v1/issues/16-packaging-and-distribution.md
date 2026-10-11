@@ -12,4 +12,4 @@
 - [x] README documents the SmartScreen and Gatekeeper override steps
 - [x] Third-party notices include ImageSharp's Six Labors Split License
 - [x] The update check is the only automatic network request
-- [ ] Release permissions are restricted and 2FA is documented as required for the release account
+- [x] Release permissions are restricted and 2FA is documented as required for the release account
