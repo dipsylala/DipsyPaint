@@ -55,7 +55,7 @@ public sealed class CommandBarLayoutTests : IDisposable
         Assert.Equal(DefaultOrder, Layout(window).Arrangement[DockEdge.Top]);
         Assert.Empty(Layout(window).Arrangement[DockEdge.Bottom]);
         Assert.Empty(Layout(window).Arrangement[DockEdge.Left]);
-        Assert.Empty(Layout(window).Arrangement[DockEdge.Right]);
+        Assert.Equal(["layers"], Layout(window).Arrangement[DockEdge.Right]);
         Assert.Equal(DefaultOrder, Layout(window).EdgePanel(DockEdge.Top).Children.OfType<CommandGroupHost>().Select(h => h.Id));
     }
 
@@ -192,7 +192,7 @@ public sealed class CommandBarLayoutTests : IDisposable
 
         Choose(window, "file", LayoutStrings.MoveToRight);
         Choose(window, "help", LayoutStrings.MoveToBottom);
-        Assert.Equal(["file"], Layout(window).Arrangement[DockEdge.Right]);
+        Assert.Equal(["layers", "file"], Layout(window).Arrangement[DockEdge.Right]);
         Assert.Equal(["help"], Layout(window).Arrangement[DockEdge.Bottom]);
         Assert.True(RectOf(Layout(window).Host("file"), window).Left > window.ClientSize.Width / 2);
         Assert.True(RectOf(Layout(window).Host("help"), window).Top > window.ClientSize.Height / 2);
@@ -219,7 +219,7 @@ public sealed class CommandBarLayoutTests : IDisposable
 
         // Onto the canvas near its right side: docks to the right edge.
         Drag(window, Layout(window).Host("colours").Grip, new Point(canvasArea.Right - 5, canvasArea.Center.Y));
-        Assert.Equal(["colours"], Layout(window).Arrangement[DockEdge.Right]);
+        Assert.Contains("colours", Layout(window).Arrangement[DockEdge.Right]);
 
         // Onto the left edge of the canvas, then a second group above the first.
         Drag(window, Layout(window).Host("tools").Grip, new Point(canvasArea.Left + 5, canvasArea.Center.Y));
@@ -367,16 +367,16 @@ public sealed class CommandBarLayoutTests : IDisposable
     public void UnknownGroupsAreIgnoredAndNewGroupsAppearInTheirDefaultPlace()
     {
         Directory.CreateDirectory(_settingsDirectory);
-        // A layout from a version with a "layers" group and without most of today's groups.
+        // A layout from a version with a "ruler" group and without most of today's groups.
         File.WriteAllText(SettingsPath, """
-            {"commandBar": {"top": ["file", "tools", "file", "layers"], "left": ["colours", "bogus", null]}}
+            {"commandBar": {"top": ["file", "tools", "file", "ruler"], "left": ["colours", "bogus", null]}}
             """);
 
         var window = ShowWindow(Store());
 
         Assert.Equal(["file", "history", "clipboard", "image", "tools", "help", "update"], Layout(window).Arrangement[DockEdge.Top]);
         Assert.Equal(["colours"], Layout(window).Arrangement[DockEdge.Left]);
-        Assert.Empty(Layout(window).Arrangement[DockEdge.Right]);
+        Assert.Equal(["layers"], Layout(window).Arrangement[DockEdge.Right]);
     }
 
     [AvaloniaFact]
@@ -391,7 +391,7 @@ public sealed class CommandBarLayoutTests : IDisposable
         var saved = File.ReadAllText(SettingsPath);
         Assert.Contains("\"futureSetting\"", saved, StringComparison.Ordinal);
         Assert.Contains("\"commandBar\"", saved, StringComparison.Ordinal);
-        Assert.Equal(["colours"], Store().Load().CommandBar!.Right);
+        Assert.Equal(["colours", "layers"], Store().Load().CommandBar!.Right);
     }
 
     [AvaloniaFact]

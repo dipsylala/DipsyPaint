@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             xmlns:layout="using:DipsyPaint.Layout"
+             x:Class="DipsyPaint.Layers.LayersPanel"
+             AutomationProperties.Name="{x:Static res:LayerStrings.Layers}">
+  <DockPanel Margin="4">
+    <Button x:Name="AddButton" DockPanel.Dock="Top" Click="OnAddClick" Width="40" Height="40" Margin="2"
+            HorizontalAlignment="Center" VerticalAlignment="Center"
+            AutomationProperties.Name="{x:Static res:LayerStrings.AddLayer}"
+            ToolTip.Tip="{x:Static res:LayerStrings.AddLayer}">
+      <PathIcon Width="16" Height="16" Data="M7.25,1 H8.75 V7.25 H15 V8.75 H8.75 V15 H7.25 V8.75 H1 V7.25 H7.25 Z" />
+    </Button>
+    <!-- Top layer first, as in reference Paint. -->
+    <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <StackPanel x:Name="Rows" Spacing="4" Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" />
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

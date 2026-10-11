@@ -9,6 +9,7 @@
         xmlns:images="using:DipsyPaint.Images"
         xmlns:updates="using:DipsyPaint.Updates"
         xmlns:layout="using:DipsyPaint.Layout"
+        xmlns:layers="using:DipsyPaint.Layers"
         xmlns:text="using:DipsyPaint.Text"
         x:Class="DipsyPaint.MainWindow"
         Title="{x:Static res:Strings.AppName}"
@@ -45,7 +46,9 @@
       <WrapPanel x:Name="LeftEdge" Orientation="Vertical" layout:CommandGroup.Orientation="Vertical" />
     </Border>
     <Border DockPanel.Dock="Right" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
-      <WrapPanel x:Name="RightEdge" Orientation="Vertical" layout:CommandGroup.Orientation="Vertical" />
+      <WrapPanel x:Name="RightEdge" Orientation="Vertical" layout:CommandGroup.Orientation="Vertical">
+        <layers:LayersPanel x:Name="Layers" layout:CommandGroup.Id="layers" layout:CommandGroup.Title="{x:Static res:LayerStrings.Layers}" />
+      </WrapPanel>
     </Border>
     <ScrollViewer x:Name="CanvasScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                   Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">

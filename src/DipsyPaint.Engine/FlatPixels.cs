@@ -13,6 +13,14 @@ internal sealed class FlatPixels : IPixelAccess
         Array.Fill(_pixels, fill);
     }
 
+    /// <summary>A copy of <paramref name="source"/>'s pixels.</summary>
+    public FlatPixels(FlatPixels source)
+    {
+        Width = source.Width;
+        Height = source.Height;
+        _pixels = (Rgba[])source._pixels.Clone();
+    }
+
     public int Width { get; private set; }
     public int Height { get; private set; }
 

@@ -8,7 +8,8 @@ namespace DipsyPaint.Benchmarks;
 /// AC32: a flood fill of a whole 4K layer through the editor: region search, write, history step
 /// and recomposite. Each invocation fills with the other of two colours, so every fill changes
 /// every pixel. Measured on a single-layer document (the target's "4K canvas") and with 20 layers,
-/// where recompositing the whole canvas dominates.
+/// filling the top one, where the compositor recomposites the whole canvas over its cached
+/// composite of the 19 layers below.
 /// </summary>
 public class FillBenchmarks
 {

@@ -59,6 +59,35 @@ public sealed class Document
         return layer;
     }
 
+    /// <summary>Inserts <paramref name="layer"/> at <paramref name="index"/> (0 is the bottom).</summary>
+    internal void InsertLayer(int index, Layer layer) => _layers.Insert(index, layer);
+
+    /// <summary>Removes <paramref name="layer"/>; the caller makes sure another layer is active.</summary>
+    internal void RemoveLayer(Layer layer) => _layers.Remove(layer);
+
+    /// <summary>Moves <paramref name="layer"/> to <paramref name="index"/> (0 is the bottom).</summary>
+    internal void MoveLayer(Layer layer, int index)
+    {
+        _layers.Remove(layer);
+        _layers.Insert(index, layer);
+    }
+
+    /// <summary>The layer stack as it is now: order, properties and active layer.</summary>
+    internal LayerStack SaveStack() => new([.. _layers], [.. _layers.Select(l => l.Properties)], _activeLayer);
+
+    /// <summary>Restores a stack saved by <see cref="SaveStack"/>.</summary>
+    internal void RestoreStack(LayerStack stack)
+    {
+        _layers.Clear();
+        _layers.AddRange(stack.Layers);
+        for (var i = 0; i < stack.Layers.Length; i++)
+        {
+            stack.Layers[i].Properties = stack.Properties[i];
+        }
+
+        _activeLayer = stack.Active;
+    }
+
     /// <summary>
     /// Gives every layer new <paramref name="width"/>×<paramref name="height"/> pixels, computed by
     /// <paramref name="pixelsOf"/> from the layer's index and current pixels (which it must not change),
@@ -78,3 +107,6 @@ public sealed class Document
         return old;
     }
 }
+
+/// <summary>A document's layers (bottom first), their properties and the active layer, as saved for history.</summary>
+internal sealed record LayerStack(Layer[] Layers, LayerProperties[] Properties, Layer Active);
