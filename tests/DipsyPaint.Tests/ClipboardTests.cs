@@ -181,7 +181,9 @@ public class ClipboardTests
         var (window, control) = ShowWindow();
         control.ImageClipboard = new RecordingClipboard();
         SelectRedSquare(window);
+        ToolButton(window, SelectionStrings.MoveSelectedPixels).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Drag(window, (20.5, 20.5), (30.5, 30.5)); // move it first
+        Assert.NotNull(window.Editor.Selection?.FloatingPixels);
 
         PressCommand(window, Key.X);
         window.Editor.Undo();
@@ -333,7 +335,7 @@ public class ClipboardTests
     }
 
     [AvaloniaFact]
-    public void Paste_GoesToTheTopLeftOfTheVisibleArea_AndSelectsTheSelectionTool()
+    public void Paste_GoesToTheTopLeftOfTheVisibleArea_AndSelectsMoveSelectedPixels()
     {
         var (window, control) = ShowWindow(2000, 1500);
         control.ImageClipboard = new RecordingClipboard { ToPaste = BlueImage(3, 2) };
@@ -344,7 +346,8 @@ public class ClipboardTests
         PressCommand(window, Key.V);
 
         Assert.Equal(new IntRect(276, 176, 3, 2), window.Editor.Selection?.Bounds); // the canvas has a 24 px margin
-        Assert.True(ToolButton(window, SelectionStrings.Select).IsChecked);
+        Assert.True(ToolButton(window, SelectionStrings.MoveSelectedPixels).IsChecked);
+        Assert.False(ToolButton(window, SelectionStrings.Select).IsChecked);
         Assert.False(ToolButton(window, ToolStrings.Pencil).IsChecked);
     }
 

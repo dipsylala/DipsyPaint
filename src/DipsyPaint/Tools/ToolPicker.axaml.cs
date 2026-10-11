@@ -5,6 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using DipsyPaint.Engine;
+using DipsyPaint.Engine.Tools;
 using DipsyPaint.Layout;
 using DipsyPaint.Resources;
 
@@ -13,7 +14,7 @@ namespace DipsyPaint.Tools;
 /// <summary>
 /// Command-bar group with one toggle button per registered tool, followed by the active tool's
 /// options panel. Selecting a tool sets the active tool of the <see cref="DocumentEditor"/> in
-/// the DataContext; when the editor switches tools itself (e.g. Paste selects the selection tool),
+/// the DataContext; when the editor switches tools itself (e.g. Paste selects Move selected pixels),
 /// the matching button is checked.
 /// </summary>
 public partial class ToolPicker : UserControl
@@ -40,7 +41,7 @@ public partial class ToolPicker : UserControl
             var button = new ToggleButton
             {
                 Content = new PathIcon { Data = Geometry.Parse(tool.IconData) },
-                Width = 40,
+                Width = 36, // 36 by 40, 2 px apart, so the buttons and the widest options panel share one row at 1100 px
                 Height = 40,
             };
             AutomationProperties.SetName(button, tool.DisplayName);
@@ -163,13 +164,16 @@ public partial class ToolPicker : UserControl
     // Shows a tool the editor switched to without the command bar, if it is a registered one.
     private void OnActiveToolChanged(object? sender, EventArgs e)
     {
-        var type = _editor?.ActiveTool?.GetType();
-        if (type is not null && _active?.CreateTool().GetType() != type
-            && _tools.FirstOrDefault(t => t.CreateTool().GetType() == type) is { } tool)
+        if (_editor?.ActiveTool is { } active && (_active is null || !SameKind(_active.CreateTool(), active))
+            && _tools.FirstOrDefault(t => SameKind(t.CreateTool(), active)) is { } tool)
         {
             Show(tool);
         }
     }
+
+    // The same tool: the same type and, for the selection tools, which one (ADR-0025).
+    private static bool SameKind(ITool a, ITool b) =>
+        a.GetType() == b.GetType() && (a as SelectionTool)?.Mode == (b as SelectionTool)?.Mode;
 
     private void Select(ToolDescriptor tool)
     {

@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -18,11 +19,15 @@ namespace DipsyPaint.Drawing;
 /// it (e.g. zoom) still yields document pixels. Transparent pixels show a checkerboard, as in
 /// reference Paint. Also draws the frame and handles around pending content
 /// (<see cref="DocumentEditor.Adornment"/>) at a constant on-screen size, with the rotate handle
-/// above it, and handles Enter (commit) and Esc (cancel) for it, and Delete for a selection. Handles
+/// above it, and handles Enter (commit; a selection stays) and Esc (cancel) for it, and Delete and the
+/// arrow keys (<see cref="DocumentEditor.Nudge"/>: 1 pixel, 10 with Shift) for a selection. Handles
 /// that stick out past the canvas still take presses (<see cref="ICustomHitTest"/>).
 /// </summary>
 public sealed class DocumentCanvas : Control, ICustomHitTest
 {
+    /// <summary>Pixels an arrow key moves a selection with Shift held; 1 without.</summary>
+    private const int ShiftNudge = 10;
+
     /// <summary>Side of a handle square, in device-independent pixels on screen.</summary>
     private const double HandleSize = 7;
 
@@ -72,6 +77,8 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
         {
             _editor.CompositeChanged -= OnCompositeChanged;
             _editor.SizeChanged -= OnSizeChanged;
+            _editor.ActiveToolChanged -= OnAdornmentChanged;
+            _editor.SelectionChanged -= OnAdornmentChanged;
         }
 
         _editor = DataContext as DocumentEditor;
@@ -80,6 +87,8 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
             _editor.HandleTolerance = HandleReach / _scale;
             _editor.CompositeChanged += OnCompositeChanged;
             _editor.SizeChanged += OnSizeChanged;
+            _editor.ActiveToolChanged += OnAdornmentChanged;
+            _editor.SelectionChanged += OnAdornmentChanged;
         }
 
         CreateBitmap();
@@ -104,6 +113,9 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
 
     private void OnSizeChanged(object? sender, EventArgs e) => CreateBitmap();
 
+    // A selection may change, or be drawn with or without handles (ADR-0025), without the composite changing.
+    private void OnAdornmentChanged(object? sender, EventArgs e) => InvalidateVisual();
+
     protected override Size MeasureOverride(Size availableSize) =>
         _editor is null ? default : new Size(_editor.Compositor.Width, _editor.Compositor.Height);
 
@@ -112,6 +124,7 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
         base.OnAttachedToVisualTree(e);
         _topLevel = TopLevel.GetTopLevel(this);
         _topLevel?.AddHandler(KeyDownEvent, OnTopLevelKeyDown);
+        _topLevel?.AddHandler(KeyDownEvent, OnTopLevelArrowKeyDown, RoutingStrategies.Tunnel);
         LayoutUpdated += OnLayoutUpdated;
     }
 
@@ -119,6 +132,7 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
     {
         LayoutUpdated -= OnLayoutUpdated;
         _topLevel?.RemoveHandler(KeyDownEvent, OnTopLevelKeyDown);
+        _topLevel?.RemoveHandler(KeyDownEvent, OnTopLevelArrowKeyDown);
         _topLevel = null;
         base.OnDetachedFromVisualTree(e);
     }
@@ -178,6 +192,11 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
             context.DrawRectangle(Brushes.White, solid, new Rect(x - half, y - half, 2 * half, 2 * half));
         }
 
+        if (!adornment.HasHandles)
+        {
+            return;
+        }
+
         // The rotate handle: a circle above the top edge's handle, joined to it by a line.
         var (rx, ry) = adornment.RotateHandle(HandleReach * unit);
         context.DrawLine(solid, new Point(rx, frame.Y - half), new Point(rx, ry + half));
@@ -200,6 +219,23 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
         }
     }
 
+    // Tunnelling, so the arrow keys move a selection rather than scroll the canvas or move the focus, unless
+    // a text box has the focus. With no Move tool or no selection they are left to the focused control.
+    private void OnTopLevelArrowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_editor is { HasPending: true } && e.Source is not TextBox
+            && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Shift
+            && NudgeOf(e.Key) is var (dx, dy) && (dx, dy) != (0, 0))
+        {
+            var step = e.KeyModifiers == KeyModifiers.Shift ? ShiftNudge : 1;
+            if (_editor.Nudge(dx * step, dy * step))
+            {
+                e.Handled = true;
+                InvalidateVisual();
+            }
+        }
+    }
+
     // Bubbling, so a focused control that uses Enter or Esc itself handles the key first.
     private void OnTopLevelKeyDown(object? sender, KeyEventArgs e)
     {
@@ -211,7 +247,7 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
         switch (e.Key)
         {
             case Key.Enter:
-                _editor.CommitPending();
+                _editor.CommitPending(keepSelection: true);
                 break;
             case Key.Escape:
                 _editor.CancelPending();
@@ -226,6 +262,15 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
         e.Handled = true;
         InvalidateVisual();
     }
+
+    private static (int X, int Y) NudgeOf(Key key) => key switch
+    {
+        Key.Left => (-1, 0),
+        Key.Right => (1, 0),
+        Key.Up => (0, -1),
+        Key.Down => (0, 1),
+        _ => (0, 0),
+    };
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
@@ -270,7 +315,10 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
         else if (_editor is not null)
         {
             var position = e.GetPosition(this);
-            var handle = _editor.Adornment?.HitTest(position.X, position.Y, _editor.HandleTolerance) ?? FrameHandle.None;
+            // Select makes a new selection wherever it is pressed, so it shows no move cursor (ADR-0025).
+            var handle = _editor.ActiveTool is SelectionTool { Mode: SelectionToolMode.Select }
+                ? FrameHandle.None
+                : _editor.Adornment?.HitTest(position.X, position.Y, _editor.HandleTolerance) ?? FrameHandle.None;
             if (handle != _hoveredHandle)
             {
                 _hoveredHandle = handle;

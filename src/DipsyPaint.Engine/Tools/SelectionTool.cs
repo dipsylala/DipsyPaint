@@ -1,23 +1,46 @@
 namespace DipsyPaint.Engine.Tools;
 
+/// <summary>Which of the three selection tools a <see cref="SelectionTool"/> is (ADR-0025).</summary>
+public enum SelectionToolMode
+{
+    /// <summary>Select: any drag makes a new selection. Shows the outline with no handles.</summary>
+    Select,
+
+    /// <summary>Move selection: dragging inside the selection, or the arrow keys, move the outline; no pixels change. No handles.</summary>
+    MoveSelection,
+
+    /// <summary>
+    /// Move selected pixels: dragging inside the selection, or the arrow keys, lift and move its pixels
+    /// (floating pixels); the handles stretch and rotate them.
+    /// </summary>
+    MoveSelectedPixels,
+}
+
 /// <summary>
-/// Reference Paint's selection tool. Dragging marks out a new selection, kept within the canvas: a
-/// rectangle, or with <see cref="SelectionShape.FreeForm"/> the area the pointer's path encloses
-/// (<see cref="FreeFormPath"/> while dragging), or with <see cref="SelectionShape.MagicWand"/> the area of
-/// similar colour around the pressed pixel (<see cref="MagicWand"/>, see also <see cref="PassesThrough"/>),
-/// framed by its bounding rectangle. Dragging inside the
-/// frame moves the selected pixels and dragging a handle stretches them (nearest neighbour); the first
-/// such drag lifts them off the layer, leaving it transparent there, as the eraser does. Pixels outside
-/// the selection's shape (<see cref="Selection.Mask"/>) stay on the layer, and so do pixels of the
+/// The selection and the three tools that make and move it (ADR-0025), chosen by <see cref="Mode"/>.
+/// With <see cref="SelectionToolMode.Select"/>, dragging marks out a new selection, kept within the
+/// canvas: a rectangle (Shift gives a square), or with <see cref="SelectionShape.FreeForm"/> the area the
+/// pointer's path encloses (<see cref="FreeFormPath"/> while dragging), or with
+/// <see cref="SelectionShape.MagicWand"/> the area of similar colour around the pressed pixel
+/// (<see cref="MagicWand"/>), framed by its bounding rectangle. With
+/// <see cref="SelectionToolMode.MoveSelection"/>, dragging inside the frame moves the outline alone; it may
+/// go partly off the canvas, where it selects nothing. With <see cref="SelectionToolMode.MoveSelectedPixels"/>,
+/// dragging inside the frame moves the selected pixels and dragging a handle stretches them (nearest
+/// neighbour); the first such drag lifts them off the layer, leaving it transparent there, as the eraser
+/// does. With either Move mode, Shift locks a move to horizontal or vertical, <see cref="Nudge"/> moves by
+/// whole pixels, and a press outside the frame, or with nothing selected, does nothing. Pixels outside the
+/// selection's shape (<see cref="Selection.Mask"/>) stay on the layer, and so do pixels of the
 /// secondary colour with <see cref="SelectionSettings.Transparent"/>. The selection stays pending (see
 /// <see cref="IPendingTool"/>) until committed, which composites lifted pixels source-over at their new
-/// place and removes the selection; a selection that was never lifted writes nothing. <see cref="Delete"/>
+/// place and removes the selection; a selection that was never lifted writes nothing.
+/// <see cref="CommitFloatingPixels"/> commits lifted pixels but keeps the selection where they landed;
+/// <see cref="Cancel"/> puts a lifted selection back where it was lifted from. <see cref="Delete"/>
 /// removes the selected pixels; <see cref="Replace"/> rotates, flips or resizes them; <see cref="Paste"/>
 /// shows pasted pixels as a lifted selection; <see cref="Select"/> selects a given shape (select all,
-/// invert). Dragging the rotate handle, or <see cref="Rotate"/>, turns the selected pixels and their
-/// shape to any angle about the frame's centre (bilinear; while the handle is dragged, the overlay shows
-/// a quick nearest-neighbour preview); the frame grows to the upright rectangle around them,
-/// transparent where nothing lands. The right button does nothing (Paint opens a context
+/// invert). These work in any mode. Dragging the rotate handle, or <see cref="Rotate"/>, turns the
+/// selected pixels and their shape to any angle about the frame's centre (bilinear; while the handle is
+/// dragged, the overlay shows a quick nearest-neighbour preview); the frame grows to the upright rectangle
+/// around them, transparent where nothing lands. The right button does nothing (Paint opens a context
 /// menu there).
 /// </summary>
 public sealed class SelectionTool : IRotatableTool
@@ -43,6 +66,9 @@ public sealed class SelectionTool : IRotatableTool
     // Where the selection was made (or last replaced); the lifted pixels and the mask are this size.
     private IntRect _source;
     private bool[]? _mask;
+
+    // Where lifted pixels were lifted from, to put the selection back there on Cancel; null for pasted ones.
+    private (IntRect Bounds, bool[]? Mask)? _origin;
 
     // The pixels as lifted (null until lifted), and the pixels and mask as shown (stretched to the frame).
     private Rgba[]? _lifted;
@@ -76,7 +102,12 @@ public sealed class SelectionTool : IRotatableTool
 
     public SelectionTool(SelectionSettings settings) => _settings = settings;
 
-    public Adornment? Adornment => _selected ? new Adornment(_preview?.Frame ?? Bounds) : null;
+    /// <summary>Which of the three selection tools this is; <see cref="SelectionToolMode.Select"/> by default.</summary>
+    public SelectionToolMode Mode { get; init; }
+
+    /// <summary>The frame around the selection; with handles only for <see cref="SelectionToolMode.MoveSelectedPixels"/>.</summary>
+    public Adornment? Adornment =>
+        _selected ? new Adornment(_preview?.Frame ?? Bounds) { HasHandles = Mode == SelectionToolMode.MoveSelectedPixels } : null;
 
     /// <summary>
     /// The current selection, or null when there is none. While the rotate handle is dragged it stays as it
@@ -92,17 +123,6 @@ public sealed class SelectionTool : IRotatableTool
 
     private IntRect Bounds => Engine.Adornment.FrameOf(_a, _b);
 
-    /// <summary>
-    /// Whether a press at (<paramref name="x"/>, <paramref name="y"/>) within the selection's frame misses
-    /// it: with <see cref="SelectionShape.MagicWand"/>, only the selected pixels and the handles take a
-    /// press, so a click on an unselected pixel makes a new selection (the editor commits this one first).
-    /// </summary>
-    public bool PassesThrough(double x, double y, double tolerance) =>
-        _settings.Shape == SelectionShape.MagicWand
-        && Selection is { } selection
-        && Adornment?.HitTest(x, y, tolerance) == FrameHandle.Move
-        && !selection.Contains((int)Math.Floor(x), (int)Math.Floor(y));
-
     public IntRect Handle(ToolContext context, PointerInput input)
     {
         var pixel = (X: (int)Math.Floor(input.X), Y: (int)Math.Floor(input.Y));
@@ -114,23 +134,27 @@ public sealed class SelectionTool : IRotatableTool
                 return IntRect.Empty;
             }
 
-            var hit = Adornment?.HitTest(input.X, input.Y, context.HandleTolerance) ?? FrameHandle.None;
-            if (hit == FrameHandle.Rotate)
+            if (Mode != SelectionToolMode.Select)
             {
-                var (centreX, centreY) = TurnCentre;
-                (_gesture, _rotateDrag) = (Gesture.Rotate, new RotateDrag(centreX, centreY, input, Angle));
+                // A press outside the selection, or with nothing selected, does nothing.
+                var hit = Adornment?.HitTest(input.X, input.Y, context.HandleTolerance) ?? FrameHandle.None;
+                (_gesture, _rotateDrag) = (Gesture.None, null);
+                if (hit == FrameHandle.Rotate)
+                {
+                    var (centreX, centreY) = TurnCentre;
+                    (_gesture, _rotateDrag) = (Gesture.Rotate, new RotateDrag(centreX, centreY, input, Angle));
+                }
+                else if (hit != FrameHandle.None)
+                {
+                    (_gesture, _handle, _dragStart, _dragA, _dragB) = (Gesture.Adjust, hit, pixel, _a, _b);
+                }
+
                 return IntRect.Empty;
             }
 
-            if (hit != FrameHandle.None)
-            {
-                (_gesture, _handle, _dragStart, _dragA, _dragB) = (Gesture.Adjust, hit, pixel, _a, _b);
-                return IntRect.Empty;
-            }
-
-            // A press outside: the editor has committed the previous selection; make a new one.
+            // Select: any press makes a new selection (the editor has committed the previous one).
             var corner = Clamp(context.Target, pixel);
-            (_lifted, _shown, _mask, _shownMask, _unturned) = (null, null, null, null, null);
+            (_lifted, _shown, _mask, _shownMask, _unturned, _origin) = (null, null, null, null, null, null);
             if (_settings.Shape == SelectionShape.MagicWand)
             {
                 (_gesture, _selected) = (Gesture.None, false);
@@ -157,7 +181,7 @@ public sealed class SelectionTool : IRotatableTool
         switch (_gesture)
         {
             case Gesture.Marquee:
-                _b = Clamp(context.Target, pixel);
+                _b = Clamp(context.Target, input.Shift ? Square(_a, pixel) : pixel);
                 break;
             case Gesture.FreeForm:
                 var point = Clamp(context.Target, pixel);
@@ -168,23 +192,15 @@ public sealed class SelectionTool : IRotatableTool
 
                 break;
             case Gesture.Adjust:
-                var (a, b) = Engine.Adornment.Drag(_dragA, _dragB, _handle, pixel.X - _dragStart.X, pixel.Y - _dragStart.Y);
-                if ((a, b) != (_a, _b))
+                var (dx, dy) = (pixel.X - _dragStart.X, pixel.Y - _dragStart.Y);
+                if (_handle == FrameHandle.Move && input.Shift)
                 {
-                    dirty = Settle(context).Union(Lift(context));
-                    if (_handle == FrameHandle.Move)
-                    {
-                        _turnCentre = (_turnCentre.X + a.X - _a.X, _turnCentre.Y + a.Y - _a.Y);
-                    }
-                    else
-                    {
-                        _unturned = null; // stretched
-                    }
-
-                    (_a, _b) = (a, b);
-                    dirty = dirty.Union(Show(context));
+                    // Locked to the axis the pointer has moved further along.
+                    (dx, dy) = Math.Abs(dx) >= Math.Abs(dy) ? (dx, 0) : (0, dy);
                 }
 
+                var (a, b) = Engine.Adornment.Drag(_dragA, _dragB, _handle, dx, dy);
+                dirty = Place(context, a, b, stretched: _handle != FrameHandle.Move);
                 break;
             case Gesture.Rotate:
                 var angle = _rotateDrag!.AngleAt(input);
@@ -223,15 +239,97 @@ public sealed class SelectionTool : IRotatableTool
     {
         var dirty = Settle(context);
         dirty = dirty.Union(_lifted is null ? IntRect.Empty : context.Overlay.DrawOnto(context.Target));
-        return dirty.Union(Cancel(context));
+        return dirty.Union(Clear(context));
     }
 
+    /// <summary>
+    /// Writes lifted pixels where they are, as <see cref="Commit"/> does, but keeps the selection there,
+    /// no longer lifted, in the shape they landed in (Enter, or switching among the selection tools).
+    /// Returns the changed rectangle; empty when nothing is lifted.
+    /// </summary>
+    public IntRect CommitFloatingPixels(ToolContext context)
+    {
+        if (!_selected || _lifted is null)
+        {
+            return IntRect.Empty;
+        }
+
+        var dirty = Settle(context).Union(context.Overlay.DrawOnto(context.Target));
+        var (bounds, mask) = (Bounds, _shownMask);
+        dirty = dirty.Union(Clear(context));
+        SetShape(bounds, mask);
+        return dirty;
+    }
+
+    /// <summary>
+    /// Discards the pending content (Esc): lifted pixels are dropped and the selection goes back to where
+    /// they were lifted from (the editor puts the layer back), or is removed when they were pasted or
+    /// nothing was lifted. Returns the changed rectangle.
+    /// </summary>
     public IntRect Cancel(ToolContext context)
     {
+        var origin = _lifted is null ? null : _origin;
+        var dirty = Clear(context);
+        if (origin is { } shape)
+        {
+            SetShape(shape.Bounds, shape.Mask);
+        }
+
+        return dirty;
+    }
+
+    /// <summary>
+    /// Moves the selection by whole pixels (the arrow keys): with <see cref="SelectionToolMode.MoveSelection"/>
+    /// the outline alone (the editor first commits lifted pixels), with
+    /// <see cref="SelectionToolMode.MoveSelectedPixels"/> the pixels, lifting them first. Does nothing with
+    /// <see cref="SelectionToolMode.Select"/>, without a selection or during a drag. Returns the changed rectangle.
+    /// </summary>
+    public IntRect Nudge(ToolContext context, int dx, int dy)
+    {
+        if (!_selected || Mode == SelectionToolMode.Select || _gesture != Gesture.None)
+        {
+            return IntRect.Empty;
+        }
+
+        return Place(context, (_a.X + dx, _a.Y + dy), (_b.X + dx, _b.Y + dy), stretched: false);
+    }
+
+    private IntRect Clear(ToolContext context)
+    {
         (_selected, _gesture, _lifted, _shown, _mask, _shownMask) = (false, Gesture.None, null, null, null, null);
-        (_unturned, _rotateDrag, _preview) = (null, null, null);
+        (_unturned, _rotateDrag, _preview, _origin) = (null, null, null, null);
         _path.Clear();
         return context.Overlay.Clear();
+    }
+
+    // Moves or stretches the frame to the corners a and b: with Move selection, the outline alone (the
+    // editor commits lifted pixels first), else the pixels, lifting them first.
+    private IntRect Place(ToolContext context, (int X, int Y) a, (int X, int Y) b, bool stretched)
+    {
+        if ((a, b) == (_a, _b))
+        {
+            return IntRect.Empty;
+        }
+
+        if (Mode == SelectionToolMode.MoveSelection && _lifted is null)
+        {
+            (_a, _b) = (a, b);
+            _source = Bounds;
+            return IntRect.Empty;
+        }
+
+        var dirty = Settle(context).Union(Lift(context));
+        if (stretched)
+        {
+            _unturned = null;
+        }
+        else
+        {
+            _turnCentre = (_turnCentre.X + a.X - _a.X, _turnCentre.Y + a.Y - _a.Y);
+        }
+
+        (_a, _b) = (a, b);
+        return dirty.Union(Show(context));
     }
 
     /// <summary>Re-shows lifted pixels after the secondary colour or <see cref="SelectionSettings.Transparent"/> changed.</summary>
@@ -252,7 +350,7 @@ public sealed class SelectionTool : IRotatableTool
             ArgumentOutOfRangeException.ThrowIfNotEqual(mask.Length, bounds.Width * bounds.Height, nameof(mask));
         }
 
-        var dirty = Cancel(context);
+        var dirty = Clear(context);
         SetShape(bounds, mask);
         return dirty;
     }
@@ -277,7 +375,7 @@ public sealed class SelectionTool : IRotatableTool
         }
 
         var pixels = new Rgba[bounds.Width * bounds.Height];
-        context.Target.ReadRegion(bounds, pixels);
+        ReadOnCanvas(context.Target, bounds, pixels);
         for (var i = 0; i < pixels.Length; i++)
         {
             if (!Keeps(context, i, pixels[i]))
@@ -307,18 +405,18 @@ public sealed class SelectionTool : IRotatableTool
             var pixels = new Rgba[bounds.Width * bounds.Height];
             if (selection.Mask is { } mask)
             {
-                context.Target.ReadRegion(bounds, pixels);
+                ReadOnCanvas(context.Target, bounds, pixels);
                 for (var i = 0; i < pixels.Length; i++)
                 {
                     pixels[i] = mask[i] ? Rgba.Transparent : pixels[i];
                 }
             }
 
-            context.Target.WriteRegion(bounds, pixels);
+            WriteOnCanvas(context.Target, bounds, pixels);
             dirty = bounds;
         }
 
-        return dirty.Union(Cancel(context));
+        return dirty.Union(Clear(context));
     }
 
     /// <summary>
@@ -380,7 +478,7 @@ public sealed class SelectionTool : IRotatableTool
     public IntRect Paste(ToolContext context, PixelImage image, int x, int y)
     {
         (_selected, _gesture, _a, _b) = (true, Gesture.None, (x, y), (x + image.Width - 1, y + image.Height - 1));
-        (_lifted, _source, _mask, _unturned) = (image.Pixels, Bounds, null, null);
+        (_lifted, _source, _mask, _unturned, _origin) = (image.Pixels, Bounds, null, null, null);
         return Show(context);
     }
 
@@ -447,8 +545,9 @@ public sealed class SelectionTool : IRotatableTool
             return IntRect.Empty;
         }
 
+        _origin = (_source, _mask);
         var layer = new Rgba[_source.Width * _source.Height];
-        context.Target.ReadRegion(_source, layer);
+        ReadOnCanvas(context.Target, _source, layer);
         _lifted = new Rgba[layer.Length];
         for (var i = 0; i < layer.Length; i++)
         {
@@ -458,7 +557,7 @@ public sealed class SelectionTool : IRotatableTool
             }
         }
 
-        context.Target.WriteRegion(_source, layer);
+        WriteOnCanvas(context.Target, _source, layer);
         return _source;
     }
 
@@ -516,6 +615,46 @@ public sealed class SelectionTool : IRotatableTool
         }
 
         return result;
+    }
+
+    // Reads the layer within `region`, which may reach past the canvas (a moved outline): transparent there.
+    private static void ReadOnCanvas(IPixelAccess target, IntRect region, Rgba[] pixels)
+    {
+        var part = region.Intersect(new IntRect(0, 0, target.Width, target.Height));
+        if (part == region)
+        {
+            target.ReadRegion(region, pixels);
+            return;
+        }
+
+        Array.Clear(pixels);
+        for (var y = part.Y; y < part.Bottom; y++)
+        {
+            target.ReadRegion(part with { Y = y, Height = 1 }, pixels.AsSpan((y - region.Y) * region.Width + part.X - region.X, part.Width));
+        }
+    }
+
+    // Writes the part of `region`'s pixels that is on the canvas.
+    private static void WriteOnCanvas(IPixelAccess target, IntRect region, Rgba[] pixels)
+    {
+        var part = region.Intersect(new IntRect(0, 0, target.Width, target.Height));
+        if (part == region)
+        {
+            target.WriteRegion(region, pixels);
+            return;
+        }
+
+        for (var y = part.Y; y < part.Bottom; y++)
+        {
+            target.WriteRegion(part with { Y = y, Height = 1 }, pixels.AsSpan((y - region.Y) * region.Width + part.X - region.X, part.Width));
+        }
+    }
+
+    // The corner opposite `anchor` of the square from it towards `pixel`, as large as the larger side.
+    private static (int X, int Y) Square((int X, int Y) anchor, (int X, int Y) pixel)
+    {
+        var side = Math.Max(Math.Abs(pixel.X - anchor.X), Math.Abs(pixel.Y - anchor.Y));
+        return (anchor.X + (pixel.X < anchor.X ? -side : side), anchor.Y + (pixel.Y < anchor.Y ? -side : side));
     }
 
     private static (int X, int Y) Clamp(IPixelAccess target, (int X, int Y) pixel) =>

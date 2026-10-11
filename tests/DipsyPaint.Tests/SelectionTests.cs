@@ -52,6 +52,13 @@ public class SelectionTests
 
     private static Rgba LayerPixel(MainWindow window, int x, int y) => window.Document.ActiveLayer.Pixels.GetPixel(x, y);
 
+    private static void UseTool(Window window, string name)
+    {
+        window.GetLogicalDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetName(b) == name)
+            .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout();
+    }
+
     [AvaloniaFact]
     public void SelectionToolComesFromTheRegistry()
     {
@@ -71,14 +78,16 @@ public class SelectionTests
         Assert.Equal(new IntRect(10, 10, 20, 20), window.Editor.Selection?.Bounds);
         Assert.False(window.Editor.History.CanUndo);
 
+        UseTool(window, SelectionStrings.MoveSelectedPixels);
         Drag(window, (20.5, 20.5), (30.5, 30.5));   // move it by (10, 10)
-        Drag(window, (55.5, 5.5), (55.5, 5.5));     // a click outside puts it down
+        Press(window, Key.Enter);                   // puts it down, still selected
 
-        Assert.Null(window.Editor.Selection);
+        Assert.Equal(new Selection(new IntRect(20, 20, 20, 20), null), window.Editor.Selection);
         Assert.Equal(Red, LayerPixel(window, 39, 39));
         Assert.Equal(Rgba.Transparent, LayerPixel(window, 10, 10));
         Assert.True(window.Editor.History.CanUndo);
 
+        UseTool(window, SelectionStrings.Select);
         Drag(window, (20.5, 20.5), (39.5, 39.5));   // select it again
         Press(window, Key.Delete);
 
@@ -95,17 +104,23 @@ public class SelectionTests
     }
 
     [AvaloniaFact]
-    public void EscPutsAMovedSelectionBack()
+    public void EscPutsAMovedSelectionBack_ThenRemovesIt()
     {
         var window = ShowWindowWithSelectionTool();
         Drag(window, (10.5, 10.5), (29.5, 29.5));
+        UseTool(window, SelectionStrings.MoveSelectedPixels);
         Drag(window, (20.5, 20.5), (30.5, 30.5));
 
         Press(window, Key.Escape);
 
-        Assert.Null(window.Editor.Selection);
+        Assert.Equal(new Selection(new IntRect(10, 10, 20, 20), null), window.Editor.Selection);
         Assert.Equal(Red, LayerPixel(window, 10, 10));
         Assert.Equal(Rgba.White, LayerPixel(window, 39, 39));
+        Assert.False(window.Editor.History.CanUndo);
+
+        Press(window, Key.Escape);
+
+        Assert.Null(window.Editor.Selection);
         Assert.False(window.Editor.History.CanUndo);
     }
 }

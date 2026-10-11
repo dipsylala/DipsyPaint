@@ -36,4 +36,10 @@
   <data name="TransparentSelection" xml:space="preserve">
     <value>Transparent selection</value>
   </data>
+  <data name="MoveSelection" xml:space="preserve">
+    <value>Move selection</value>
+  </data>
+  <data name="MoveSelectedPixels" xml:space="preserve">
+    <value>Move selected pixels</value>
+  </data>
 </root>

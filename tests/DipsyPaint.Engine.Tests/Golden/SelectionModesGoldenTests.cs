@@ -34,6 +34,7 @@ public class SelectionModesGoldenTests
 
         // A lasso through (10, 2), (20, 10), (14, 22), (4, 18), closed back to the start.
         Script.Stroke(editor, PointerButton.Left, (10.5, 2.5), (20.5, 10.5), (14.5, 22.5), (4.5, 18.5));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (12.5, 12.5), (36.5, 20.5)); // move by (24, 8)
         editor.CommitPending();
 
@@ -46,6 +47,7 @@ public class SelectionModesGoldenTests
         var editor = CreateEditor(new SelectionSettings());
 
         editor.SelectAll();
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (20.5, 20.5), (26.5, 24.5)); // move by (6, 4)
         editor.CommitPending();
 
@@ -70,6 +72,7 @@ public class SelectionModesGoldenTests
         var editor = CreateEditor(new SelectionSettings { Transparent = true }); // colour 2 is white
 
         Script.Stroke(editor, PointerButton.Left, (0.5, 0.5), (15.5, 15.5));   // two coloured and two white tiles
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (8.5, 8.5), (28.5, 12.5));   // move by (20, 4)
         editor.CommitPending();
 

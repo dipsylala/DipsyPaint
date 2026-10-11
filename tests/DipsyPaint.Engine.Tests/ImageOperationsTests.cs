@@ -187,6 +187,7 @@ public class ImageOperationsTests
     {
         var editor = CreateEditor(8, 6, new SelectionTool());
         Script.Stroke(editor, PointerButton.Left, (0.5, 0.5), (1.5, 1.5));  // 2×2 at (0, 0)
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (0.5, 0.5), (4.5, 2.5));  // moved to (4, 2)
 
         editor.CropToSelection();
@@ -207,6 +208,7 @@ public class ImageOperationsTests
     {
         var editor = CreateEditor(8, 6, new SelectionTool());
         Script.Stroke(editor, PointerButton.Left, (0.5, 0.5), (1.5, 1.5));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (0.5, 0.5), (7.5, 5.5)); // moved to (7, 5): one pixel on the canvas
 
         editor.CropToSelection();
@@ -368,6 +370,7 @@ public class ImageOperationsTests
         editor.Transform(ImageTransform.RotateRight);
         editor.Undo();
         Script.Stroke(editor, PointerButton.Left, (1.5, 1.5), (2.5, 2.5));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (1.5, 1.5), (5.5, 5.5)); // lifted and moved
 
         editor.Redo();

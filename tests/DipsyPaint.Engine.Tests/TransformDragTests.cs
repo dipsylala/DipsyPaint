@@ -73,6 +73,7 @@ public class TransformDragTests
         expected.Rotate(30);
         var editor = CreateEditor(80, 60, new SelectionTool());
         editor.Select(new IntRect(10, 12, 50, 30), Triangle(50, 30));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
 
         var pointer = PressRotateHandle(editor);
         editor.Apply(pointer(PointerAction.Move, 15));
@@ -98,13 +99,14 @@ public class TransformDragTests
         expected.Rotate(30);
         var editor = CreateEditor(80, 60, new SelectionTool());
         editor.Select(new IntRect(10, 12, 50, 30));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         var changes = 0;
         editor.SelectionChanged += (_, _) => changes++;
 
         var pointer = PressRotateHandle(editor);
         editor.Apply(pointer(PointerAction.Move, 30));
 
-        Assert.Equal(expected.Adornment, editor.Adornment);
+        Assert.Equal(expected.Adornment?.Frame, editor.Adornment?.Frame);
         Assert.Equal(new IntRect(10, 12, 50, 30), editor.Selection!.Value.Bounds);
         Assert.Equal(0, changes);
         editor.Apply(pointer(PointerAction.Up, 30));
@@ -121,6 +123,7 @@ public class TransformDragTests
         expected.Rotate(90);
         var editor = CreateEditor(80, 60, new SelectionTool());
         editor.Select(new IntRect(10, 12, 40, 30), Triangle(40, 30));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
 
         var pointer = PressRotateHandle(editor);
         editor.Apply(pointer(PointerAction.Move, 90));
@@ -146,6 +149,7 @@ public class TransformDragTests
             }
 
             editor.SelectAll(); // lifted off the only layer, so the composite shows the turned pixels alone
+            Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
             return editor;
         }
 
@@ -182,6 +186,7 @@ public class TransformDragTests
         var editor = CreateEditor(80, 60, new SelectionTool());
         var before = Snapshot(editor);
         editor.Select(new IntRect(10, 12, 50, 30));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
 
         var pointer = PressRotateHandle(editor);
         editor.Apply(pointer(PointerAction.Move, 45));
@@ -203,6 +208,7 @@ public class TransformDragTests
         var shown = expected.Compositor.Pixels[27 * 80 + 30];
         var editor = CreateEditor(80, 60, new SelectionTool(new SelectionSettings { Transparent = true }));
         editor.Select(new IntRect(10, 12, 40, 30));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels, new SelectionSettings { Transparent = true });
 
         var pointer = PressRotateHandle(editor);
         editor.Apply(pointer(PointerAction.Move, 90));
@@ -244,6 +250,7 @@ public class TransformDragTests
     {
         var editor = CreateEditor(400, 300, new SelectionTool());
         editor.Select(new IntRect(0, 0, 300, 250));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
 
         Script.Stroke(editor, PointerButton.Left, (300, 250), (380, 290)); // the bottom-right handle
 

@@ -63,14 +63,32 @@ public sealed partial class DocumentEditor
     /// <summary>Pending content, composited above the active layer but not yet part of it.</summary>
     public Overlay Overlay { get; }
 
-    /// <summary>The tool pointer input goes to. Changing it commits the old tool's pending content.</summary>
+    /// <summary>
+    /// The tool pointer input goes to. Changing it commits the old tool's pending content. Changing from
+    /// one <see cref="SelectionTool"/> to another (Select, Move selection, Move selected pixels) keeps the
+    /// selection: floating pixels are committed and the new tool gets the selection where they landed
+    /// (ADR-0025).
+    /// </summary>
     public ITool? ActiveTool
     {
         get => _activeTool;
         set
         {
-            CommitPending();
-            _activeTool = value;
+            if (_activeTool is SelectionTool from && value is SelectionTool to && !ReferenceEquals(from, to))
+            {
+                CommitPending(keepSelection: true);
+                _activeTool = value;
+                if (from.Selection is { } selection)
+                {
+                    Refresh(to.Select(Context(Document.ActiveLayer.Pixels), selection.Bounds, selection.Mask));
+                }
+            }
+            else
+            {
+                CommitPending();
+                _activeTool = value;
+            }
+
             ActiveToolChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -101,7 +119,7 @@ public sealed partial class DocumentEditor
     /// <summary>Whether the active tool has pending content, with or without an <see cref="Adornment"/> (Enter commits it, Esc cancels it).</summary>
     public bool HasPending => (ActiveTool as IPendingTool)?.HasPending == true;
 
-    /// <summary>The selection of the active <see cref="SelectionTool"/>, or null when there is none.</summary>
+    /// <summary>The selection of the active <see cref="SelectionTool"/> (any of its modes), or null when there is none.</summary>
     public Selection? Selection => (ActiveTool as SelectionTool)?.Selection;
 
     /// <summary>
@@ -139,13 +157,31 @@ public sealed partial class DocumentEditor
         }
 
         // A press outside pending content commits it, as in reference Paint; the tool then sees a fresh press.
+        // With the selection tools (ADR-0025): Select makes a new selection with any press, so it commits the
+        // current one; Move selection moves the outline alone, so it first commits floating pixels where they
+        // are; a press outside the selection with either Move tool does nothing.
         var committed = false;
-        if (input.Action == PointerAction.Down && !_inGesture
-            && (Adornment?.HitTest(input.X, input.Y, HandleTolerance) == FrameHandle.None
-                || (ActiveTool as SelectionTool)?.PassesThrough(input.X, input.Y, HandleTolerance) == true))
+        if (input.Action == PointerAction.Down && !_inGesture)
         {
-            CommitPending();
-            committed = true;
+            var hit = Adornment?.HitTest(input.X, input.Y, HandleTolerance);
+            if (ActiveTool is SelectionTool selectionTool)
+            {
+                if (selectionTool.Mode == SelectionToolMode.Select && input.Button == PointerButton.Left)
+                {
+                    CommitPending();
+                    committed = true;
+                }
+                else if (selectionTool.Mode == SelectionToolMode.MoveSelection && hit == FrameHandle.Move
+                         && selectionTool.Selection is { FloatingPixels: not null })
+                {
+                    CommitPending(keepSelection: true);
+                }
+            }
+            else if (hit == FrameHandle.None)
+            {
+                CommitPending();
+                committed = true;
+            }
         }
 
         _inGesture = input.Action != PointerAction.Up;
@@ -167,10 +203,17 @@ public sealed partial class DocumentEditor
     }
 
     /// <summary>
-    /// Commits the active tool's pending content to the active layer as one history step (Enter).
-    /// During a gesture the commit joins that gesture's step instead.
+    /// Commits the active tool's pending content to the active layer as one history step, removing a
+    /// selection. During a gesture the commit joins that gesture's step instead.
     /// </summary>
-    public void CommitPending()
+    public void CommitPending() => CommitPending(keepSelection: false);
+
+    /// <summary>
+    /// As <see cref="CommitPending()"/>; with <paramref name="keepSelection"/> (Enter), a selection stays:
+    /// its floating pixels are committed and it is kept where they landed (see
+    /// <see cref="SelectionTool.CommitFloatingPixels"/>).
+    /// </summary>
+    public void CommitPending(bool keepSelection)
     {
         if (ActiveTool is not IPendingTool tool)
         {
@@ -178,13 +221,40 @@ public sealed partial class DocumentEditor
         }
 
         _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
-        var dirty = tool.Commit(Context(_recorder));
+        var context = Context(_recorder);
+        var dirty = keepSelection && tool is SelectionTool selectionTool
+            ? selectionTool.CommitFloatingPixels(context)
+            : tool.Commit(context);
         if (!_inGesture)
         {
             RecordStep();
         }
 
         Refresh(dirty);
+    }
+
+    /// <summary>
+    /// The arrow keys: with Move selection or Move selected pixels, moves the selection by
+    /// (<paramref name="dx"/>, <paramref name="dy"/>) pixels (see <see cref="SelectionTool.Nudge"/>). Moving the
+    /// outline writes nothing (floating pixels are committed first); moved pixels float, so a run of nudges
+    /// is one history step when committed. Returns false, doing nothing, with any other tool, without a
+    /// selection or during a gesture.
+    /// </summary>
+    public bool Nudge(int dx, int dy)
+    {
+        if (_inGesture || ActiveTool is not SelectionTool { Selection: { } selection } tool || tool.Mode == SelectionToolMode.Select)
+        {
+            return false;
+        }
+
+        if (tool.Mode == SelectionToolMode.MoveSelection && selection.FloatingPixels is not null)
+        {
+            CommitPending(keepSelection: true);
+        }
+
+        _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
+        Refresh(tool.Nudge(Context(_recorder), dx, dy));
+        return true;
     }
 
     /// <summary>
@@ -240,8 +310,8 @@ public sealed partial class DocumentEditor
     /// <summary>
     /// Selects <paramref name="bounds"/> (within the canvas), or the pixels set in <paramref name="mask"/>
     /// within it (see <see cref="Selection.Mask"/>; build one with <see cref="SelectionMasks"/>), switching
-    /// to the selection tool as reference Paint does; pending content (including a current selection) is
-    /// committed first. Selecting writes nothing. The editor keeps the mask. Ignored during a gesture.
+    /// to the Select tool; pending content (including a current selection) is committed first. Selecting
+    /// writes nothing. The editor keeps the mask. Ignored during a gesture.
     /// </summary>
     public void Select(IntRect bounds, bool[]? mask = null)
     {
@@ -250,11 +320,8 @@ public sealed partial class DocumentEditor
             return;
         }
 
-        if (ActiveTool is SelectionTool)
-        {
-            CommitPending();
-        }
-        else
+        CommitPending();
+        if (ActiveTool is not SelectionTool { Mode: SelectionToolMode.Select })
         {
             ActiveTool = new SelectionTool(SelectionSettings);
         }
@@ -265,7 +332,7 @@ public sealed partial class DocumentEditor
 
     /// <summary>
     /// Pastes <paramref name="image"/> as a lifted selection with its top-left at (<paramref name="x"/>,
-    /// <paramref name="y"/>), switching to the selection tool as reference Paint does; pending content
+    /// <paramref name="y"/>), switching to Move selected pixels (ADR-0025); pending content
     /// (including a current selection) is committed first. If the image reaches past the canvas, the
     /// canvas is first enlarged to fit it, as one history step, up to <see cref="Document.MaxSide"/> and
     /// unless that would exceed <paramref name="budget"/> (default <see cref="MemoryBudget.Default"/>);
@@ -280,13 +347,10 @@ public sealed partial class DocumentEditor
             return;
         }
 
-        if (ActiveTool is SelectionTool)
+        CommitPending();
+        if (ActiveTool is not SelectionTool { Mode: SelectionToolMode.MoveSelectedPixels })
         {
-            CommitPending();
-        }
-        else
-        {
-            ActiveTool = new SelectionTool(SelectionSettings);
+            ActiveTool = new SelectionTool(SelectionSettings) { Mode = SelectionToolMode.MoveSelectedPixels };
         }
 
         var (oldWidth, oldHeight) = (Document.Width, Document.Height);
@@ -306,7 +370,8 @@ public sealed partial class DocumentEditor
 
     /// <summary>
     /// Discards the active tool's pending content (Esc) and reverts what was written to the layer
-    /// while it was pending.
+    /// while it was pending. A moved selection goes back to where its pixels were lifted from (see
+    /// <see cref="SelectionTool.Cancel"/>); one with nothing floating is removed.
     /// </summary>
     public void CancelPending()
     {

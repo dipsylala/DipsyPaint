@@ -25,10 +25,14 @@ public enum FrameHandle
 /// document pixels: the frame runs along the edges of <paramref name="Frame"/>, with a handle at
 /// each corner and edge midpoint, and a rotate handle above the top edge (<see cref="RotateHandle"/>).
 /// The shell draws it at a constant on-screen size; tools hit-test pointer input against it and
-/// apply handle drags with <see cref="Drag"/>.
+/// apply handle drags with <see cref="Drag"/>. Without <see cref="HasHandles"/> it is the frame alone
+/// (a selection made or moved as an outline, ADR-0025).
 /// </summary>
 public readonly record struct Adornment(IntRect Frame)
 {
+    /// <summary>Whether the frame has resize and rotate handles; true unless set otherwise.</summary>
+    public bool HasHandles { get; init; } = true;
+
     /// <summary>How far the rotate handle sits above the frame, in multiples of the handle tolerance (so constant on screen).</summary>
     public const double RotateHandleDistance = 4;
 
@@ -38,12 +42,12 @@ public readonly record struct Adornment(IntRect Frame)
         FrameHandle.Top, FrameHandle.Right, FrameHandle.Bottom, FrameHandle.Left,
     ];
 
-    /// <summary>Each handle and its centre, corners first.</summary>
+    /// <summary>Each handle and its centre, corners first; none without <see cref="HasHandles"/>.</summary>
     public IEnumerable<(FrameHandle Handle, double X, double Y)> Handles
     {
         get
         {
-            foreach (var handle in Order)
+            foreach (var handle in HasHandles ? Order : [])
             {
                 var (x, y) = CentreOf(handle);
                 yield return (handle, x, y);
@@ -60,7 +64,7 @@ public readonly record struct Adornment(IntRect Frame)
 
     /// <summary>
     /// The handle within <paramref name="tolerance"/> document pixels of the point (corners win, then
-    /// edges, then the rotate handle), else <see cref="FrameHandle.Move"/> inside the frame, else
+    /// edges, then the rotate handle; none without <see cref="HasHandles"/>), else <see cref="FrameHandle.Move"/> inside the frame, else
     /// <see cref="FrameHandle.None"/>.
     /// </summary>
     public FrameHandle HitTest(double x, double y, double tolerance)
@@ -74,7 +78,7 @@ public readonly record struct Adornment(IntRect Frame)
         }
 
         var (rx, ry) = RotateHandle(tolerance);
-        if (Math.Abs(x - rx) <= tolerance && Math.Abs(y - ry) <= tolerance)
+        if (HasHandles && Math.Abs(x - rx) <= tolerance && Math.Abs(y - ry) <= tolerance)
         {
             return FrameHandle.Rotate;
         }

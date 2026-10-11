@@ -12,7 +12,7 @@ namespace DipsyPaint.Tools;
 /// Reference Paint's Selection menu (in the Image group): rectangle or free-form selection (plus our
 /// magic wand, ADR-0011), select
 /// all, invert selection, delete and transparent selection, for the <see cref="DocumentEditor"/> in
-/// the DataContext. Picking a shape (or selecting all, or inverting) switches to the selection tool.
+/// the DataContext. Picking a shape (or selecting all, or inverting) switches to the Select tool.
 /// The options are <see cref="ToolRegistry.SelectionSettings"/>, which this menu also gives the editor
 /// (<see cref="DocumentEditor.SelectionSettings"/>). Also handles Paint's shortcuts for the whole
 /// window: Ctrl+A (select all) and Ctrl+Shift+I (invert selection), Cmd on macOS; Delete is the
@@ -38,11 +38,11 @@ public partial class SelectionMenu : UserControl
     private KeyModifiers CommandModifiers =>
         this.GetPlatformSettings()?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control;
 
-    /// <summary>Makes the next selection <paramref name="shape"/>, switching to the selection tool.</summary>
+    /// <summary>Makes the next selection <paramref name="shape"/>, switching to the Select tool.</summary>
     public void UseShape(SelectionShape shape)
     {
         _settings.Shape = shape;
-        if (_editor is { ActiveTool: not SelectionTool } editor)
+        if (_editor is { ActiveTool: not SelectionTool { Mode: SelectionToolMode.Select } } editor)
         {
             editor.ActiveTool = new SelectionTool(_settings);
         }

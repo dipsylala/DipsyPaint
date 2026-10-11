@@ -16,4 +16,11 @@ internal static class Script
 
         editor.Apply(new PointerInput(PointerAction.Up, points[^1].X, points[^1].Y, button));
     }
+
+    /// <summary>
+    /// Switches to the selection tool <paramref name="mode"/> (ADR-0025), with <paramref name="settings"/>
+    /// (default the editor's); the selection is kept.
+    /// </summary>
+    public static void Use(DocumentEditor editor, SelectionToolMode mode, SelectionSettings? settings = null) =>
+        editor.ActiveTool = new SelectionTool(settings ?? editor.SelectionSettings) { Mode = mode };
 }
