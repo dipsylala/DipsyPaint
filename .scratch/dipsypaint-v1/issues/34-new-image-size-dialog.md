@@ -10,3 +10,7 @@
 - [x] OK creates a blank document of the entered size (empty history, title and status bar updated); Cancel changes nothing
 - [x] Sizes are limited to 1–16384 px per side, and a size over the memory budget is refused with a message
 - [x] The dialog is keyboard-operable (Enter = OK, Esc = Cancel) with automation names, and its strings come from `.resx`
+
+## Notes
+
+- Size presets, a width/height swap and a read-only resolution are added in ticket 41 (with resolution itself in ticket 40, ADR-0024).
