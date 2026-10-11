@@ -15,21 +15,6 @@ namespace DipsyPaint.Tools;
 /// </summary>
 public partial class BrushOptions : UserControl
 {
-    // A menu entry: the brush's icon and name.
-    private static readonly FuncDataTemplate<BrushDescriptor> MenuEntry = new((brush, _) => new StackPanel
-    {
-        Orientation = Orientation.Horizontal,
-        Spacing = 8,
-        Children =
-        {
-            Icon(brush),
-            new TextBlock { Text = brush.DisplayName, VerticalAlignment = VerticalAlignment.Center },
-        },
-    });
-
-    // The closed menu shows only the chosen brush's icon, so the options fit beside the tool buttons.
-    private static readonly FuncDataTemplate<BrushDescriptor> ChosenEntry = new((brush, _) => Icon(brush));
-
     private readonly StrokeSettings _settings;
     private readonly BrushGallery _gallery;
 
@@ -42,14 +27,25 @@ public partial class BrushOptions : UserControl
         _settings = settings;
         _gallery = gallery;
         InitializeComponent();
+        // Like reference Paint's Brushes button, the closed menu shows only the chosen brush's icon,
+        // which keeps the tools row narrow; the open menu lists each brush's icon and name.
+        BrushBox.SelectionBoxItemTemplate = new FuncDataTemplate<BrushDescriptor>((brush, _) => Icon(brush));
+        var entry = new FuncDataTemplate<BrushDescriptor>((brush, _) => new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            Children =
+            {
+                Icon(brush),
+                new TextBlock { Text = brush.DisplayName, VerticalAlignment = VerticalAlignment.Center },
+            },
+        });
         foreach (var brush in gallery.Brushes)
         {
-            var item = new ComboBoxItem { Tag = brush, Content = brush, ContentTemplate = MenuEntry };
+            var item = new ComboBoxItem { Tag = brush, Content = brush, ContentTemplate = entry };
             AutomationProperties.SetName(item, brush.DisplayName);
             BrushBox.Items.Add(item);
         }
-
-        BrushBox.SelectionBoxItemTemplate = ChosenEntry;
 
         BrushBox.SelectedIndex = gallery.Brushes.ToList().IndexOf(gallery.Selected);
         BrushBox.IsVisible = gallery.Brushes.Count > 1;
@@ -57,7 +53,8 @@ public partial class BrushOptions : UserControl
         Items.Children.Add(new StrokeSizeOptions(settings));
     }
 
-    private static PathIcon Icon(BrushDescriptor brush) => new() { Data = Geometry.Parse(brush.IconData), Width = 16, Height = 16 };
+    private static PathIcon Icon(BrushDescriptor? brush) =>
+        new() { Data = brush is null ? null : Geometry.Parse(brush.IconData), Width = 16, Height = 16 };
 
     private void Choose(BrushDescriptor? brush)
     {

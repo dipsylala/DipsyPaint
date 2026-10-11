@@ -3,8 +3,7 @@
              xmlns:res="using:DipsyPaint.Resources"
              xmlns:layout="using:DipsyPaint.Layout"
              x:Class="DipsyPaint.Tools.BrushOptions">
-  <!-- The brush menu (closed, just the chosen brush's icon, as in reference Paint), then the size and
-       opacity options; the code-behind appends those. -->
+  <!-- The brush menu, then the size and opacity options; the code-behind appends those. -->
   <WrapPanel x:Name="Items" Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" ItemSpacing="8" LineSpacing="4">
     <ComboBox x:Name="BrushBox" Height="32" VerticalAlignment="Center"
               AutomationProperties.Name="{x:Static res:BrushStrings.Brushes}"
