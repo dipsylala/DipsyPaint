@@ -50,3 +50,7 @@ id, dockable to a window edge and saved in the per-user layout (ADR-0022). Disti
 
 **Selection** — a region of pixels lifted for move/rotate/skew before being
 committed back to a layer. Exact semantics to be agreed with tool scoping.
+
+**Unsaved changes** — history steps made since the document was last saved, opened or
+created. Undoing back to the saved point clears them. They trigger the "Save changes?"
+prompt (ticket 36) and crash-recovery snapshots (ADR-0013). Code may call this "dirty".
