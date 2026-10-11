@@ -31,6 +31,7 @@ public class ShapeTests
         options.FindControl<ComboBox>("FillBox")!.SelectedIndex = (int)ShapeStyle.None;
         options.FindControl<ComboBox>("SizeBox")!.SelectedIndex = 0;
         Click(window, ShapeStrings.Rectangle);
+        window.UpdateLayout(); // the command bar may rewrap, moving the canvas
         return window;
     }
 
@@ -143,6 +144,7 @@ public class ShapeTests
     {
         var window = ShowWindowWithRectangleTool();
         Click(window, ShapeStrings.Polygon);
+        window.UpdateLayout();
 
         Drag(window, (10.5, 10.5), (40.5, 10.5));
         Drag(window, (40.5, 40.5), (40.5, 40.5));
@@ -161,6 +163,7 @@ public class ShapeTests
     {
         var window = ShowWindowWithRectangleTool();
         Click(window, ShapeStrings.Curve);
+        window.UpdateLayout();
 
         Drag(window, (10.5, 30.5), (50.5, 30.5));
         Assert.Equal((0, 0, 0), RenderedPixel(window, InWindow(window, 30.5, 30.5)));
