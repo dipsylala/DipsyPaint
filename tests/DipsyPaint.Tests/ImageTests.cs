@@ -68,7 +68,7 @@ public class ImageTests
     private static void Select(MainWindow window, (double X, double Y) from, (double X, double Y) to)
     {
         window.GetLogicalDescendants().OfType<ToggleButton>()
-            .Single(b => AutomationProperties.GetName(b) == SelectionStrings.RectangleSelection)
+            .Single(b => AutomationProperties.GetName(b) == SelectionStrings.Select)
             .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         window.MouseDown(InWindow(window, from.X, from.Y), MouseButton.Left);
         window.MouseMove(InWindow(window, to.X, to.Y));

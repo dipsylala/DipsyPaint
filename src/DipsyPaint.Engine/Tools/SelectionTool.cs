@@ -1,14 +1,18 @@
 namespace DipsyPaint.Engine.Tools;
 
 /// <summary>
-/// Reference Paint's rectangle selection. Dragging draws a marquee, kept within the canvas.
-/// Dragging inside it moves the selected pixels and dragging a handle stretches them (nearest
-/// neighbour); the first such drag lifts them off the layer, leaving it transparent there, as the
-/// eraser does. The selection stays pending (see <see cref="IPendingTool"/>) until committed, which
-/// composites lifted pixels source-over at their new place and removes the selection; a marquee
-/// that was never lifted writes nothing. <see cref="Delete"/> removes the selected pixels; <see cref="Replace"/>
-/// rotates, flips or resizes them; <see cref="Paste"/> shows pasted pixels as a lifted selection. The right
-/// button does nothing (Paint opens a context menu there).
+/// Reference Paint's selection tool. Dragging marks out a new selection, kept within the canvas: a
+/// rectangle, or with <see cref="SelectionShape.FreeForm"/> the area the pointer's path encloses
+/// (<see cref="FreeFormPath"/> while dragging), framed by its bounding rectangle. Dragging inside the
+/// frame moves the selected pixels and dragging a handle stretches them (nearest neighbour); the first
+/// such drag lifts them off the layer, leaving it transparent there, as the eraser does. Pixels outside
+/// the selection's shape (<see cref="Selection.Mask"/>) stay on the layer, and so do pixels of the
+/// secondary colour with <see cref="SelectionSettings.Transparent"/>. The selection stays pending (see
+/// <see cref="IPendingTool"/>) until committed, which composites lifted pixels source-over at their new
+/// place and removes the selection; a selection that was never lifted writes nothing. <see cref="Delete"/>
+/// removes the selected pixels; <see cref="Replace"/> rotates, flips or resizes them; <see cref="Paste"/>
+/// shows pasted pixels as a lifted selection; <see cref="Select"/> selects a given shape (select all,
+/// invert). The right button does nothing (Paint opens a context menu there).
 /// </summary>
 public sealed class SelectionTool : IPendingTool
 {
@@ -16,8 +20,12 @@ public sealed class SelectionTool : IPendingTool
     {
         None,
         Marquee,
+        FreeForm,
         Adjust,
     }
+
+    private readonly SelectionSettings _settings;
+    private readonly List<(int X, int Y)> _path = [];
 
     private bool _selected;
 
@@ -25,10 +33,14 @@ public sealed class SelectionTool : IPendingTool
     private (int X, int Y) _a;
     private (int X, int Y) _b;
 
-    // The pixels as lifted, and as shown (stretched to the frame); null until lifted.
+    // Where the selection was made (or last replaced); the lifted pixels and the mask are this size.
+    private IntRect _source;
+    private bool[]? _mask;
+
+    // The pixels as lifted (null until lifted), and the pixels and mask as shown (stretched to the frame).
     private Rgba[]? _lifted;
-    private IntRect _liftedBounds;
     private Rgba[]? _shown;
+    private bool[]? _shownMask;
 
     private Gesture _gesture;
     private FrameHandle _handle;
@@ -36,10 +48,22 @@ public sealed class SelectionTool : IPendingTool
     private (int X, int Y) _dragA;
     private (int X, int Y) _dragB;
 
+    public SelectionTool() : this(new SelectionSettings())
+    {
+    }
+
+    public SelectionTool(SelectionSettings settings) => _settings = settings;
+
     public Adornment? Adornment => _selected ? new Adornment(Bounds) : null;
 
     /// <summary>The current selection, or null when there is none.</summary>
-    public Selection? Selection => _selected ? new Selection(Bounds, _shown) : null;
+    public Selection? Selection => _selected ? new Selection(Bounds, _shown, _shownMask) : null;
+
+    /// <summary>
+    /// While a free-form selection is being dragged, the pixels the pointer has passed through (kept
+    /// within the canvas), for the shell to draw; else null.
+    /// </summary>
+    public IReadOnlyList<(int X, int Y)>? FreeFormPath => _gesture == Gesture.FreeForm ? _path : null;
 
     private IntRect Bounds => Engine.Adornment.FrameOf(_a, _b);
 
@@ -61,9 +85,20 @@ public sealed class SelectionTool : IPendingTool
                 return IntRect.Empty;
             }
 
-            // A press outside: the editor has committed the previous selection; draw a new one.
+            // A press outside: the editor has committed the previous selection; make a new one.
             var corner = Clamp(context.Target, pixel);
-            (_gesture, _selected, _a, _b) = (Gesture.Marquee, true, corner, corner);
+            (_lifted, _shown, _mask, _shownMask) = (null, null, null, null);
+            if (_settings.Shape == SelectionShape.FreeForm)
+            {
+                (_gesture, _selected) = (Gesture.FreeForm, false);
+                _path.Clear();
+                _path.Add(corner);
+            }
+            else
+            {
+                (_gesture, _selected, _a, _b) = (Gesture.Marquee, true, corner, corner);
+            }
+
             return IntRect.Empty;
         }
 
@@ -72,6 +107,14 @@ public sealed class SelectionTool : IPendingTool
         {
             case Gesture.Marquee:
                 _b = Clamp(context.Target, pixel);
+                break;
+            case Gesture.FreeForm:
+                var point = Clamp(context.Target, pixel);
+                if (point != _path[^1])
+                {
+                    _path.Add(point);
+                }
+
                 break;
             case Gesture.Adjust:
                 var (a, b) = Engine.Adornment.Drag(_dragA, _dragB, _handle, pixel.X - _dragStart.X, pixel.Y - _dragStart.Y);
@@ -89,8 +132,19 @@ public sealed class SelectionTool : IPendingTool
 
         if (input.Action == PointerAction.Up)
         {
-            _selected = _gesture == Gesture.Adjust || _a != _b; // a click selects nothing
+            switch (_gesture)
+            {
+                case Gesture.Marquee:
+                    _selected = _a != _b; // a click selects nothing
+                    _source = Bounds;
+                    break;
+                case Gesture.FreeForm when SelectionMasks.FromPath(_path) is { } shape:
+                    SetShape(shape.Bounds, shape.Mask);
+                    break;
+            }
+
             _gesture = Gesture.None;
+            _path.Clear();
         }
 
         return dirty;
@@ -104,11 +158,64 @@ public sealed class SelectionTool : IPendingTool
 
     public IntRect Cancel(ToolContext context)
     {
-        (_selected, _gesture, _lifted, _shown) = (false, Gesture.None, null, null);
+        (_selected, _gesture, _lifted, _shown, _mask, _shownMask) = (false, Gesture.None, null, null, null, null);
+        _path.Clear();
         return context.Overlay.Clear();
     }
 
-    public IntRect Refresh(ToolContext context) => IntRect.Empty;
+    /// <summary>Re-shows lifted pixels after the secondary colour or <see cref="SelectionSettings.Transparent"/> changed.</summary>
+    public IntRect Refresh(ToolContext context) => _selected && _lifted is not null ? Show(context) : IntRect.Empty;
+
+    /// <summary>
+    /// Selects <paramref name="bounds"/> (within the canvas), or the pixels set in <paramref name="mask"/>
+    /// (row-major, <paramref name="bounds"/>-sized; null for all) within it, as a selection not yet lifted, replacing
+    /// any current one without committing it (the editor commits first). The tool keeps the mask, so the
+    /// caller must not change it. Returns the changed rectangle.
+    /// </summary>
+    public IntRect Select(ToolContext context, IntRect bounds, bool[]? mask = null)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(bounds.Width, 1, nameof(bounds));
+        ArgumentOutOfRangeException.ThrowIfLessThan(bounds.Height, 1, nameof(bounds));
+        if (mask is not null)
+        {
+            ArgumentOutOfRangeException.ThrowIfNotEqual(mask.Length, bounds.Width * bounds.Height, nameof(mask));
+        }
+
+        var dirty = Cancel(context);
+        SetShape(bounds, mask);
+        return dirty;
+    }
+
+    /// <summary>
+    /// The selected pixels as they would be placed: the lifted pixels as shown, else the layer's within
+    /// the selection; transparent outside its shape and, with <see cref="SelectionSettings.Transparent"/>,
+    /// where they are the secondary colour. A new array; null when nothing is selected.
+    /// </summary>
+    public PixelImage? Copy(ToolContext context)
+    {
+        if (Selection is not { } selection)
+        {
+            return null;
+        }
+
+        var bounds = selection.Bounds;
+        if (selection.FloatingPixels is { } floating)
+        {
+            return new PixelImage(bounds.Width, bounds.Height, (Rgba[])floating.Clone());
+        }
+
+        var pixels = new Rgba[bounds.Width * bounds.Height];
+        context.Target.ReadRegion(bounds, pixels);
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            if (!Keeps(context, i, pixels[i]))
+            {
+                pixels[i] = Rgba.Transparent;
+            }
+        }
+
+        return new PixelImage(bounds.Width, bounds.Height, pixels);
+    }
 
     /// <summary>
     /// Removes the selected pixels: clears them on the layer if they were never lifted (the hole of
@@ -124,8 +231,19 @@ public sealed class SelectionTool : IPendingTool
         var dirty = IntRect.Empty;
         if (selection.FloatingPixels is null)
         {
-            context.Target.WriteRegion(selection.Bounds, new Rgba[selection.Bounds.Width * selection.Bounds.Height]);
-            dirty = selection.Bounds;
+            var bounds = selection.Bounds;
+            var pixels = new Rgba[bounds.Width * bounds.Height];
+            if (selection.Mask is { } mask)
+            {
+                context.Target.ReadRegion(bounds, pixels);
+                for (var i = 0; i < pixels.Length; i++)
+                {
+                    pixels[i] = mask[i] ? Rgba.Transparent : pixels[i];
+                }
+            }
+
+            context.Target.WriteRegion(bounds, pixels);
+            dirty = bounds;
         }
 
         return dirty.Union(Cancel(context));
@@ -134,8 +252,9 @@ public sealed class SelectionTool : IPendingTool
     /// <summary>
     /// Replaces the selected pixels (lifting them first) with <paramref name="map"/>'s result, a new
     /// <paramref name="width"/>×<paramref name="height"/> bitmap computed from the shown pixels and
-    /// their size; the frame keeps its top-left corner. Used for rotating, flipping and resizing a
-    /// selection. Returns the changed rectangle; empty when nothing is selected.
+    /// their size; the frame keeps its top-left corner. The selection's shape is mapped the same way.
+    /// Used for rotating, flipping and resizing a selection. Returns the changed rectangle; empty when
+    /// nothing is selected.
     /// </summary>
     public IntRect Replace(ToolContext context, int width, int height, Func<Rgba[], int, int, Rgba[]> map)
     {
@@ -146,9 +265,18 @@ public sealed class SelectionTool : IPendingTool
 
         var dirty = Lift(context);
         var bounds = Bounds;
-        _lifted = map(_shown ?? _lifted!, bounds.Width, bounds.Height);
-        _liftedBounds = new IntRect(bounds.X, bounds.Y, width, height);
+        var resized = (bounds.Width, bounds.Height) != (_source.Width, _source.Height);
+        _lifted = map(resized ? Stretch(_lifted!, _source, bounds) : _lifted!, bounds.Width, bounds.Height);
+        if (_mask is not null)
+        {
+            // The shape goes through the same map as opaque and transparent pixels.
+            var shape = resized ? Stretch(_mask, _source, bounds) : _mask;
+            var mapped = map(Array.ConvertAll(shape, selected => selected ? Rgba.White : Rgba.Transparent), bounds.Width, bounds.Height);
+            _mask = Array.ConvertAll(mapped, pixel => pixel.A >= 128);
+        }
+
         (_a, _b) = ((bounds.X, bounds.Y), (bounds.X + width - 1, bounds.Y + height - 1));
+        _source = Bounds;
         return dirty.Union(Show(context));
     }
 
@@ -162,9 +290,19 @@ public sealed class SelectionTool : IPendingTool
     public IntRect Paste(ToolContext context, PixelImage image, int x, int y)
     {
         (_selected, _gesture, _a, _b) = (true, Gesture.None, (x, y), (x + image.Width - 1, y + image.Height - 1));
-        (_lifted, _liftedBounds) = (image.Pixels, Bounds);
+        (_lifted, _source, _mask) = (image.Pixels, Bounds, null);
         return Show(context);
     }
+
+    private void SetShape(IntRect bounds, bool[]? mask)
+    {
+        (_selected, _a, _b) = (true, (bounds.X, bounds.Y), (bounds.Right - 1, bounds.Bottom - 1));
+        (_source, _mask, _shownMask) = (bounds, mask, mask);
+    }
+
+    // Whether the selection takes the pixel at index i of the source rectangle, which has this colour.
+    private bool Keeps(ToolContext context, int i, Rgba pixel) =>
+        (_mask is null || _mask[i]) && !(_settings.Transparent && pixel == context.SecondaryColor);
 
     // Takes the selected pixels off the layer, leaving it transparent there, the first time only.
     // Returns the layer's changed rectangle.
@@ -175,31 +313,44 @@ public sealed class SelectionTool : IPendingTool
             return IntRect.Empty;
         }
 
-        _liftedBounds = Bounds;
-        _lifted = new Rgba[_liftedBounds.Width * _liftedBounds.Height];
-        context.Target.ReadRegion(_liftedBounds, _lifted);
-        context.Target.WriteRegion(_liftedBounds, new Rgba[_lifted.Length]);
-        return _liftedBounds;
+        var layer = new Rgba[_source.Width * _source.Height];
+        context.Target.ReadRegion(_source, layer);
+        _lifted = new Rgba[layer.Length];
+        for (var i = 0; i < layer.Length; i++)
+        {
+            if (Keeps(context, i, layer[i]))
+            {
+                (_lifted[i], layer[i]) = (layer[i], Rgba.Transparent);
+            }
+        }
+
+        context.Target.WriteRegion(_source, layer);
+        return _source;
     }
 
     private IntRect Show(ToolContext context)
     {
         var bounds = Bounds;
-        _shown = bounds.Width == _liftedBounds.Width && bounds.Height == _liftedBounds.Height
-            ? _lifted!
-            : Stretch(_lifted!, _liftedBounds.Width, _liftedBounds.Height, bounds.Width, bounds.Height);
+        var resized = (bounds.Width, bounds.Height) != (_source.Width, _source.Height);
+        _shown = resized ? Stretch(_lifted!, _source, bounds) : _lifted!;
+        _shownMask = resized && _mask is not null ? Stretch(_mask, _source, bounds) : _mask;
+        if (_settings.Transparent && Array.IndexOf(_shown, context.SecondaryColor) >= 0)
+        {
+            _shown = Array.ConvertAll(_shown, pixel => pixel == context.SecondaryColor ? Rgba.Transparent : pixel);
+        }
+
         return context.Overlay.Show(bounds, _shown);
     }
 
-    private static Rgba[] Stretch(Rgba[] source, int sourceWidth, int sourceHeight, int width, int height)
+    private static T[] Stretch<T>(T[] source, IntRect from, IntRect to)
     {
-        var result = new Rgba[width * height];
-        for (var y = 0; y < height; y++)
+        var result = new T[to.Width * to.Height];
+        for (var y = 0; y < to.Height; y++)
         {
-            var row = (int)((long)y * sourceHeight / height) * sourceWidth;
-            for (var x = 0; x < width; x++)
+            var row = (int)((long)y * from.Height / to.Height) * from.Width;
+            for (var x = 0; x < to.Width; x++)
             {
-                result[y * width + x] = source[row + (int)((long)x * sourceWidth / width)];
+                result[y * to.Width + x] = source[row + (int)((long)x * from.Width / to.Width)];
             }
         }
 
