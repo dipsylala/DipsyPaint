@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace DipsyPaint.Engine.Tools;
 
 /// <summary>
@@ -9,10 +11,16 @@ namespace DipsyPaint.Engine.Tools;
 /// </summary>
 internal static class ShapeRasterizer
 {
-    /// <summary>A line between two pixels, or a box shape filling the frame they span.</summary>
+    /// <summary>The rows in each band of a large outline marked in parallel.</summary>
+    private const int Band = 64;
+
+    /// <summary>
+    /// A line between two pixels, or a box shape filling the frame they span. A box shape is rendered
+    /// into <paramref name="buffer"/> when it is long enough (see <see cref="Buffer"/>).
+    /// </summary>
     public static (IntRect Bounds, Rgba[] Pixels) Render(
         ShapeKind kind, (int X, int Y) a, (int X, int Y) b, ShapeStyle outlineStyle, ShapeStyle fillStyle, int size,
-        Rgba outline, Rgba fill)
+        Rgba outline, Rgba fill, Rgba[]? buffer = null)
     {
         size = Math.Max(size, 1);
         if (kind == ShapeKind.Line)
@@ -28,25 +36,32 @@ internal static class ShapeRasterizer
             var contours = ShapeOutlines.Of(kind, bounds.Width, bounds.Height)
                 .Select(c => c.Select(p => (bounds.X + p.X, bounds.Y + p.Y)).ToArray())
                 .ToList();
-            return (bounds, Closed(bounds, contours, thickness, outline, fillPaint));
+            return (bounds, Closed(bounds, contours, thickness, outline, fillPaint, buffer));
         }
 
-        var pixels = new Rgba[bounds.Width * bounds.Height];
-        for (var y = 0; y < bounds.Height; y++)
+        // Pixel x of a row and its mirror image (width - 1 - x) are the same part, and each part's
+        // pixels lie nearer the middle of the row than any pixel outside it. So a row is runs:
+        // transparent, outline, fill, outline, transparent, and only their ends are searched for.
+        var (width, height) = (bounds.Width, bounds.Height);
+        var half = (width + 1) / 2;
+        var pixels = Buffer(width * height, buffer);
+        ForEachRow(width * height, height, () => 0, (y, _) =>
         {
-            for (var x = 0; x < bounds.Width; x++)
+            Part At(int x) => kind == ShapeKind.Rectangle
+                ? RectanglePart(x, y, width, height, thickness)
+                : EllipsePart(x, y, width, height, thickness);
+            var outer = First(half, x => At(x) != Part.Outside);
+            var inner = Math.Max(outer, First(half, x => At(x) == Part.Fill));
+            var row = pixels.AsSpan(y * width, width);
+            row[..outer].Clear();
+            row[(width - outer)..].Clear();
+            row[outer..inner].Fill(outline);
+            row[(width - inner)..(width - outer)].Fill(outline);
+            if (width - inner > inner)
             {
-                var part = kind == ShapeKind.Rectangle
-                    ? RectanglePart(x, y, bounds.Width, bounds.Height, thickness)
-                    : EllipsePart(x, y, bounds.Width, bounds.Height, thickness);
-                pixels[y * bounds.Width + x] = part switch
-                {
-                    Part.Outline => outline,
-                    Part.Fill => fillPaint,
-                    _ => Rgba.Transparent,
-                };
+                row[inner..(width - inner)].Fill(fillPaint);
             }
-        }
+        });
 
         return (bounds, pixels);
     }
@@ -54,14 +69,16 @@ internal static class ShapeRasterizer
     /// <summary>
     /// Closed polygons (in document coordinates, pixel edges at whole numbers) within
     /// <paramref name="bounds"/>: even-odd inside, with an outline of <paramref name="thickness"/>
-    /// (0 for none) along the inside of every edge.
+    /// (0 for none) along the inside of every edge; rendered into <paramref name="buffer"/> when it
+    /// is long enough (see <see cref="Buffer"/>).
     /// </summary>
-    public static Rgba[] Closed(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours, int thickness, Rgba outline, Rgba fill)
+    public static Rgba[] Closed(
+        IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours, int thickness, Rgba outline, Rgba fill, Rgba[]? buffer = null)
     {
         var inside = Inside(bounds, contours);
         var edge = Edge(bounds, contours, thickness);
-        var pixels = new Rgba[inside.Length];
-        ForEachRow(pixels.Length, bounds.Height, () => 0, (y, _) =>
+        var pixels = Buffer(bounds.Width * bounds.Height, buffer);
+        ForEachRow(bounds.Width * bounds.Height, bounds.Height, () => 0, (y, _) =>
         {
             for (var i = y * bounds.Width; i < (y + 1) * bounds.Width; i++)
             {
@@ -69,19 +86,22 @@ internal static class ShapeRasterizer
             }
         });
 
+        ReturnMask(inside);
+        ReturnMask(edge);
         return pixels;
     }
 
     /// <summary>
     /// The pixels of <paramref name="bounds"/> (row-major) whose centre is inside the closed
-    /// polygons, even-odd; see <see cref="Closed"/>.
+    /// polygons, even-odd; see <see cref="Closed"/>. The mask is rented (see <see cref="ReturnMask"/>).
     /// </summary>
     public static bool[] Inside(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours)
     {
-        var inside = new bool[bounds.Width * bounds.Height];
+        var inside = RentMask(bounds.Width * bounds.Height);
         // Rows are independent, so a large shape (e.g. one being turned) is filled in parallel rows.
-        ForEachRow(inside.Length, bounds.Height, () => new List<double>(), (y, crossings) =>
+        ForEachRow(bounds.Width * bounds.Height, bounds.Height, () => new List<double>(), (y, crossings) =>
         {
+            inside.AsSpan(y * bounds.Width, bounds.Width).Clear();
             var cy = bounds.Y + y + 0.5;
             crossings.Clear();
             foreach (var contour in contours)
@@ -112,7 +132,7 @@ internal static class ShapeRasterizer
     /// <summary>
     /// The pixels of <paramref name="bounds"/> (row-major) whose centre is nearer than
     /// <paramref name="thickness"/> to an edge of the closed polygons (none for 0): the outline
-    /// band of <see cref="Closed"/> where it is inside.
+    /// band of <see cref="Closed"/> where it is inside. The mask is rented (see <see cref="ReturnMask"/>).
     /// </summary>
     public static bool[] Edge(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours, int thickness)
     {
@@ -120,21 +140,56 @@ internal static class ShapeRasterizer
         // leaves the pixels beside it exactly a whole number of pixels away; counting those keeps the
         // outline `thickness` pixels wide there. Edges along pixel edges are unaffected.
         var reach = thickness + 1e-9;
-        var edge = new bool[bounds.Width * bounds.Height];
-        if (thickness > 0)
+        var edge = RentMask(bounds.Width * bounds.Height);
+
+        // Marks only add, so a large shape is marked in parallel bands of rows, each marking its own
+        // rows near the edges that reach it.
+        var bands = bounds.Width * bounds.Height < 1 << 16 ? 1 : (bounds.Height + Band - 1) / Band;
+        Parallel.For(0, bands, band =>
         {
+            var (from, to) = bands == 1 ? (0, bounds.Height) : (band * Band, Math.Min(bounds.Height, (band + 1) * Band));
+            edge.AsSpan(from * bounds.Width, (to - from) * bounds.Width).Clear();
+            if (thickness <= 0)
+            {
+                return;
+            }
+
             foreach (var contour in contours)
             {
                 for (var i = 0; i < contour.Length; i++)
                 {
                     var (p, q) = (contour[i], contour[(i + 1) % contour.Length]);
-                    MarkNear(edge, bounds, p.X, p.Y, q.X, q.Y, reach);
+                    if (Math.Max(p.Y, q.Y) + reach + 1 >= bounds.Y + from && Math.Min(p.Y, q.Y) - reach - 1 < bounds.Y + to)
+                    {
+                        MarkNear(edge, bounds, p.X, p.Y, q.X, q.Y, reach, from, to);
+                    }
                 }
             }
-        }
+        });
 
         return edge;
     }
+
+    /// <summary>
+    /// A pixel array of at least <paramref name="length"/> pixels to render into: <paramref name="reuse"/>
+    /// if it is long enough, else a new one, with room to grow if it replaces one. Either way it may
+    /// hold anything, so the caller writes every pixel. Reusing the array of an earlier rendering
+    /// saves allocating, clearing and collecting one on every pointer move of a drag (issue #102).
+    /// </summary>
+    public static Rgba[] Buffer(int length, Rgba[]? reuse) =>
+        reuse is null ? GC.AllocateUninitializedArray<Rgba>(length)
+        : reuse.Length >= length ? reuse
+        : GC.AllocateUninitializedArray<Rgba>((int)Math.Min(length * 5L / 4, Array.MaxLength));
+
+    /// <summary>
+    /// Gives back a mask that <see cref="Inside"/> or <see cref="Edge"/> rented, once it is no longer
+    /// used. Masks are rented because a large shape redrawn on every pointer move of a drag would
+    /// otherwise allocate megabytes per move (issue #102).
+    /// </summary>
+    public static void ReturnMask(bool[] mask) => ArrayPool<bool>.Shared.Return(mask);
+
+    // A mask of at least `length` pixels; it may hold anything.
+    private static bool[] RentMask(int length) => ArrayPool<bool>.Shared.Rent(length);
 
     // Calls `row` for rows 0..height of a bitmap of `size` pixels, in parallel when it is large, with
     // a scratch value from `scratch` per thread.
@@ -188,7 +243,7 @@ internal static class ShapeRasterizer
         for (var i = 0; i < points.Count; i++)
         {
             var (p, q) = (points[Math.Max(0, i - 1)], points[i]);
-            MarkNear(near, bounds, p.X + offset, p.Y + offset, q.X + offset, q.Y + offset, size / 2.0);
+            MarkNear(near, bounds, p.X + offset, p.Y + offset, q.X + offset, q.Y + offset, size / 2.0, 0, bounds.Height);
         }
 
         for (var i = 0; i < pixels.Length; i++)
@@ -213,6 +268,27 @@ internal static class ShapeRasterizer
         Fill,
     }
 
+    // The first of 0 to count - 1 for which `holds` is true, where it is false before that and true
+    // after; count if there is none.
+    private static int First(int count, Func<int, bool> holds)
+    {
+        int low = 0, high = count;
+        while (low < high)
+        {
+            var middle = (low + high) / 2;
+            if (holds(middle))
+            {
+                high = middle;
+            }
+            else
+            {
+                low = middle + 1;
+            }
+        }
+
+        return low;
+    }
+
     private static Part RectanglePart(int x, int y, int width, int height, int thickness) =>
         x < thickness || y < thickness || x >= width - thickness || y >= height - thickness ? Part.Outline : Part.Fill;
 
@@ -234,14 +310,15 @@ internal static class ShapeRasterizer
         rx > 0 && ry > 0 && (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
 
     /// <summary>
-    /// Marks the pixels of <paramref name="bounds"/> whose centre is nearer than
-    /// <paramref name="radius"/> to the segment, visiting only the rows and columns it can reach.
+    /// Marks the pixels of <paramref name="bounds"/>, in its rows <paramref name="fromRow"/> to
+    /// <paramref name="toRow"/> (exclusive), whose centre is nearer than <paramref name="radius"/> to
+    /// the segment, visiting only the rows and columns it can reach.
     /// </summary>
-    private static void MarkNear(bool[] mask, IntRect bounds, double x0, double y0, double x1, double y1, double radius)
+    private static void MarkNear(bool[] mask, IntRect bounds, double x0, double y0, double x1, double y1, double radius, int fromRow, int toRow)
     {
         var radiusSquared = radius * radius;
-        var top = Math.Max(0, (int)Math.Floor(Math.Min(y0, y1) - radius - bounds.Y) - 1);
-        var bottom = Math.Min(bounds.Height - 1, (int)Math.Ceiling(Math.Max(y0, y1) + radius - bounds.Y) + 1);
+        var top = Math.Max(fromRow, (int)Math.Floor(Math.Min(y0, y1) - radius - bounds.Y) - 1);
+        var bottom = Math.Min(toRow - 1, (int)Math.Ceiling(Math.Max(y0, y1) + radius - bounds.Y) + 1);
         for (var y = top; y <= bottom; y++)
         {
             var cy = bounds.Y + y + 0.5;

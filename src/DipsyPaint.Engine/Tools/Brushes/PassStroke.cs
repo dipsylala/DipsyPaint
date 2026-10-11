@@ -37,6 +37,9 @@ public sealed class PassStroke
 
     internal IPixelAccess Target => _target;
 
+    /// <summary>As <see cref="Stroke.Top"/>: the first row tips need cover.</summary>
+    internal int Top { get; init; }
+
     /// <summary>
     /// Covers one pixel with the tip <paramref name="along"/> pixels along the path: the tip's
     /// outline covers <paramref name="shape"/> (0–1) of it and its texture leaves

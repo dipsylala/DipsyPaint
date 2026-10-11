@@ -5,8 +5,9 @@ using DipsyPaint.Engine.Tools;
 namespace DipsyPaint.Benchmarks;
 
 /// <summary>
-/// Shape drags (ADR-0023, ticket 37): dragging a handle of a pending 3780×2080 oval, outlined at
-/// 8 px and filled in one style, on a 4K document of 20 layers, through the editor. Each invocation
+/// Shape drags (ADR-0023, ticket 37, issue #102): dragging a handle or the body of a pending
+/// 3780×2080 oval, outlined at 8 px and filled in one style, on a 4K document of 20 layers, through
+/// the editor. Each invocation
 /// is one drag (down, 20 moves, up); the result is the mean cost per pointer event. Successive drags
 /// go back and forth, so every invocation does the same work. The pending shape is redrawn on every
 /// move, so this measures the textured styles' rendering against solid's.
@@ -31,7 +32,7 @@ public class ShapeBenchmarks
         _editor.Rotate(10); // the drags then sweep 10°–50° and back
     }
 
-    [GlobalSetup(Target = nameof(StretchEvent))]
+    [GlobalSetup(Targets = [nameof(StretchEvent), nameof(MoveEvent)])]
     public void SetupStretch() => Setup();
 
     /// <summary>Drags the rotate handle 40° about the shape's centre, 2° per move.</summary>
@@ -67,6 +68,23 @@ public class ShapeBenchmarks
     {
         var frame = _editor.Adornment!.Value.Frame;
         double x = frame.Right, y = frame.Bottom;
+        _direction = _direction == -1 ? 1 : -1;
+        _editor.Apply(new PointerInput(PointerAction.Down, x, y));
+        for (var i = 1; i <= Moves; i++)
+        {
+            _editor.Apply(new PointerInput(PointerAction.Move, x + _direction * i * PixelsPerMove, y + _direction * i * PixelsPerMove));
+        }
+
+        _editor.Apply(new PointerInput(PointerAction.Up, x + _direction * Moves * PixelsPerMove, y + _direction * Moves * PixelsPerMove));
+    }
+
+    /// <summary>Drags the shape by its body 200 px left and up (or back), 10 px per move.</summary>
+    [Benchmark(OperationsPerInvoke = Events)]
+    [Target(16)]
+    public void MoveEvent()
+    {
+        var frame = _editor.Adornment!.Value.Frame;
+        double x = frame.X + frame.Width / 2.0, y = frame.Y + frame.Height / 2.0;
         _direction = _direction == -1 ? 1 : -1;
         _editor.Apply(new PointerInput(PointerAction.Down, x, y));
         for (var i = 1; i <= Moves; i++)

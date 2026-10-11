@@ -20,11 +20,11 @@ namespace DipsyPaint.Engine.Tools;
 /// </summary>
 internal static class TexturedShapes
 {
-    /// <summary>The tip diameter whose texture a textured oil or watercolour fill spreads, in pixels.</summary>
-    private const double FillTipSize = 20;
-
     /// <summary>The longest straight piece an outline is swept in, in pixels.</summary>
     private const double PieceLength = 32;
+
+    /// <summary>The rows in each band of a large outline swept in parallel.</summary>
+    private const int SweepBand = 64;
 
     public static bool IsTextured(ShapeStyle style) => style > ShapeStyle.Solid;
 
@@ -52,9 +52,9 @@ internal static class TexturedShapes
     /// </summary>
     public static Rgba[] Closed(
         IntRect frame, IReadOnlyList<(double X, double Y)[]> contours, ShapeStyle outlineStyle, ShapeStyle fillStyle,
-        int size, Rgba outline, Rgba fill, ulong seed)
+        int size, Rgba outline, Rgba fill, ulong seed, FillTexture? texture = null, Rgba[]? buffer = null)
     {
-        var canvas = new ShapeCanvas(frame);
+        var canvas = new ShapeCanvas(frame, ShapeRasterizer.Buffer(frame.Width * frame.Height, buffer));
         var pixels = canvas.Pixels;
         var path = IsTextured(outlineStyle) ? Inset(frame, contours, size) : contours;
         var edge = outlineStyle == ShapeStyle.Solid ? ShapeRasterizer.Edge(frame, contours, size) : null;
@@ -62,35 +62,65 @@ internal static class TexturedShapes
             ? ShapeRasterizer.Inside(frame, contours)
             : null;
 
-        if (fillStyle != ShapeStyle.None)
+        // Up to a solid outline, or to the middle of a textured one.
+        var area = fillStyle == ShapeStyle.None ? null : IsTextured(outlineStyle) ? ShapeRasterizer.Inside(frame, path) : inside!;
+        texture = IsTextured(fillStyle) ? FillTexture.For(fillStyle, seed, texture) : null;
+        var (originX, originY) = texture?.OnPaper == false ? (0, 0) : (frame.X, frame.Y);
+        // The fill colour at each scale the texture gives; a solid fill covers fully, which leaves it as it is.
+        var colours = texture is null ? [] : Enumerable.Range(0, 256).Select(fill.Scaled).ToArray();
+        var width = frame.Width;
+        ShapeRasterizer.ForEachRow(width * frame.Height, frame.Height, () => edge is null ? [] : new bool[width], (y, scratch) =>
         {
-            // Up to a solid outline, or to the middle of a textured one.
-            var area = IsTextured(outlineStyle) ? ShapeRasterizer.Inside(frame, path) : inside!;
-            var coverage = Interior(fillStyle, frame, ArtisticNoise.Hash(seed));
-            ShapeRasterizer.ForEachRow(pixels.Length, frame.Height, () => 0, (y, _) =>
+            // The buffer may hold an earlier rendering, so every pixel is written.
+            var row = pixels.AsSpan(y * width, width);
+            row.Clear();
+            if (area is not null)
             {
-                for (var x = 0; x < frame.Width; x++)
+                ReadOnlySpan<bool> needed = area.AsSpan(y * width, width);
+                if (edge is not null)
                 {
-                    var i = y * frame.Width + x;
-                    if (area[i] && edge?[i] != true)
+                    for (var x = 0; x < width; x++)
                     {
-                        pixels[i] = fill.WithOpacity(coverage(frame.X + x, frame.Y + y));
+                        scratch[x] = needed[x] && !edge[y * width + x];
+                    }
+
+                    needed = scratch;
+                }
+
+                if (texture is not null)
+                {
+                    texture.Paint(originX, originY + y, needed, colours, row);
+                }
+                else
+                {
+                    for (var x = 0; x < width; x++)
+                    {
+                        if (needed[x])
+                        {
+                            row[x] = fill;
+                        }
                     }
                 }
-            });
-        }
+            }
 
-        if (edge is not null)
-        {
-            for (var i = 0; i < pixels.Length; i++)
+            if (edge is not null)
             {
-                if (inside![i] && edge[i])
+                for (var x = 0; x < width; x++)
                 {
-                    pixels[i] = outline;
+                    if (inside![y * width + x] && edge[y * width + x])
+                    {
+                        row[x] = outline;
+                    }
                 }
             }
+        });
+
+        foreach (var mask in new[] { edge, inside, area }.OfType<bool[]>().Distinct())
+        {
+            ShapeRasterizer.ReturnMask(mask);
         }
-        else if (IsTextured(outlineStyle))
+
+        if (IsTextured(outlineStyle))
         {
             // Painted over the fill, as a brush stroke over paint; closed, back to its start.
             Sweep(canvas, [.. path.Select(c => c.Append(c[0]).ToArray())], outlineStyle, size, outline, seed);
@@ -107,26 +137,6 @@ internal static class TexturedShapes
         return [.. contours.Select(c => c.Select(p => (centreX + (p.X - centreX) * sx, centreY + (p.Y - centreY) * sy)).ToArray())];
     }
 
-    // How much of document pixel (x, y) a fill of `style` over `bounds` covers (0–1). A brush tip's
-    // is its interior texture, as BrushTip.Fill paints it. A textured tip's is what TexturedPath.Area
-    // gives a pixel inside the area: its texture as if dragged across the area from left to right in
-    // rows. Both are computed per pixel here, without a stroke, so rows can be filled in parallel.
-    private static Func<int, int, float> Interior(ShapeStyle style, IntRect bounds, ulong seed)
-    {
-        if (style == ShapeStyle.Solid)
-        {
-            return (_, _) => 1f;
-        }
-
-        if (BrushTipOf(style) is { } brush)
-        {
-            return (x, y) => Math.Clamp(brush.Interior(x, y), 0f, 1f);
-        }
-
-        var tip = TexturedTipOf(style, FillTipSize / 2, seed);
-        return (x, y) => Math.Clamp((float)tip.Texture(y + 0.5 - bounds.Y, x + 0.5 - bounds.X, double.PositiveInfinity), 0f, 1f);
-    }
-
     // Sweeps the brush of a textured style along each path (pixel-centre coordinates), as one stroke,
     // over what the canvas already holds.
     private static void Sweep(ShapeCanvas canvas, IReadOnlyList<(double X, double Y)[]> paths, ShapeStyle style, int size, Rgba color, ulong seed)
@@ -134,23 +144,69 @@ internal static class TexturedShapes
         // A tip visits every pixel of a segment's bounding box, so long sides (e.g. of a turned
         // rectangle) are swept in short pieces, which leave the same mark.
         paths = [.. paths.Select(Subdivide)];
-        if (BrushTipOf(style) is { } brush)
+        var brush = BrushTipOf(style);
+        var tip = brush is null ? TexturedTipOf(style, size / 2.0, seed) : null;
+
+        // What a stroke leaves on a pixel depends only on the covers of that pixel, in order. So a
+        // large canvas is swept in parallel bands of rows: each band sweeps, in order, the pieces that
+        // reach it, and keeps only its own rows. The pixels are the same as from one sweep.
+        var bounds = canvas.Bounds;
+        var bands = bounds.Width * bounds.Height < 1 << 16 ? 1 : (bounds.Height + SweepBand - 1) / SweepBand;
+        var reach = size / 2.0 + 1; // further than any tip reaches from its path
+        Parallel.For(0, bands, band =>
         {
-            var stroke = new Stroke(canvas, color);
-            foreach (var path in paths)
+            var top = bands == 1 ? int.MinValue : bounds.Y + band * SweepBand;
+            var bottom = bands == 1 ? int.MaxValue : top + SweepBand;
+            var rows = new BandCanvas(canvas, top, bottom);
+            bool Reaches((double X, double Y) p, (double X, double Y) q) =>
+                Math.Max(p.Y, q.Y) + reach >= top && Math.Min(p.Y, q.Y) - reach < bottom;
+
+            if (brush is not null)
             {
-                brush.Polyline(stroke, path, size);
+                var stroke = new Stroke(rows, color) { Top = Math.Max(0, top) };
+                foreach (var path in paths)
+                {
+                    // As BrushTip.Polyline.
+                    if (path.Length == 1 && Reaches(path[0], path[0]))
+                    {
+                        brush.Segment(stroke, path[0].X, path[0].Y, path[0].X, path[0].Y, size);
+                    }
+
+                    for (var i = 1; i < path.Length; i++)
+                    {
+                        if (Reaches(path[i - 1], path[i]))
+                        {
+                            brush.Segment(stroke, path[i - 1].X, path[i - 1].Y, path[i].X, path[i].Y, size);
+                        }
+                    }
+                }
+
+                return;
             }
 
-            return;
-        }
+            var passes = new PassStroke(rows, color, 1f, double.PositiveInfinity) { Top = Math.Max(0, top) };
+            foreach (var path in paths)
+            {
+                // As TexturedPath.Polyline.
+                if (path.Length == 1 && Reaches(path[0], path[0]))
+                {
+                    var (x, y) = path[0];
+                    TexturedPath.Segment(passes, tip!, x, y, x, y, TextureFrame.ForSegment(x, y, x, y, 0));
+                }
 
-        var tip = TexturedTipOf(style, size / 2.0, seed);
-        var passes = new PassStroke(canvas, color, 1f, double.PositiveInfinity);
-        foreach (var path in paths)
-        {
-            TexturedPath.Polyline(passes, tip, path);
-        }
+                var along = 0.0;
+                for (var i = 1; i < path.Length; i++)
+                {
+                    var ((x0, y0), (x1, y1)) = (path[i - 1], path[i]);
+                    if (Reaches(path[i - 1], path[i]))
+                    {
+                        TexturedPath.Segment(passes, tip!, x0, y0, x1, y1, TextureFrame.ForSegment(x0, y0, x1, y1, along));
+                    }
+
+                    along += Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+                }
+            }
+        });
     }
 
     // The path with every side longer than PieceLength split into equal pieces no longer than it.
@@ -188,15 +244,15 @@ internal static class TexturedShapes
     };
 
     /// <summary>
-    /// A transparent buffer over <see cref="Bounds"/> addressed in document pixels, so a brush's
-    /// texture lines up with the paper. Pixels outside the bounds, or left of or above the canvas,
-    /// are dropped.
+    /// A buffer over <see cref="Bounds"/> addressed in document pixels, so a brush's texture lines
+    /// up with the paper; transparent, unless given <c>pixels</c> to hold. Pixels outside the
+    /// bounds, or left of or above the canvas, are dropped.
     /// </summary>
-    private sealed class ShapeCanvas(IntRect bounds) : IPixelAccess
+    private sealed class ShapeCanvas(IntRect bounds, Rgba[]? pixels = null) : IPixelAccess
     {
         public IntRect Bounds { get; } = bounds;
 
-        public Rgba[] Pixels { get; } = new Rgba[bounds.Width * bounds.Height];
+        public Rgba[] Pixels { get; } = pixels ?? new Rgba[bounds.Width * bounds.Height];
 
         public int Width => Math.Max(0, Bounds.Right);
 
@@ -237,5 +293,42 @@ internal static class TexturedShapes
         private bool Contains(int x, int y) => x >= Bounds.X && y >= Bounds.Y && x < Bounds.Right && y < Bounds.Bottom;
 
         private int IndexOf(int x, int y) => (y - Bounds.Y) * Bounds.Width + x - Bounds.X;
+    }
+
+    /// <summary>
+    /// The rows <paramref name="top"/> to <paramref name="bottom"/> (exclusive) of a <see cref="ShapeCanvas"/>:
+    /// other rows read as transparent and drop what is written to them, so bands can be painted at once.
+    /// </summary>
+    private sealed class BandCanvas(ShapeCanvas canvas, int top, int bottom) : IPixelAccess
+    {
+        public int Width => canvas.Width;
+
+        public int Height => Math.Min(canvas.Height, Math.Max(0, bottom));
+
+        public Rgba GetPixel(int x, int y) => y >= top && y < bottom ? canvas.GetPixel(x, y) : Rgba.Transparent;
+
+        public void SetPixel(int x, int y, Rgba value)
+        {
+            if (y >= top && y < bottom)
+            {
+                canvas.SetPixel(x, y, value);
+            }
+        }
+
+        public void ReadRegion(IntRect region, Span<Rgba> destination)
+        {
+            for (var i = 0; i < region.Width * region.Height; i++)
+            {
+                destination[i] = GetPixel(region.X + i % region.Width, region.Y + i / region.Width);
+            }
+        }
+
+        public void WriteRegion(IntRect region, ReadOnlySpan<Rgba> source)
+        {
+            for (var i = 0; i < region.Width * region.Height; i++)
+            {
+                SetPixel(region.X + i % region.Width, region.Y + i / region.Width, source[i]);
+            }
+        }
     }
 }
