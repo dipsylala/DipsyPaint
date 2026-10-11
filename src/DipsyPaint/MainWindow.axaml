@@ -9,6 +9,7 @@
         xmlns:images="using:DipsyPaint.Images"
         xmlns:updates="using:DipsyPaint.Updates"
         xmlns:layout="using:DipsyPaint.Layout"
+        xmlns:text="using:DipsyPaint.Text"
         x:Class="DipsyPaint.MainWindow"
         Title="{x:Static res:Strings.AppName}"
         Icon="avares://DipsyPaint/Assets/dipsypaint.ico"
@@ -54,7 +55,10 @@
         <Border x:Name="Canvas" Background="White"
                 HorizontalAlignment="Left" VerticalAlignment="Top"
                 AutomationProperties.Name="{x:Static res:Strings.CanvasAutomationName}">
-          <drawing:DocumentCanvas x:Name="DocumentView" />
+          <Panel>
+            <drawing:DocumentCanvas x:Name="DocumentView" />
+            <text:TextEntry x:Name="TextEntry" />
+          </Panel>
         </Border>
       </LayoutTransformControl>
     </ScrollViewer>

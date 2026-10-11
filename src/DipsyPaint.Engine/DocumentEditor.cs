@@ -114,15 +114,17 @@ public sealed class DocumentEditor
         }
 
         // A press outside pending content commits it, as in reference Paint; the tool then sees a fresh press.
+        var committed = false;
         if (input.Action == PointerAction.Down && !_inGesture
             && Adornment?.HitTest(input.X, input.Y, HandleTolerance) == FrameHandle.None)
         {
             CommitPending();
+            committed = true;
         }
 
         _inGesture = input.Action != PointerAction.Up;
         _recorder ??= new PixelRecorder(Document.ActiveLayer.Pixels);
-        var context = Context(_recorder);
+        var context = Context(_recorder) with { CommittedByPress = committed };
         var dirty = ActiveTool.Handle(context, input);
         PrimaryColor = context.PrimaryColor;
         SecondaryColor = context.SecondaryColor;

@@ -48,7 +48,7 @@ public class PencilTests
 
         var button = PencilButton(window);
         var descriptor = ToolRegistry.Tools.Single(t => t.Id == "pencil");
-        Assert.Equal(descriptor.Shortcut, button.HotKey);
+        Assert.Equal(string.Format(ToolStrings.ToolTipFormat, descriptor.DisplayName, descriptor.Shortcut), ToolTip.GetTip(button));
         Assert.True(button.IsChecked);
         Assert.IsType<PencilTool>(window.Editor.ActiveTool);
     }

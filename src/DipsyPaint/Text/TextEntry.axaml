@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             x:Class="DipsyPaint.Text.TextEntry">
+  <Canvas>
+    <!-- The text itself is drawn by the engine's overlay (exactly what a commit writes); the box only
+         supplies the caret, the selection highlight and editing, so it draws nothing else in any state.
+         Local values, because the theme's focus and hover styles would win over a style; the template's
+         border is cleared in code. -->
+    <TextBox x:Name="Box" IsVisible="False" FocusAdorner="{x:Null}" AcceptsReturn="True" TextWrapping="Wrap"
+             Background="Transparent" Foreground="Transparent" SelectionForegroundBrush="Transparent" SelectionBrush="#660078D7"
+             BorderThickness="0" Padding="0" MinWidth="0" MinHeight="0" CornerRadius="0"
+             HorizontalContentAlignment="Left" VerticalContentAlignment="Top"
+             ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+             AutomationProperties.Name="{x:Static res:TextStrings.TextBox}" />
+  </Canvas>
+</UserControl>

@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] The text box, font, size, style and colour options behave as in reference Paint
-- [ ] Committing writes pixels to the active layer and is undoable
-- [ ] Golden images for committed text (with font-rendering tolerance across OSes)
-- [ ] Text strings and UI come from `.resx`
+- [x] The text box, font, size, style and colour options behave as in reference Paint
+- [x] Committing writes pixels to the active layer and is undoable
+- [x] Golden images for committed text (with font-rendering tolerance across OSes)
+- [x] Text strings and UI come from `.resx`
