@@ -93,7 +93,104 @@ public class ShapeTests
         Assert.IsType<ShapeTool>(window.Editor.ActiveTool);
         var options = window.GetLogicalDescendants().OfType<ShapeOptions>().Single();
         Assert.True(options.IsEffectivelyVisible);
-        Assert.Equal(3, options.GetLogicalDescendants().OfType<ToggleButton>().Count());
+        Assert.Equal(23, options.GetLogicalDescendants().OfType<ToggleButton>().Count());
+    }
+
+    [AvaloniaFact]
+    public void GalleryOffersEveryShapeOfReferencePaintInItsOrder()
+    {
+        var window = ShowWindowWithRectangleTool();
+        var options = window.GetLogicalDescendants().OfType<ShapeOptions>().Single();
+
+        var names = options.FindControl<UniformGrid>("ShapeButtons")!.Children.Select(b => AutomationProperties.GetName(b)).ToList();
+
+        Assert.Equal(
+            [
+                ShapeStrings.Line, ShapeStrings.Curve, ShapeStrings.Ellipse, ShapeStrings.Rectangle, ShapeStrings.RoundedRectangle,
+                ShapeStrings.Polygon, ShapeStrings.Triangle, ShapeStrings.RightTriangle, ShapeStrings.Diamond, ShapeStrings.Pentagon,
+                ShapeStrings.Hexagon, ShapeStrings.RightArrow, ShapeStrings.LeftArrow, ShapeStrings.UpArrow, ShapeStrings.DownArrow,
+                ShapeStrings.FourPointStar, ShapeStrings.FivePointStar, ShapeStrings.SixPointStar, ShapeStrings.RoundedRectangularCallout,
+                ShapeStrings.OvalCallout, ShapeStrings.CloudCallout, ShapeStrings.Heart, ShapeStrings.Lightning,
+            ],
+            names);
+        Assert.All(options.FindControl<UniformGrid>("ShapeButtons")!.Children.OfType<ToggleButton>(), b =>
+        {
+            Assert.True(b.IsEffectivelyVisible);
+            Assert.Equal(b.Foreground, ((Avalonia.Controls.Shapes.Path)b.Content!).Stroke); // the icon follows the button's text colour
+        });
+    }
+
+    [AvaloniaTheory]
+    [InlineData(nameof(ShapeStrings.Line), false)]
+    [InlineData(nameof(ShapeStrings.Curve), false)]
+    [InlineData(nameof(ShapeStrings.Polygon), true)]
+    [InlineData(nameof(ShapeStrings.Heart), true)]
+    public void PickingAShapeSelectsItAndFillIsOnlyOfferedForShapesWithAnInside(string name, bool canFill)
+    {
+        var window = ShowWindowWithRectangleTool();
+        var options = window.GetLogicalDescendants().OfType<ShapeOptions>().Single();
+        var label = ShapeStrings.ResourceManager.GetString(name)!;
+
+        Click(window, label);
+
+        var buttons = options.FindControl<UniformGrid>("ShapeButtons")!.Children.OfType<ToggleButton>().ToList();
+        Assert.Equal([label], buttons.Where(b => b.IsChecked == true).Select(b => AutomationProperties.GetName(b)));
+        Assert.Equal(canFill, options.FindControl<ComboBox>("FillBox")!.IsEnabled);
+    }
+
+    [AvaloniaFact]
+    public void PolygonIsBuiltByClicksAndClosedByADoubleClick()
+    {
+        var window = ShowWindowWithRectangleTool();
+        Click(window, ShapeStrings.Polygon);
+
+        Drag(window, (10.5, 10.5), (40.5, 10.5));
+        Drag(window, (40.5, 40.5), (40.5, 40.5));
+        Assert.Null(window.Editor.Adornment);    // still open: presses add corners
+        Assert.True(window.Editor.HasPending);
+        Drag(window, (10.5, 40.5), (10.5, 40.5));
+        Drag(window, (10.5, 40.5), (10.5, 40.5)); // the double-click closes it
+
+        Assert.NotNull(window.Editor.Adornment);
+        Press(window, Key.Enter);
+        Assert.Equal(4 * 30, BlackLayerPixels(window).Count); // a 31×31 square's outline
+    }
+
+    [AvaloniaFact]
+    public void EscDiscardsACurveWhileItIsBeingBent_AndEnterCommitsOne()
+    {
+        var window = ShowWindowWithRectangleTool();
+        Click(window, ShapeStrings.Curve);
+
+        Drag(window, (10.5, 30.5), (50.5, 30.5));
+        Assert.Equal((0, 0, 0), RenderedPixel(window, InWindow(window, 30.5, 30.5)));
+        Press(window, Key.Escape);
+
+        Assert.False(window.Editor.HasPending);
+        Assert.Equal((255, 255, 255), RenderedPixel(window, InWindow(window, 30.5, 30.5)));
+        Assert.False(window.Editor.History.CanUndo);
+
+        Drag(window, (10.5, 30.5), (50.5, 30.5));
+        Drag(window, (30.5, 10.5), (30.5, 10.5)); // one bend
+        Press(window, Key.Enter);
+
+        Assert.False(window.Editor.HasPending);
+        Assert.Contains((30, 15), BlackLayerPixels(window)); // pulled three quarters of the way up
+        Assert.True(window.Editor.History.CanUndo);
+    }
+
+    [AvaloniaFact]
+    public void GalleryIsTwoRowsOnTopAndANarrowColumnOnASide()
+    {
+        var window = ShowWindowWithRectangleTool();
+        var gallery = window.GetLogicalDescendants().OfType<ShapeOptions>().Single().FindControl<UniformGrid>("ShapeButtons")!;
+        Assert.Equal(12, gallery.Columns);
+
+        window.CommandBarLayout.Move("tools", DipsyPaint.Layout.DockEdge.Left, 0);
+        window.UpdateLayout();
+
+        Assert.Equal(4, gallery.Columns);
+        Assert.InRange(gallery.Bounds.Width, 1, 4 * 28);
     }
 
     [AvaloniaFact]

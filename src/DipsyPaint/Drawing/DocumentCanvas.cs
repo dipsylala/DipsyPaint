@@ -157,7 +157,7 @@ public sealed class DocumentCanvas : Control
     // Bubbling, so a focused control that uses Enter or Esc itself handles the key first.
     private void OnTopLevelKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_editor?.Adornment is null || e.KeyModifiers != KeyModifiers.None)
+        if (_editor is not { HasPending: true } || e.KeyModifiers != KeyModifiers.None)
         {
             return;
         }
