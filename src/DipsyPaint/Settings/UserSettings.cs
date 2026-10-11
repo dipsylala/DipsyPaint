@@ -13,6 +13,9 @@ public sealed class UserSettings
     /// <summary>The command bar layout (ADR-0022), or null for the default layout.</summary>
     public CommandBarSettings? CommandBar { get; set; }
 
+    /// <summary>Crash-recovery snapshots (ADR-0013), or null for the defaults.</summary>
+    public RecoverySettings? Recovery { get; set; }
+
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Other { get; set; }
 }
@@ -27,6 +30,26 @@ public sealed class CommandBarSettings
     public List<string?>? Left { get; set; }
 
     public List<string?>? Right { get; set; }
+}
+
+/// <summary>Crash-recovery snapshot settings.</summary>
+public sealed class RecoverySettings
+{
+    /// <summary>The default time between snapshots while there are unsaved changes: 2 minutes (ADR-0013).</summary>
+    public const int DefaultSnapshotIntervalSeconds = 120;
+
+    /// <summary>The shortest and longest intervals honoured; other values are clamped to them.</summary>
+    public const int MinSnapshotIntervalSeconds = 15;
+
+    /// <inheritdoc cref="MinSnapshotIntervalSeconds"/>
+    public const int MaxSnapshotIntervalSeconds = 60 * 60;
+
+    /// <summary>Seconds between snapshots while there are unsaved changes; null for the default.</summary>
+    public int? SnapshotIntervalSeconds { get; set; }
+
+    /// <summary>The interval to use: the setting clamped to the honoured range, or the default.</summary>
+    public static TimeSpan IntervalOf(RecoverySettings? settings) => TimeSpan.FromSeconds(
+        Math.Clamp(settings?.SnapshotIntervalSeconds ?? DefaultSnapshotIntervalSeconds, MinSnapshotIntervalSeconds, MaxSnapshotIntervalSeconds));
 }
 
 /// <summary>Source-generated JSON metadata, so the settings file needs no reflection (NativeAOT, ADR-0018).</summary>

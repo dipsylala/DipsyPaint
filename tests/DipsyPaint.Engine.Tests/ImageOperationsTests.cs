@@ -311,6 +311,18 @@ public class ImageOperationsTests
     }
 
     [Fact]
+    public void Resize_WithLayers_AlsoCountsTheCompositorCaches()
+    {
+        var editor = CreateEditor(6, 4);
+        editor.AddLayer();
+
+        // Two layers, intermediate, composite, on-screen bitmap and the two caches: 7 bitmaps.
+        Assert.Equal(ResizeResult.OverMemoryBudget, editor.Resize(100, 100, new MemoryBudget(7 * 4 * 100 * 100 - 1)));
+        Assert.Equal((6, 4), SizeOf(editor));
+        Assert.Equal(ResizeResult.Resized, editor.Resize(100, 100, new MemoryBudget(7 * 4 * 100 * 100)));
+    }
+
+    [Fact]
     public void Resize_WithASelection_ResamplesOnlyTheSelection_WhichStaysPending()
     {
         var editor = CreateEditor(8, 8, new SelectionTool());

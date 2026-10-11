@@ -15,6 +15,9 @@ public sealed partial class DocumentEditor
     /// </summary>
     private const int BitmapsBesideLayers = 4;
 
+    /// <summary>The compositor's cached layers below and above the active one, which exist only with more than one layer.</summary>
+    private int CompositorCaches => Document.Layers.Count > 1 ? 2 : 0;
+
     /// <summary>
     /// Raised after the layer stack changed through this editor: a layer added, removed, moved, shown
     /// or hidden, or another layer made active. Undo and redo can change it too; they raise

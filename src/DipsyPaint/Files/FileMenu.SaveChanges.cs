@@ -29,8 +29,8 @@ public partial class FileMenu
         set => _saveChangesPrompt = value;
     }
 
-    // "Untitled" or the current file's name, as in the title and the prompt.
-    private string DocumentName => _file?.Name ?? FileStrings.Untitled;
+    /// <summary>"Untitled" or the current file's name (not its path), as in the title and the prompt.</summary>
+    internal string DocumentName => _file?.Name ?? FileStrings.Untitled;
 
     // Unsaved changes, or pending content (e.g. a shape not yet committed, a moved selection), which
     // isn't a history step yet but would be lost. A selection that hasn't been moved changes nothing.

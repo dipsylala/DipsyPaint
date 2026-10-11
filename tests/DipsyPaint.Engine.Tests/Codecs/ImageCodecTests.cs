@@ -129,9 +129,12 @@ public class ImageCodecTests
     }
 
     [Fact]
-    public void DefaultMemoryBudget_IsThePlaceholderValue()
+    public void DefaultMemoryBudget_IsHalfTheAvailableMemory_UpTo2GiB()
     {
-        Assert.Equal(2L * 1024 * 1024 * 1024, MemoryBudget.Default.Bytes);
+        Assert.Equal(MemoryBudget.For(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes), MemoryBudget.Default);
+        Assert.Equal(2L * 1024 * 1024 * 1024, MemoryBudget.For(16L * 1024 * 1024 * 1024).Bytes);
+        Assert.Equal(2L * 1024 * 1024 * 1024, MemoryBudget.For(4L * 1024 * 1024 * 1024).Bytes);
+        Assert.Equal(1L * 1024 * 1024 * 1024, MemoryBudget.For(2L * 1024 * 1024 * 1024).Bytes);
     }
 
     /// <summary>

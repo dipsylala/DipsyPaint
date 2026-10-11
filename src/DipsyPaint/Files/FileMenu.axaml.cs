@@ -156,6 +156,9 @@ public partial class FileMenu : UserControl
         base.OnDetachedFromVisualTree(e);
     }
 
+    /// <summary>Shows <paramref name="document"/> as an untitled document, e.g. one restored after a crash.</summary>
+    internal void ShowUntitled(Document document) => ShowDocument(document, null);
+
     private void ShowDocument(Document document, PickedFile? file)
     {
         Window.ReplaceDocument(document);
