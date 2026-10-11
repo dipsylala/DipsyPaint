@@ -82,6 +82,9 @@ public sealed class DocumentEditor
     /// <summary>The frame and handles to draw around pending content, or null.</summary>
     public Adornment? Adornment => (ActiveTool as IPendingTool)?.Adornment;
 
+    /// <summary>Whether the active tool has pending content, with or without an <see cref="Adornment"/> (Enter commits it, Esc cancels it).</summary>
+    public bool HasPending => (ActiveTool as IPendingTool)?.HasPending == true;
+
     /// <summary>The selection of the active <see cref="SelectionTool"/>, or null when there is none.</summary>
     public Selection? Selection => (ActiveTool as SelectionTool)?.Selection;
 
