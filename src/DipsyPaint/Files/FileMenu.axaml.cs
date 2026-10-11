@@ -36,7 +36,8 @@ public partial class FileMenu : UserControl
 
     /// <summary>
     /// Asks for a size (prefilled with the default) and replaces the document with a blank one of
-    /// that size. Cancelling, or a size over the memory budget, leaves the document as it was.
+    /// that size and the resolution chosen with it. Cancelling, or a size over the memory budget,
+    /// leaves the document as it was.
     /// </summary>
     public async Task NewAsync()
     {
@@ -45,7 +46,7 @@ public partial class FileMenu : UserControl
             return;
         }
 
-        if (await Dialogs.AskNewImageSizeAsync(Document.DefaultWidth, Document.DefaultHeight) is not var (width, height))
+        if (await Dialogs.AskNewImageSizeAsync(Document.DefaultWidth, Document.DefaultHeight) is not var (width, height, resolution))
         {
             return;
         }
@@ -56,7 +57,7 @@ public partial class FileMenu : UserControl
             return;
         }
 
-        ShowDocument(Document.CreateBlank(width, height), null);
+        ShowDocument(Document.CreateBlank(width, height, resolution), null);
     }
 
     /// <summary>Opens an image chosen by the user. On failure the current document stays as it was.</summary>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Size" xml:space="preserve">
+    <value>Size</value>
+    <comment>New image dialog: label of the preset dropdown.</comment>
+  </data>
+  <data name="Resolution" xml:space="preserve">
+    <value>Resolution</value>
+    <comment>New image dialog: label beside the read-only resolution, e.g. "300 dpi".</comment>
+  </data>
+  <data name="SwapSides" xml:space="preserve">
+    <value>Swap width and height</value>
+    <comment>Tooltip and accessible name of the ⇄ button.</comment>
+  </data>
+  <data name="SizeFormat" xml:space="preserve">
+    <value>{0} × {1} px</value>
+    <comment>A preset's size: {0} is the width, {1} the height, in pixels.</comment>
+  </data>
+  <data name="NamedSizeFormat" xml:space="preserve">
+    <value>{0} ({1})</value>
+    <comment>A preset with a name: {0} is the size (SizeFormat), {1} the name, e.g. "1920 × 1080 px (Full HD)".</comment>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>default</value>
+    <comment>Name of the 800 × 600 preset.</comment>
+  </data>
+  <data name="Custom" xml:space="preserve">
+    <value>Custom</value>
+    <comment>The Size entry for a width and height typed by the user.</comment>
+  </data>
+  <data name="ScreenGroup" xml:space="preserve">
+    <value>Screen</value>
+    <comment>Size dropdown group heading.</comment>
+  </data>
+  <data name="SquareGroup" xml:space="preserve">
+    <value>Square</value>
+    <comment>Size dropdown group heading.</comment>
+  </data>
+  <data name="PortraitGroup" xml:space="preserve">
+    <value>Portrait</value>
+    <comment>Size dropdown group heading.</comment>
+  </data>
+  <data name="PrintGroup" xml:space="preserve">
+    <value>Print</value>
+    <comment>Size dropdown group heading.</comment>
+  </data>
+  <data name="Hd" xml:space="preserve">
+    <value>HD</value>
+  </data>
+  <data name="FullHd" xml:space="preserve">
+    <value>Full HD</value>
+  </data>
+  <data name="Qhd" xml:space="preserve">
+    <value>QHD</value>
+  </data>
+  <data name="Uhd4k" xml:space="preserve">
+    <value>4K UHD</value>
+  </data>
+  <data name="A4" xml:space="preserve">
+    <value>A4, {0}</value>
+    <comment>{0} is the resolution, e.g. "300 dpi".</comment>
+  </data>
+  <data name="UsLetter" xml:space="preserve">
+    <value>US Letter, {0}</value>
+    <comment>{0} is the resolution, e.g. "300 dpi".</comment>
+  </data>
+</root>
