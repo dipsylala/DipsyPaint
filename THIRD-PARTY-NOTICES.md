@@ -17,7 +17,7 @@ DipsyPaint is MIT-licensed (ADR-0007). It ships with the components below, each 
 
 ## Avalonia
 
-- **Use:** the shell's UI framework.
+- **Use:** the shell's UI framework, including the colour wheel and slider of Edit colours (Avalonia.Controls.ColorPicker).
 - **Licence:** [MIT](https://github.com/AvaloniaUI/Avalonia/blob/master/licence.md). Copyright © .NET Foundation and Contributors.
 
 ## SkiaSharp
