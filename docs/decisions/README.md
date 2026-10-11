@@ -25,6 +25,7 @@
 | [0021](0021-clipboard-image-formats.md) | Clipboard image formats per OS; Windows output through Avalonia's bitmap | Accepted |
 | [0022](0022-command-bar-layout.md) | Command bar wraps; command groups dock to window edges; layout is saved per user | Accepted |
 | [0023](0023-transform-drag-target.md) | Transform drags have the brush's 16 ms target; previews may be cheaper than the result | Accepted |
+| [0024](0024-image-resolution.md) | Documents carry a resolution (DPI) that files keep; sizes stay in pixels | Accepted |
 
 ## Open Questions
 

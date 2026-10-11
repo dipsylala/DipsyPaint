@@ -54,3 +54,8 @@ committed back to a layer. Exact semantics to be agreed with tool scoping.
 **Unsaved changes** — history steps made since the document was last saved, opened or
 created. Undoing back to the saved point clears them. They trigger the "Save changes?"
 prompt (ticket 36) and crash-recovery snapshots (ADR-0013). Code may call this "dirty".
+
+**Resolution (DPI)** — how many pixels per inch other programs should use when printing or placing
+the image, stored per document and kept by files (ADR-0024). Metadata only: it never changes the
+pixels, and sizes are always entered in pixels. Distinct from *zoom*, which is how large DipsyPaint
+shows the image.
