@@ -53,7 +53,7 @@
     <ScrollViewer x:Name="CanvasScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                   Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
       <!-- Zoom scales this wrapper, not the canvas; nearest-neighbour keeps zoomed pixels crisp. -->
-      <LayoutTransformControl x:Name="CanvasZoom" Margin="24" HorizontalAlignment="Left" VerticalAlignment="Top"
+      <LayoutTransformControl x:Name="CanvasZoom" Margin="24" HorizontalAlignment="Left" VerticalAlignment="Top" ClipToBounds="False"
                               RenderOptions.BitmapInterpolationMode="None">
         <Border x:Name="Canvas" Background="White"
                 HorizontalAlignment="Left" VerticalAlignment="Top"

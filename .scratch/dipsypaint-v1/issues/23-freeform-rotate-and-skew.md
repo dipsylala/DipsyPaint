@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Freeform rotation (any angle) of selections, shapes and text behaves as in reference Paint
-- [ ] Skew behaves as in reference Paint
-- [ ] Each transform is undoable
-- [ ] Golden images at arbitrary angles and skews
+- [x] Freeform rotation (any angle) of selections, shapes and text behaves as in reference Paint
+- [x] Skew behaves as in reference Paint
+- [x] Each transform is undoable
+- [x] Golden images at arbitrary angles and skews

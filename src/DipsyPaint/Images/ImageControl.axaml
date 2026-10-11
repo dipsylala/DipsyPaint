@@ -30,6 +30,8 @@
                     AutomationProperties.Name="{x:Static res:ImageStrings.RotateLeft}" />
           <MenuItem x:Name="Rotate180Item" Header="{x:Static res:ImageStrings.Rotate180}" Click="OnRotate180Click"
                     AutomationProperties.Name="{x:Static res:ImageStrings.Rotate180}" />
+          <MenuItem x:Name="CustomRotateItem" Header="{x:Static res:TransformStrings.CustomRotate}" Click="OnCustomRotateClick"
+                    AutomationProperties.Name="{x:Static res:TransformStrings.CustomRotate}" />
           <Separator />
           <MenuItem x:Name="FlipVerticalItem" Header="{x:Static res:ImageStrings.FlipVertical}" Click="OnFlipVerticalClick"
                     AutomationProperties.Name="{x:Static res:ImageStrings.FlipVertical}" />

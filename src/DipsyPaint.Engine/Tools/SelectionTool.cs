@@ -12,9 +12,12 @@ namespace DipsyPaint.Engine.Tools;
 /// place and removes the selection; a selection that was never lifted writes nothing. <see cref="Delete"/>
 /// removes the selected pixels; <see cref="Replace"/> rotates, flips or resizes them; <see cref="Paste"/>
 /// shows pasted pixels as a lifted selection; <see cref="Select"/> selects a given shape (select all,
-/// invert). The right button does nothing (Paint opens a context menu there).
+/// invert). Dragging the rotate handle, or <see cref="Rotate"/>, turns the selected pixels and their
+/// shape to any angle about the frame's centre (bilinear); the frame grows to the upright rectangle
+/// around them, transparent where nothing lands. The right button does nothing (Paint opens a context
+/// menu there).
 /// </summary>
-public sealed class SelectionTool : IPendingTool
+public sealed class SelectionTool : IRotatableTool
 {
     private enum Gesture
     {
@@ -22,6 +25,7 @@ public sealed class SelectionTool : IPendingTool
         Marquee,
         FreeForm,
         Adjust,
+        Rotate,
     }
 
     private readonly SelectionSettings _settings;
@@ -41,6 +45,16 @@ public sealed class SelectionTool : IPendingTool
     private Rgba[]? _lifted;
     private Rgba[]? _shown;
     private bool[]? _shownMask;
+
+    // The turn so far: the pixels and shape (null for all) as they were before the first turn, their
+    // size, the angle since and the centre turned about. Every turn is computed from these, so turning
+    // again does not blur further. Moving keeps them; any other change starts afresh.
+    private Rgba[]? _unturned;
+    private bool[]? _unturnedMask;
+    private (int Width, int Height) _unturnedSize;
+    private double _angle;
+    private (double X, double Y) _turnCentre;
+    private RotateDrag? _rotateDrag;
 
     private Gesture _gesture;
     private FrameHandle _handle;
@@ -79,6 +93,13 @@ public sealed class SelectionTool : IPendingTool
             }
 
             var hit = Adornment?.HitTest(input.X, input.Y, context.HandleTolerance) ?? FrameHandle.None;
+            if (hit == FrameHandle.Rotate)
+            {
+                var (centreX, centreY) = TurnCentre;
+                (_gesture, _rotateDrag) = (Gesture.Rotate, new RotateDrag(centreX, centreY, input, Angle));
+                return IntRect.Empty;
+            }
+
             if (hit != FrameHandle.None)
             {
                 (_gesture, _handle, _dragStart, _dragA, _dragB) = (Gesture.Adjust, hit, pixel, _a, _b);
@@ -87,7 +108,7 @@ public sealed class SelectionTool : IPendingTool
 
             // A press outside: the editor has committed the previous selection; make a new one.
             var corner = Clamp(context.Target, pixel);
-            (_lifted, _shown, _mask, _shownMask) = (null, null, null, null);
+            (_lifted, _shown, _mask, _shownMask, _unturned) = (null, null, null, null, null);
             if (_settings.Shape == SelectionShape.FreeForm)
             {
                 (_gesture, _selected) = (Gesture.FreeForm, false);
@@ -121,8 +142,25 @@ public sealed class SelectionTool : IPendingTool
                 if ((a, b) != (_a, _b))
                 {
                     dirty = Lift(context);
+                    if (_handle == FrameHandle.Move)
+                    {
+                        _turnCentre = (_turnCentre.X + a.X - _a.X, _turnCentre.Y + a.Y - _a.Y);
+                    }
+                    else
+                    {
+                        _unturned = null; // stretched
+                    }
+
                     (_a, _b) = (a, b);
                     dirty = dirty.Union(Show(context));
+                }
+
+                break;
+            case Gesture.Rotate:
+                var angle = _rotateDrag!.AngleAt(input);
+                if (angle != Angle)
+                {
+                    dirty = Turn(context, angle, _rotateDrag.CentreX, _rotateDrag.CentreY);
                 }
 
                 break;
@@ -143,7 +181,7 @@ public sealed class SelectionTool : IPendingTool
                     break;
             }
 
-            _gesture = Gesture.None;
+            (_gesture, _rotateDrag) = (Gesture.None, null);
             _path.Clear();
         }
 
@@ -159,6 +197,7 @@ public sealed class SelectionTool : IPendingTool
     public IntRect Cancel(ToolContext context)
     {
         (_selected, _gesture, _lifted, _shown, _mask, _shownMask) = (false, Gesture.None, null, null, null, null);
+        (_unturned, _rotateDrag) = (null, null);
         _path.Clear();
         return context.Overlay.Clear();
     }
@@ -276,8 +315,26 @@ public sealed class SelectionTool : IPendingTool
         }
 
         (_a, _b) = ((bounds.X, bounds.Y), (bounds.X + width - 1, bounds.Y + height - 1));
-        _source = Bounds;
+        (_source, _unturned) = (Bounds, null);
         return dirty.Union(Show(context));
+    }
+
+    /// <summary>
+    /// Turns the selected pixels (lifting them first) and the selection's shape <paramref name="degrees"/>
+    /// clockwise about the frame's centre, sampling bilinearly; the frame becomes the upright rectangle
+    /// around them, transparent where nothing lands. Successive turns are computed from the pixels as they
+    /// were before the first, so they do not blur further, until the selection is stretched or replaced.
+    /// Returns the changed rectangle; empty when nothing is selected.
+    /// </summary>
+    public IntRect Rotate(ToolContext context, double degrees)
+    {
+        if (!_selected)
+        {
+            return IntRect.Empty;
+        }
+
+        var (centreX, centreY) = TurnCentre;
+        return Turn(context, Math.IEEERemainder(Angle + degrees, 360), centreX, centreY);
     }
 
     /// <summary>
@@ -290,14 +347,46 @@ public sealed class SelectionTool : IPendingTool
     public IntRect Paste(ToolContext context, PixelImage image, int x, int y)
     {
         (_selected, _gesture, _a, _b) = (true, Gesture.None, (x, y), (x + image.Width - 1, y + image.Height - 1));
-        (_lifted, _source, _mask) = (image.Pixels, Bounds, null);
+        (_lifted, _source, _mask, _unturned) = (image.Pixels, Bounds, null, null);
         return Show(context);
+    }
+
+    // The angle turned so far, and the centre to turn about.
+    private double Angle => _unturned is null ? 0 : _angle;
+
+    private (double X, double Y) TurnCentre =>
+        _unturned is null ? (Bounds.X + Bounds.Width / 2.0, Bounds.Y + Bounds.Height / 2.0) : _turnCentre;
+
+    // Shows the pixels as they were before the first turn, turned to `angle` about the centre.
+    private IntRect Turn(ToolContext context, double angle, double centreX, double centreY)
+    {
+        var dirty = Lift(context);
+        if (_unturned is null)
+        {
+            var bounds = Bounds;
+            var resized = (bounds.Width, bounds.Height) != (_source.Width, _source.Height);
+            _unturned = resized ? Stretch(_lifted!, _source, bounds) : _lifted!;
+            _unturnedMask = _mask is not null && resized ? Stretch(_mask, _source, bounds) : _mask;
+            _unturnedSize = (bounds.Width, bounds.Height);
+        }
+
+        var transform = LinearTransform.Rotation(angle);
+        var (w, h) = _unturnedSize;
+        var (width, height) = transform.SizeOf(w, h);
+        var shape = _unturnedMask ?? Enumerable.Repeat(true, w * h).ToArray();
+        _lifted = PixelWarp.Warp(_unturned, w, h, transform, width, height);
+        _mask = PixelWarp.Warp(shape, w, h, transform, width, height);
+        var x = (int)Math.Floor(centreX - width / 2.0 + 0.5);
+        var y = (int)Math.Floor(centreY - height / 2.0 + 0.5);
+        (_a, _b, _angle, _turnCentre) = ((x, y), (x + width - 1, y + height - 1), angle, (centreX, centreY));
+        _source = Bounds;
+        return dirty.Union(Show(context));
     }
 
     private void SetShape(IntRect bounds, bool[]? mask)
     {
         (_selected, _a, _b) = (true, (bounds.X, bounds.Y), (bounds.Right - 1, bounds.Bottom - 1));
-        (_source, _mask, _shownMask) = (bounds, mask, mask);
+        (_source, _mask, _shownMask, _unturned) = (bounds, mask, mask, null);
     }
 
     // Whether the selection takes the pixel at index i of the source rectangle, which has this colour.
