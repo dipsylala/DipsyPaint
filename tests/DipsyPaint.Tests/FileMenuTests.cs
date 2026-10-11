@@ -145,7 +145,7 @@ public sealed class FileMenuTests : IDisposable
         Assert.Equal((Document.DefaultWidth, Document.DefaultHeight), (window.Document.Width, window.Document.Height));
         Assert.Equal(Rgba.White, window.Document.ActiveLayer.Pixels.GetPixel(3, 3));
         Assert.False(window.Editor.History.CanUndo);
-        Assert.Equal($"{Document.DefaultWidth} × {Document.DefaultHeight}px", StatusText(window));
+        Assert.Equal($"{Document.DefaultWidth} × {Document.DefaultHeight} px · 96 dpi", StatusText(window));
         Assert.Equal(new Size(Document.DefaultWidth, Document.DefaultHeight), window.FindControl<DocumentCanvas>("DocumentView")!.Bounds.Size);
         Assert.IsType<PencilTool>(window.Editor.ActiveTool);
         Assert.Equal("Untitled - DipsyPaint", window.Title);
@@ -166,7 +166,7 @@ public sealed class FileMenuTests : IDisposable
         Assert.Equal((40, 30), (window.Document.Width, window.Document.Height));
         Assert.Equal(new Rgba(0, 0, 255, 255), window.Editor.Compositor.Pixels[6 * 40 + 5]);
         Assert.False(window.Editor.History.CanUndo);
-        Assert.Equal("40 × 30px", StatusText(window));
+        Assert.Equal("40 × 30 px · 96 dpi", StatusText(window));
         Assert.Equal(new Size(40, 30), window.FindControl<Border>("Canvas")!.Bounds.Size);
         Assert.Equal("picture.png - DipsyPaint", window.Title);
         Assert.Empty(dialogs.Errors);
@@ -190,7 +190,7 @@ public sealed class FileMenuTests : IDisposable
         Assert.Same(before, window.Document);
         Assert.True(window.Editor.History.CanUndo);
         Assert.Equal(Rgba.Black, window.Document.ActiveLayer.Pixels.GetPixel(2, 2));
-        Assert.Equal("64 × 48px", StatusText(window));
+        Assert.Equal("64 × 48 px · 96 dpi", StatusText(window));
         Assert.Equal("*Untitled - DipsyPaint", window.Title); // still unsaved
     }
 
@@ -228,7 +228,7 @@ public sealed class FileMenuTests : IDisposable
         window.UpdateLayout();
 
         Assert.Equal((320, 200), (window.Document.Width, window.Document.Height));
-        Assert.Equal("320 × 200px", StatusText(window));
+        Assert.Equal("320 × 200 px · 96 dpi", StatusText(window));
         Assert.Equal(new Size(320, 200), window.FindControl<DocumentCanvas>("DocumentView")!.Bounds.Size);
         Assert.False(window.Editor.History.CanUndo);
     }

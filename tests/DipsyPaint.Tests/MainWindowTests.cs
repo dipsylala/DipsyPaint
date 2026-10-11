@@ -35,7 +35,7 @@ public class MainWindowTests
     {
         var window = ShowWindow(640, 480);
 
-        Assert.Equal("640 × 480px", window.FindControl<TextBlock>("CanvasSizeText")!.Text);
+        Assert.Equal("640 × 480 px · 96 dpi", window.FindControl<TextBlock>("CanvasSizeText")!.Text);
     }
 
     [AvaloniaFact]

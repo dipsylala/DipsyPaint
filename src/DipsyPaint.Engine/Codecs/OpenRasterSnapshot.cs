@@ -9,8 +9,8 @@ using SixLabors.ImageSharp.Processing;
 namespace DipsyPaint.Engine.Codecs;
 
 /// <summary>
-/// A document's layers, their properties and its composite, ready to be written as an OpenRaster
-/// <i>project file</i> (ADR-0006). <see cref="Capture"/> copies the pixels, so it must run on the
+/// A document's layers, their properties, its resolution and its composite, ready to be written as
+/// an OpenRaster <i>project file</i> (ADR-0006). <see cref="Capture"/> copies the pixels, so it must run on the
 /// thread that edits the document (the UI thread); <see cref="WriteTo"/> then encodes and zips them
 /// and can run on any thread, as crash-recovery snapshots need (ADR-0013).
 /// </summary>
@@ -25,6 +25,7 @@ public sealed class OpenRasterSnapshot
 
     private readonly int _width;
     private readonly int _height;
+    private readonly Resolution _resolution;
 
     // Bottom first, as in Document.Layers.
     private readonly Layer[] _layers;
@@ -36,6 +37,7 @@ public sealed class OpenRasterSnapshot
     {
         var document = compositor.Document;
         (_width, _height) = (document.Width, document.Height);
+        _resolution = document.Resolution;
         _layers = [.. document.Layers.Select(l => copyLayers ? new Layer(l) : l)];
         _properties = [.. document.Layers.Select(l => l.Properties)];
         _active = document.Layers.ToList().IndexOf(document.ActiveLayer);
@@ -119,6 +121,9 @@ public sealed class OpenRasterSnapshot
         xml.WriteAttributeString("version", Version);
         xml.WriteAttributeString("w", Invariant(_width));
         xml.WriteAttributeString("h", Invariant(_height));
+        // Whole DPI, as the OpenRaster spec requires.
+        xml.WriteAttributeString("xres", Invariant(WholeDpi(_resolution.HorizontalDpi)));
+        xml.WriteAttributeString("yres", Invariant(WholeDpi(_resolution.VerticalDpi)));
         xml.WriteStartElement("stack");
         for (var i = _layers.Length - 1; i >= 0; i--)
         {
@@ -151,4 +156,6 @@ public sealed class OpenRasterSnapshot
     }
 
     private static string Invariant(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private static int WholeDpi(double dpi) => (int)Math.Round(dpi, MidpointRounding.AwayFromZero);
 }

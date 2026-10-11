@@ -192,6 +192,7 @@ public partial class FileMenu : UserControl
             }
 
             Window.Editor.MarkSaved();
+            Window.OnDocumentSaved();
             return true;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
