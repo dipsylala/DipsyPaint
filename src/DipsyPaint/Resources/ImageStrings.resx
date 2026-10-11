@@ -22,10 +22,10 @@
     <value>Crop to selection (Ctrl+Shift+X)</value>
   </data>
   <data name="Resize" xml:space="preserve">
-    <value>Resize</value>
+    <value>Resize and skew</value>
   </data>
   <data name="ResizeToolTip" xml:space="preserve">
-    <value>Resize (Ctrl+W)</value>
+    <value>Resize and skew (Ctrl+W)</value>
   </data>
   <data name="Rotate" xml:space="preserve">
     <value>Rotate</value>
@@ -46,7 +46,7 @@
     <value>Flip horizontal</value>
   </data>
   <data name="ResizeDialogTitle" xml:space="preserve">
-    <value>Resize</value>
+    <value>Resize and skew</value>
   </data>
   <data name="Percentage" xml:space="preserve">
     <value>Percentage</value>

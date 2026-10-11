@@ -14,8 +14,14 @@ namespace DipsyPaint.Engine.Tools;
 /// <see cref="Adornment"/> is null, so presses reach the tool, and <see cref="HasPending"/> is true.
 /// Once finished they get a frame like any other shape; resizing it scales their points.
 /// </para>
+/// <para>
+/// Dragging the rotate handle, or <see cref="Rotate"/>, turns a pending shape to any angle about its
+/// frame's centre. Its outline is turned before it is rasterised, so edges stay hard, and the frame
+/// becomes the upright rectangle around the result; resizing then stretches the turned shape. A
+/// turned box shape keeps its outline as contours, scaled to the frame as a polygon's points are.
+/// </para>
 /// </summary>
-public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
+public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
 {
     private enum Gesture
     {
@@ -23,6 +29,7 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
         Draw,
         Adjust,
         Build,
+        Rotate,
     }
 
     private bool _pending;
@@ -40,6 +47,15 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
     private IntRect _pointsFrame;
     private bool _building;
     private int _bends;
+
+    // A turned box shape's outlines (pixel edges at whole numbers) in _pointsFrame; null while upright.
+    private List<(double X, double Y)[]>? _contours;
+
+    // The angle turned so far, and while the rotate handle is dragged, the shape as it was at the press.
+    private double _angle;
+    private RotateDrag? _rotateDrag;
+    private List<(double X, double Y)[]> _dragGeometry = [];
+    private (double X, double Y) _dragCentre;
 
     private Gesture _gesture;
     private FrameHandle _handle;
@@ -73,6 +89,14 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
             }
 
             var hit = Adornment?.HitTest(input.X, input.Y, context.HandleTolerance) ?? FrameHandle.None;
+            if (hit == FrameHandle.Rotate)
+            {
+                var frame = Frame;
+                var drag = new RotateDrag(frame.X + frame.Width / 2.0, frame.Y + frame.Height / 2.0, input, _angle);
+                (_gesture, _rotateDrag, _dragGeometry, _dragCentre) = (Gesture.Rotate, drag, Geometry(), Centre);
+                return IntRect.Empty;
+            }
+
             if (hit != FrameHandle.None)
             {
                 (_gesture, _handle, _dragStart, _dragA, _dragB) = (Gesture.Adjust, hit, pixel, _a, _b);
@@ -82,6 +106,7 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
             // A press outside: the editor has committed the previous shape; draw a new one.
             (_gesture, _pending, _kind, _swapColors, _a, _b) =
                 (Gesture.Draw, true, settings.Kind, input.Button == PointerButton.Right, pixel, pixel);
+            (_contours, _angle) = (null, 0);
             _points.Clear();
             return context.Overlay.Clear();
         }
@@ -96,6 +121,16 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
                 break;
             case Gesture.Build:
                 Build(pixel, input.Shift);
+                break;
+            case Gesture.Rotate:
+                var angle = _rotateDrag!.AngleAt(input);
+                if (angle == _angle)
+                {
+                    return IntRect.Empty;
+                }
+
+                SetGeometry(Turned(_dragGeometry, angle - _rotateDrag.StartAngle, _dragCentre.X, _dragCentre.Y));
+                _angle = angle;
                 break;
             default:
                 return IntRect.Empty;
@@ -156,6 +191,87 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
 
     public IntRect Refresh(ToolContext context) => _pending && (_gesture != Gesture.Draw || _a != _b) ? Render(context) : IntRect.Empty;
 
+    /// <summary>
+    /// Turns the pending shape <paramref name="degrees"/> clockwise about its frame's centre (see the
+    /// class remarks). Returns the changed rectangle; empty unless a finished shape is pending.
+    /// </summary>
+    public IntRect Rotate(ToolContext context, double degrees)
+    {
+        if (Adornment is null)
+        {
+            return IntRect.Empty;
+        }
+
+        var (centreX, centreY) = Centre;
+        SetGeometry(Turned(Geometry(), degrees, centreX, centreY));
+        _angle = Math.IEEERemainder(_angle + degrees, 360);
+        return Render(context);
+    }
+
+    // Lines, curves and polygons are points through pixel centres; box shapes are outlines along pixel edges.
+    private bool IsPath => _kind is ShapeKind.Line or ShapeKind.Curve or ShapeKind.Polygon;
+
+    // The frame's centre in the coordinates of Geometry().
+    private (double X, double Y) Centre
+    {
+        get
+        {
+            var frame = Frame;
+            var offset = IsPath ? 0.5 : 0;
+            return (frame.X + frame.Width / 2.0 - offset, frame.Y + frame.Height / 2.0 - offset);
+        }
+    }
+
+    // The pending shape as placed: a line's end points, a curve's or polygon's points, or a box shape's outlines.
+    private List<(double X, double Y)[]> Geometry()
+    {
+        var frame = Frame;
+        return _kind switch
+        {
+            ShapeKind.Line => [[_a, _b]],
+            ShapeKind.Curve or ShapeKind.Polygon => [[.. ScaledPoints()]],
+            _ when _contours is not null => ScaledContours(),
+            _ => [.. ShapeOutlines.Of(_kind, frame.Width, frame.Height).Select(c => c.Select(p => (frame.X + p.X, frame.Y + p.Y)).ToArray())],
+        };
+    }
+
+    // Makes the geometry the pending shape, with the frame around it.
+    private void SetGeometry(List<(double X, double Y)[]> geometry)
+    {
+        switch (_kind)
+        {
+            case ShapeKind.Line:
+                (_a, _b) = (ShapeRasterizer.Round(geometry[0][0]), ShapeRasterizer.Round(geometry[0][1]));
+                break;
+            case ShapeKind.Curve or ShapeKind.Polygon:
+                _points.Clear();
+                _points.AddRange(geometry[0]);
+                FitFrame();
+                break;
+            default:
+                // The pixels whose centres lie within the outlines' extent.
+                var all = geometry.SelectMany(c => c).ToList();
+                _a = ((int)Math.Ceiling(all.Min(p => p.X) - 0.5), (int)Math.Ceiling(all.Min(p => p.Y) - 0.5));
+                _b = (Math.Max(_a.X, (int)Math.Floor(all.Max(p => p.X) - 0.5)), Math.Max(_a.Y, (int)Math.Floor(all.Max(p => p.Y) - 0.5)));
+                (_contours, _pointsFrame) = (geometry, Frame);
+                break;
+        }
+    }
+
+    private static List<(double X, double Y)[]> Turned(List<(double X, double Y)[]> geometry, double degrees, double centreX, double centreY)
+    {
+        var transform = LinearTransform.Rotation(degrees);
+        return [.. geometry.Select(c => c.Select(p => transform.Apply(p, centreX, centreY)).ToArray())];
+    }
+
+    // A turned box shape's outlines mapped from the frame they were turned in to the current one.
+    private List<(double X, double Y)[]> ScaledContours()
+    {
+        var (from, to) = (_pointsFrame, Frame);
+        double sx = (double)to.Width / from.Width, sy = (double)to.Height / from.Height;
+        return [.. _contours!.Select(c => c.Select(p => (to.X + (p.X - from.X) * sx, to.Y + (p.Y - from.Y) * sy)).ToArray())];
+    }
+
     private void StartBuilding()
     {
         _building = true;
@@ -209,6 +325,12 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
     private void Finish()
     {
         _building = false;
+        FitFrame();
+    }
+
+    // Frames a curve's or polygon's points.
+    private void FitFrame()
+    {
         IEnumerable<(double X, double Y)> placed = _kind == ShapeKind.Curve ? CurvePoints(_points) : _points;
         var pixels = placed.Select(ShapeRasterizer.Round).ToList();
         _a = (pixels.Min(p => p.X), pixels.Min(p => p.Y));
@@ -254,6 +376,14 @@ public sealed class ShapeTool(ShapeSettings settings) : IPendingTool
     private (IntRect Bounds, Rgba[] Pixels) RenderShape(Rgba outline, Rgba fill)
     {
         var size = Math.Max(1, settings.Size);
+        if (_contours is not null)
+        {
+            var bounds = Frame;
+            var outlineSize = settings.Outline == ShapeStyle.None ? 0 : size;
+            var paint = settings.Fill == ShapeStyle.None ? Rgba.Transparent : fill;
+            return (bounds, ShapeRasterizer.Closed(bounds, ScaledContours(), outlineSize, outline, paint));
+        }
+
         if (_kind is not (ShapeKind.Curve or ShapeKind.Polygon) || _gesture == Gesture.Draw)
         {
             var kind = _kind is ShapeKind.Curve or ShapeKind.Polygon ? ShapeKind.Line : _kind;

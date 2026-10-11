@@ -6,6 +6,7 @@
         SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
   <StackPanel Margin="24" Spacing="12" MinWidth="280">
+    <TextBlock Text="{x:Static res:TransformStrings.ResizeHeading}" FontWeight="SemiBold" />
     <StackPanel Orientation="Horizontal" Spacing="16">
       <RadioButton x:Name="PercentageOption" GroupName="ResizeBy" IsChecked="True"
                    Content="{x:Static res:ImageStrings.Percentage}"
@@ -27,6 +28,17 @@
     <CheckBox x:Name="MaintainAspectRatioBox" IsChecked="True"
               Content="{x:Static res:ImageStrings.MaintainAspectRatio}"
               AutomationProperties.Name="{x:Static res:ImageStrings.MaintainAspectRatio}" />
+    <TextBlock Text="{x:Static res:TransformStrings.SkewHeading}" FontWeight="SemiBold" Margin="0,8,0,0" />
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="12">
+      <Label Content="{x:Static res:ImageStrings.Horizontal}" Target="HorizontalSkewBox" VerticalAlignment="Center" />
+      <NumericUpDown x:Name="HorizontalSkewBox" Grid.Column="1" Minimum="-89" Maximum="89" Increment="1" Value="0"
+                     FormatString="0" ParsingNumberStyle="Integer"
+                     AutomationProperties.Name="{x:Static res:TransformStrings.HorizontalSkew}" />
+      <Label Grid.Row="1" Content="{x:Static res:ImageStrings.Vertical}" Target="VerticalSkewBox" VerticalAlignment="Center" />
+      <NumericUpDown x:Name="VerticalSkewBox" Grid.Row="1" Grid.Column="1" Minimum="-89" Maximum="89" Increment="1" Value="0"
+                     FormatString="0" ParsingNumberStyle="Integer"
+                     AutomationProperties.Name="{x:Static res:TransformStrings.VerticalSkew}" />
+    </Grid>
     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
       <Button x:Name="OkButton" IsDefault="True" MinWidth="80" Click="OnOkClick"
               Content="{x:Static res:ImageStrings.Ok}"
