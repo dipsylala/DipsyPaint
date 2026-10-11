@@ -66,7 +66,8 @@ public partial class ShapeOptions : UserControl
         InitializeComponent();
         foreach (var (kind, name) in Gallery)
         {
-            var button = new ToggleButton { Width = 26, Height = 26, Padding = new Thickness(4), Margin = new Thickness(1) };
+            // Two rows of these fit the 40 px tool buttons' height, so the gallery doesn't make the bar taller.
+            var button = new ToggleButton { Width = 20, Height = 20, Padding = new Thickness(2), MinWidth = 0, MinHeight = 0 };
             var icon = new Avalonia.Controls.Shapes.Path
             {
                 Data = Icon(kind),
