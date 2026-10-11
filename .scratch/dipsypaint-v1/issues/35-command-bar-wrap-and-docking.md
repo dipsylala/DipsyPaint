@@ -21,3 +21,4 @@
 - Floating tool windows are out of scope (ADR-0022).
 - Any docking library must be MIT-compatible and produce no trimming/AOT warnings; a small custom layout is fine if simpler.
 - Ticket 17's layers panel should fit into this system (as a group or panel docked right by default) rather than adding a second mechanism.
+- Follow-up fixes (steady canvas, compact Tools row, one menu group for File, View and Help) are tracked in ticket 39.
