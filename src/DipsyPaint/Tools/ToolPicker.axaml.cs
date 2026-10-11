@@ -5,6 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using DipsyPaint.Engine;
+using DipsyPaint.Layout;
 using DipsyPaint.Resources;
 
 namespace DipsyPaint.Tools;
@@ -24,6 +25,7 @@ public partial class ToolPicker : UserControl
     private ToolDescriptor? _active;
     private ToolDescriptor? _previous;
     private TopLevel? _topLevel;
+    private Size? _reservedFor;
 
     public ToolPicker() : this(ToolRegistry.Tools)
     {
@@ -56,6 +58,63 @@ public partial class ToolPicker : UserControl
         base.OnAttachedToVisualTree(e);
         _topLevel = TopLevel.GetTopLevel(this);
         _topLevel?.AddHandler(KeyDownEvent, OnTopLevelKeyDown);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == CommandGroup.OrientationProperty)
+        {
+            // The options panels lay out differently, so measure them again.
+            _reservedFor = null;
+            InvalidateMeasure();
+        }
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (_reservedFor != availableSize)
+        {
+            ReserveRoomForOptions(availableSize);
+            _reservedFor = availableSize;
+        }
+
+        return base.MeasureOverride(availableSize);
+    }
+
+    // Measures every tool's options panel in the space the group has, so the slot keeps the largest
+    // one's size and the command bar wraps the same way whichever tool is active: switching tools
+    // never moves the canvas.
+    private void ReserveRoomForOptions(Size availableSize)
+    {
+        var shown = ToolOptions.Content;
+        var reserve = default(Size);
+        foreach (var tool in _tools.Where(t => t.CreateOptions is not null))
+        {
+            ShowOptions(OptionsOf(tool));
+            ToolOptions.Measure(availableSize);
+            reserve = new Size(Math.Max(reserve.Width, ToolOptions.DesiredSize.Width), Math.Max(reserve.Height, ToolOptions.DesiredSize.Height));
+        }
+
+        ShowOptions(shown);
+        OptionsSlot.Reserve = reserve;
+    }
+
+    private void ShowOptions(object? options)
+    {
+        ToolOptions.Content = options;
+        ToolOptions.Presenter?.UpdateChild();
+        ToolOptions.InvalidateMeasure();
+    }
+
+    private Control? OptionsOf(ToolDescriptor tool)
+    {
+        if (tool.CreateOptions is not null && !_options.ContainsKey(tool))
+        {
+            _options[tool] = tool.CreateOptions();
+        }
+
+        return _options.GetValueOrDefault(tool);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -132,11 +191,6 @@ public partial class ToolPicker : UserControl
             button.IsChecked = ReferenceEquals(descriptor, tool);
         }
 
-        if (tool.CreateOptions is not null && !_options.ContainsKey(tool))
-        {
-            _options[tool] = tool.CreateOptions();
-        }
-
-        ToolOptions.Content = _options.GetValueOrDefault(tool);
+        ToolOptions.Content = OptionsOf(tool);
     }
 }
