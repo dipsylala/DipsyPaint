@@ -42,6 +42,15 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
     // stays the same while the shape is adjusted.
     private ulong _seed;
 
+    // A textured fill's texture, kept while the shape is pending, so redrawing it on every pointer
+    // move of a drag reuses the noise already computed (issue #102).
+    private FillTexture? _fillTexture;
+
+    // The pixels the overlay shows, and the ones it showed before, which the next rendering may
+    // reuse (see ShapeRasterizer.Buffer).
+    private Rgba[]? _shown;
+    private Rgba[]? _spare;
+
     // The frame corners (box shapes, finished curves and polygons) or end points (line, and the
     // first drag of a curve or polygon), in pixels, inclusive.
     private (int X, int Y) _a;
@@ -192,6 +201,7 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
         _pending = false;
         _building = false;
         _gesture = Gesture.None;
+        (_fillTexture, _shown, _spare) = (null, null, null);
         return context.Overlay.Clear();
     }
 
@@ -376,7 +386,9 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
             ? (context.SecondaryColor, context.PrimaryColor)
             : (context.PrimaryColor, context.SecondaryColor);
         var (bounds, pixels) = RenderShape(outline, fill);
-        return context.Overlay.Show(bounds, pixels);
+        var dirty = context.Overlay.Show(bounds, pixels);
+        (_shown, _spare) = (pixels, pixels == _spare ? _shown : _shown ?? _spare);
+        return dirty;
     }
 
     private (IntRect Bounds, Rgba[] Pixels) RenderShape(Rgba outline, Rgba fill)
@@ -392,13 +404,13 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
             var bounds = Frame;
             var outlineSize = settings.Outline == ShapeStyle.None ? 0 : size;
             var paint = settings.Fill == ShapeStyle.None ? Rgba.Transparent : fill;
-            return (bounds, ShapeRasterizer.Closed(bounds, ScaledContours(), outlineSize, outline, paint));
+            return (bounds, ShapeRasterizer.Closed(bounds, ScaledContours(), outlineSize, outline, paint, _spare));
         }
 
         if (_kind is not (ShapeKind.Curve or ShapeKind.Polygon) || _gesture == Gesture.Draw)
         {
             var kind = _kind is ShapeKind.Curve or ShapeKind.Polygon ? ShapeKind.Line : _kind;
-            return ShapeRasterizer.Render(kind, _a, _b, settings.Outline, settings.Fill, size, outline, fill);
+            return ShapeRasterizer.Render(kind, _a, _b, settings.Outline, settings.Fill, size, outline, fill, _spare);
         }
 
         var points = ScaledPoints();
@@ -422,7 +434,7 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
         (double X, double Y)[] polygon = [.. points.Select(p => (frame.X + (p.X - frame.X) * sx, frame.Y + (p.Y - frame.Y) * sy))];
         var thickness = settings.Outline == ShapeStyle.None ? 0 : size;
         var fillPaint = settings.Fill == ShapeStyle.None ? Rgba.Transparent : fill;
-        return (frame, ShapeRasterizer.Closed(frame, [polygon], thickness, outline, fillPaint));
+        return (frame, ShapeRasterizer.Closed(frame, [polygon], thickness, outline, fillPaint, _spare));
     }
 
     // As RenderShape, with a textured outline or fill (see TexturedShapes).
@@ -446,9 +458,10 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
         }
 
         var frame = Frame;
+        _fillTexture = TexturedShapes.IsTextured(settings.Fill) ? FillTexture.For(settings.Fill, _seed, _fillTexture) : null;
         if (_kind != ShapeKind.Polygon)
         {
-            return (frame, TexturedShapes.Closed(frame, Geometry(), settings.Outline, settings.Fill, size, outline, fill, _seed));
+            return (frame, TexturedShapes.Closed(frame, Geometry(), settings.Outline, settings.Fill, size, outline, fill, _seed, _fillTexture, _spare));
         }
 
         // As RenderShape: a polygon being built, or one with no inside, shows its sides.
@@ -462,7 +475,7 @@ public sealed class ShapeTool(ShapeSettings settings) : IRotatableTool
 
         double sx = frame.Width / (frame.Width - 1.0), sy = frame.Height / (frame.Height - 1.0);
         (double X, double Y)[] polygon = [.. points.Select(p => (frame.X + (p.X - frame.X) * sx, frame.Y + (p.Y - frame.Y) * sy))];
-        return (frame, TexturedShapes.Closed(frame, [polygon], settings.Outline, settings.Fill, size, outline, fill, _seed));
+        return (frame, TexturedShapes.Closed(frame, [polygon], settings.Outline, settings.Fill, size, outline, fill, _seed, _fillTexture, _spare));
     }
 
     /// <summary>Square or circle for a box; horizontal, vertical or 45° for a line.</summary>

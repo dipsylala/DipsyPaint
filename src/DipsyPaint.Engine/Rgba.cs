@@ -22,11 +22,14 @@ public readonly record struct Rgba(byte R, byte G, byte B, byte A)
     }
 
     /// <summary>Scales every channel by <paramref name="opacity"/> (0–1), keeping the pixel premultiplied.</summary>
-    public Rgba WithOpacity(float opacity)
-    {
-        var scale = (int)MathF.Round(Math.Clamp(opacity, 0f, 1f) * 255f);
-        return new Rgba((byte)Div255(R * scale), (byte)Div255(G * scale), (byte)Div255(B * scale), (byte)Div255(A * scale));
-    }
+    public Rgba WithOpacity(float opacity) => Scaled(ScaleOf(opacity));
+
+    /// <summary>The scale (0–255) that <see cref="WithOpacity"/> applies for <paramref name="opacity"/>.</summary>
+    internal static byte ScaleOf(float opacity) => (byte)MathF.Round(Math.Clamp(opacity, 0f, 1f) * 255f);
+
+    /// <summary>Scales every channel by <paramref name="scale"/>/255 (0–255), as <see cref="WithOpacity"/> does.</summary>
+    internal Rgba Scaled(int scale) =>
+        new((byte)Div255(R * scale), (byte)Div255(G * scale), (byte)Div255(B * scale), (byte)Div255(A * scale));
 
     /// <summary>
     /// The pixel's straight (un-premultiplied) colour at full opacity; opaque black for a fully

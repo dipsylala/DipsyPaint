@@ -21,7 +21,7 @@ public sealed class Overlay
     public bool IsEmpty => Bounds.IsEmpty;
 
     /// <summary>
-    /// Shows <paramref name="pixels"/> (row-major, premultiplied, <paramref name="bounds"/>-sized)
+    /// Shows <paramref name="pixels"/> (row-major, premultiplied, <paramref name="bounds"/>-sized; any further pixels are ignored)
     /// in place of the current content. The overlay keeps the array without copying, so the
     /// caller must not change it while it is shown; showing the same array at new bounds moves it.
     /// Returns the rectangle to recomposite: the old and new bounds.
@@ -121,7 +121,16 @@ public sealed class Overlay
         var source = _pixels.AsSpan((y - Bounds.Y) * Bounds.Width);
         for (var i = from; i < to; i++)
         {
-            destination[i - x] = source[i - Bounds.X].Over(destination[i - x]);
+            // Shortcuts that give what Over gives: an opaque pixel replaces, a transparent one changes nothing.
+            var pixel = source[i - Bounds.X];
+            if (pixel.A == 255)
+            {
+                destination[i - x] = pixel;
+            }
+            else if (pixel != Rgba.Transparent)
+            {
+                destination[i - x] = pixel.Over(destination[i - x]);
+            }
         }
     }
 }
