@@ -70,6 +70,54 @@ internal static class PixelBridge
         return image;
     }
 
+    /// <summary>Copies a layer's pixels into a new straight-alpha image.</summary>
+    public static Image<Rgba32> ToImage(IPixelAccess pixels, Configuration configuration)
+    {
+        var image = new Image<Rgba32>(configuration, pixels.Width, pixels.Height);
+        var row = new Rgba[pixels.Width];
+        image.ProcessPixelRows(accessor =>
+        {
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                pixels.ReadRegion(new IntRect(0, y, row.Length, 1), row);
+                var target = accessor.GetRowSpan(y);
+                for (var x = 0; x < target.Length; x++)
+                {
+                    target[x] = Unpremultiply(row[x]);
+                }
+            }
+        });
+        return image;
+    }
+
+    /// <summary>
+    /// Writes <paramref name="image"/>'s pixels into <paramref name="target"/> with its top-left corner
+    /// at (<paramref name="left"/>, <paramref name="top"/>); whatever falls outside the target is dropped.
+    /// </summary>
+    public static void CopyInto(Image<Rgba32> image, IPixelAccess target, int left, int top)
+    {
+        var region = new IntRect(left, top, image.Width, image.Height).Intersect(new IntRect(0, 0, target.Width, target.Height));
+        if (region.IsEmpty)
+        {
+            return;
+        }
+
+        var row = new Rgba[region.Width];
+        image.ProcessPixelRows(accessor =>
+        {
+            for (var y = region.Y; y < region.Y + region.Height; y++)
+            {
+                var source = accessor.GetRowSpan(y - top).Slice(region.X - left, region.Width);
+                for (var x = 0; x < row.Length; x++)
+                {
+                    row[x] = Premultiply(source[x]);
+                }
+
+                target.WriteRegion(new IntRect(region.X, y, region.Width, 1), row);
+            }
+        });
+    }
+
     /// <summary>
     /// Copies the composite into a new straight-alpha image, first compositing it over
     /// <paramref name="background"/> when given (for formats without alpha).

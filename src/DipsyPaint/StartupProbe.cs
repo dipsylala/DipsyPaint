@@ -10,8 +10,8 @@ namespace DipsyPaint;
 /// Cold-start measurement and smoke test for published builds (ADR-0018). When the environment
 /// variable <see cref="Variable"/> names a file, the app appends one line to it once the main window
 /// has rendered its first frame, then exits: <c>startup_ms=N codecs=ok</c>, where N is the time
-/// from process start, and the codecs part round-trips the document through PNG and JPEG with
-/// ImageSharp (or reports <c>codecs=failed</c>). Without the variable it does nothing.
+/// from process start, and the codecs part round-trips the document through PNG, JPEG and OpenRaster
+/// (ImageSharp, ZIP and XML) (or reports <c>codecs=failed</c>). Without the variable it does nothing.
 /// </summary>
 internal static class StartupProbe
 {
@@ -41,7 +41,7 @@ internal static class StartupProbe
     {
         try
         {
-            foreach (var format in new[] { ImageFormat.Png, ImageFormat.Jpeg })
+            foreach (var format in new[] { ImageFormat.Png, ImageFormat.Jpeg, ImageFormat.OpenRaster })
             {
                 using var stream = new MemoryStream();
                 ImageCodec.Export(new Compositor(document), stream, format);

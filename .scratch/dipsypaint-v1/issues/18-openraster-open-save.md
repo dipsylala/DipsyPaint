@@ -6,10 +6,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] A saved `.ora` contains `mimetype`, `stack.xml`, per-layer PNGs, `mergedimage.png` and a thumbnail
-- [ ] DipsyPaint-specific data appears only as namespaced extensions in `stack.xml`
-- [ ] Reopening restores layer order, names, visibility and opacity exactly
+- [x] A saved `.ora` contains `mimetype`, `stack.xml`, per-layer PNGs, `mergedimage.png` and a thumbnail
+- [x] DipsyPaint-specific data appears only as namespaced extensions in `stack.xml`
+- [x] Reopening restores layer order, names, visibility and opacity exactly
 - [ ] Manual check: the file opens in Krita with layers intact
-- [ ] Rejected: zip-slip entry names (absolute, `..`, drive letters), too many entries, total uncompressed size over the cap, oversized `stack.xml`, layer PNGs larger than the canvas
-- [ ] `stack.xml` is parsed with DTD processing disabled; an XXE sample has no effect
-- [ ] All rejections show "could not open" with no crash and no half-open document; the samples are in the CI corpus
+- [x] Rejected: zip-slip entry names (absolute, `..`, drive letters), too many entries, total uncompressed size over the cap, oversized `stack.xml`, layer PNGs larger than the canvas
+- [x] `stack.xml` is parsed with DTD processing disabled; an XXE sample has no effect
+- [x] All rejections show "could not open" with no crash and no half-open document; the samples are in the CI corpus

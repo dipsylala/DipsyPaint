@@ -44,7 +44,7 @@ public class RemainingFormatsTests
     {
         Assert.Equal(
             [ImageFormat.Png, ImageFormat.Jpeg, ImageFormat.Bmp, ImageFormat.Gif, ImageFormat.Tiff,
-             ImageFormat.Bmp256, ImageFormat.Bmp16, ImageFormat.BmpMonochrome],
+             ImageFormat.Bmp256, ImageFormat.Bmp16, ImageFormat.BmpMonochrome, ImageFormat.OpenRaster],
             Enum.GetValues<ImageFormat>().Where(ImageCodec.CanExport));
         Assert.False(ImageCodec.CanExport(ImageFormat.Ico));
         Assert.False(ImageCodec.CanExport(ImageFormat.Webp));

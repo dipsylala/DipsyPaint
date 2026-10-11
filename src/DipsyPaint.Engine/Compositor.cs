@@ -34,6 +34,9 @@ public sealed class Compositor
         FitDocument();
     }
 
+    /// <summary>The document being composited.</summary>
+    internal Document Document => _document;
+
     public int Width { get; private set; }
     public int Height { get; private set; }
 
