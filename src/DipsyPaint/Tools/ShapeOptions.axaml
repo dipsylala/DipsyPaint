@@ -4,7 +4,8 @@
              xmlns:layout="using:DipsyPaint.Layout"
              x:Class="DipsyPaint.Tools.ShapeOptions">
   <WrapPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" ItemSpacing="8" LineSpacing="4" VerticalAlignment="Center">
-    <StackPanel x:Name="ShapeButtons" Orientation="Horizontal" Spacing="2" />
+    <!-- Columns follow the command group's orientation (see ShapeOptions.ArrangeGallery). -->
+    <UniformGrid x:Name="ShapeButtons" HorizontalAlignment="Left" AutomationProperties.Name="{x:Static res:ShapeStrings.Shapes}" />
     <ComboBox x:Name="OutlineBox" SelectionChanged="OnOutlineChanged" MinWidth="120"
               AutomationProperties.Name="{x:Static res:ShapeStrings.Outline}"
               ToolTip.Tip="{x:Static res:ShapeStrings.Outline}">

@@ -2,9 +2,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:res="using:DipsyPaint.Resources"
              xmlns:layout="using:DipsyPaint.Layout"
+             xmlns:tools="using:DipsyPaint.Tools"
              x:Class="DipsyPaint.Images.ImageControl"
              AutomationProperties.Name="{x:Static res:ImageStrings.ImageGroupName}">
   <StackPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" Spacing="4" Margin="8,4">
+    <tools:SelectionMenu x:Name="SelectionMenu" />
     <Button x:Name="CropButton" Click="OnCropClick" Width="40" Height="40"
             AutomationProperties.Name="{x:Static res:ImageStrings.Crop}"
             ToolTip.Tip="{x:Static res:ImageStrings.CropToolTip}">

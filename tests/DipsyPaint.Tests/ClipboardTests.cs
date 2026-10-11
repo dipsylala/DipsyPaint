@@ -59,7 +59,8 @@ public class ClipboardTests
         var window = new MainWindow(document);
         window.Show();
         window.UpdateLayout();
-        ToolButton(window, SelectionStrings.RectangleSelection).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        ToolButton(window, SelectionStrings.Select).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout(); // the command bar may rewrap for the tool's options, moving the canvas
         return (window, window.GetLogicalDescendants().OfType<ClipboardControl>().Single());
     }
 
@@ -343,7 +344,7 @@ public class ClipboardTests
         PressCommand(window, Key.V);
 
         Assert.Equal(new IntRect(276, 176, 3, 2), window.Editor.Selection?.Bounds); // the canvas has a 24 px margin
-        Assert.True(ToolButton(window, SelectionStrings.RectangleSelection).IsChecked);
+        Assert.True(ToolButton(window, SelectionStrings.Select).IsChecked);
         Assert.False(ToolButton(window, ToolStrings.Pencil).IsChecked);
     }
 
