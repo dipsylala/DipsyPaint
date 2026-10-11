@@ -25,6 +25,8 @@
         <MenuItem x:Name="StatusBarItem" Header="{x:Static res:ViewStrings.StatusBar}" Click="OnStatusBarClick"
                   ToggleType="CheckBox" AutomationProperties.Name="{x:Static res:ViewStrings.StatusBar}" />
       </MenuItem>
+      <MenuItem x:Name="FullScreenItem" Header="{x:Static res:ViewStrings.FullScreen}" Click="OnFullScreenClick" InputGesture="F11"
+                AutomationProperties.Name="{x:Static res:ViewStrings.FullScreen}" />
     </MenuItem>
   </Menu>
 </UserControl>
