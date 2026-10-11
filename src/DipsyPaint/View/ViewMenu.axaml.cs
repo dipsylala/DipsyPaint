@@ -8,9 +8,10 @@ using DipsyPaint.Settings;
 namespace DipsyPaint.View;
 
 /// <summary>
-/// Reference Paint's View menu: zoom commands, and the display options rulers (Ctrl+R), gridlines
-/// (Ctrl+G) and status bar. The display options only change what is shown around and over the
-/// canvas; they never touch the document, so they are never saved into the image.
+/// Reference Paint's View menu: zoom commands, the display options rulers (Ctrl+R), gridlines
+/// (Ctrl+G) and status bar, and full screen (F11). The display options only change what is shown
+/// around and over the canvas; they never touch the document, so they are never saved into the
+/// image. Also connects the magnifier tool to the zoom.
 /// </summary>
 public partial class ViewMenu : UserControl
 {
@@ -18,6 +19,7 @@ public partial class ViewMenu : UserControl
     private Control? _statusBar;
     private CanvasRulers? _rulers;
     private Gridlines? _gridlines;
+    private IReadOnlyList<Control> _chrome = [];
     private TopLevel? _topLevel;
 
     public ViewMenu()
@@ -39,12 +41,14 @@ public partial class ViewMenu : UserControl
     public event EventHandler? Changed;
 
     /// <summary>Connects the menu to the parts of the window it zooms, shows and hides.</summary>
-    public void Connect(ZoomControl zoom, Control statusBar, CanvasRulers rulers, Gridlines gridlines)
+    /// <param name="chrome">Everything around the canvas area that full screen hides, besides the status bar.</param>
+    public void Connect(ZoomControl zoom, Control statusBar, CanvasRulers rulers, Gridlines gridlines, IReadOnlyList<Control> chrome)
     {
         _zoom = zoom;
         _statusBar = statusBar;
         _rulers = rulers;
         _gridlines = gridlines;
+        _chrome = chrome;
         Apply();
     }
 
@@ -98,9 +102,14 @@ public partial class ViewMenu : UserControl
         RulersItem.IsChecked = ShowRulers;
         GridlinesItem.IsChecked = ShowGridlines;
         StatusBarItem.IsChecked = ShowStatusBar;
-        _rulers?.IsShown = ShowRulers;
-        _gridlines?.IsVisible = ShowGridlines;
-        _statusBar?.IsVisible = ShowStatusBar;
+        // Full screen shows the picture alone.
+        _rulers?.IsShown = ShowRulers && !IsFullScreen;
+        _gridlines?.IsVisible = ShowGridlines && !IsFullScreen;
+        _statusBar?.IsVisible = ShowStatusBar && !IsFullScreen;
+        foreach (var control in _chrome)
+        {
+            control.IsVisible = !IsFullScreen;
+        }
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -108,6 +117,7 @@ public partial class ViewMenu : UserControl
         base.OnAttachedToVisualTree(e);
         _topLevel = TopLevel.GetTopLevel(this);
         _topLevel?.AddHandler(KeyDownEvent, OnTopLevelKeyDown);
+        AttachFullScreen();
         RulersItem.InputGesture = new KeyGesture(Key.R, CommandModifiers);
         GridlinesItem.InputGesture = new KeyGesture(Key.G, CommandModifiers);
         ZoomInItem.InputGesture = new KeyGesture(Key.PageUp, CommandModifiers);
@@ -116,6 +126,7 @@ public partial class ViewMenu : UserControl
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        DetachFullScreen();
         _topLevel?.RemoveHandler(KeyDownEvent, OnTopLevelKeyDown);
         _topLevel = null;
         base.OnDetachedFromVisualTree(e);
@@ -160,4 +171,6 @@ public partial class ViewMenu : UserControl
     private void OnGridlinesClick(object? sender, RoutedEventArgs e) => SetGridlines(!ShowGridlines);
 
     private void OnStatusBarClick(object? sender, RoutedEventArgs e) => SetStatusBar(!ShowStatusBar);
+
+    private void OnFullScreenClick(object? sender, RoutedEventArgs e) => SetFullScreen(!IsFullScreen);
 }

@@ -2,6 +2,7 @@ using Avalonia.Input;
 using DipsyPaint.Engine.Tools;
 using DipsyPaint.Resources;
 using DipsyPaint.Text;
+using DipsyPaint.View;
 
 namespace DipsyPaint.Tools;
 
@@ -62,6 +63,7 @@ public static class ToolRegistry
         new("fill", ToolStrings.Fill, PaintBucketIcon, null, () => new FillTool()),
         TextToolEntry.Descriptor,
         new("colour-picker", ColourStrings.ColourPicker, EyedropperIcon, null, () => new ColorPickerTool(), ReturnsToPreviousTool: true),
+        MagnifierTool.Descriptor,
         new("brush", BrushStrings.Brush, PaintBrushIcon, null,
             () => Brushes.Selected.CreateTool(BrushSettings), () => new BrushOptions(BrushSettings, Brushes)),
         new("eraser", BrushStrings.Eraser, EraserIcon, new KeyGesture(Key.E),
