@@ -20,6 +20,10 @@
                   AutomationProperties.Name="{x:Static res:FileStrings.SaveAsJpeg}" />
         <MenuItem x:Name="SaveAsBmpItem" Header="{x:Static res:FileStrings.SaveAsBmp}" Click="OnSaveAsBmpClick"
                   AutomationProperties.Name="{x:Static res:FileStrings.SaveAsBmp}" />
+        <MenuItem x:Name="SaveAsGifItem" Header="{x:Static res:FormatStrings.SaveAsGif}" Click="OnSaveAsGifClick"
+                  AutomationProperties.Name="{x:Static res:FormatStrings.SaveAsGif}" />
+        <MenuItem x:Name="SaveAsOtherItem" Header="{x:Static res:FormatStrings.SaveAsOtherFormats}" Click="OnSaveAsOtherClick"
+                  AutomationProperties.Name="{x:Static res:FormatStrings.SaveAsOtherFormats}" />
       </MenuItem>
     </MenuItem>
   </Menu>
