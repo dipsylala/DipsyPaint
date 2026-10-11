@@ -10,9 +10,10 @@ namespace DipsyPaint.Images;
 
 /// <summary>
 /// Reference Paint's Image group: the Selection menu (<see cref="Tools.SelectionMenu"/>), Crop (to the
-/// selection), Resize, and the Rotate menu (rotate right
-/// or left 90°, rotate 180°, flip vertical or horizontal), for the <see cref="DocumentEditor"/> in the
-/// DataContext. With a selection, resize, rotate and flip apply to it, else to the whole picture.
+/// selection), Resize and skew, and the Rotate menu (rotate right
+/// or left 90°, rotate 180°, custom rotate, flip vertical or horizontal), for the <see cref="DocumentEditor"/> in the
+/// DataContext. With a selection, resize, skew, rotate and flip apply to it, else to the whole picture;
+/// custom rotate also turns a pending shape or text box.
 /// Also handles Paint's shortcuts for the whole window: Ctrl+W (Resize) and Ctrl+Shift+X (Crop),
 /// Cmd on macOS.
 /// </summary>
@@ -40,8 +41,8 @@ public partial class ImageControl : UserControl
     public void Transform(ImageTransform transform) => _editor?.Transform(transform);
 
     /// <summary>
-    /// Asks for a new size for the selection, or the whole picture without one, and resizes it;
-    /// a size the editor refuses is reported in a message.
+    /// Asks for a new size and skew for the selection, or the whole picture without one, and applies
+    /// them; a size the editor refuses is reported in a message.
     /// </summary>
     public async Task ResizeAsync()
     {
@@ -58,10 +59,33 @@ public partial class ImageControl : UserControl
             return;
         }
 
-        var message = editor.Resize(size.Width, size.Height) switch
+        var message = editor.ResizeAndSkew(size.Width, size.Height, size.HorizontalSkew, size.VerticalSkew) switch
         {
             ResizeResult.TooLarge => string.Format(ImageStrings.TooLarge, size.Width, size.Height, Document.MaxSide),
             ResizeResult.OverMemoryBudget => string.Format(ImageStrings.OverMemoryBudget, size.Width, size.Height),
+            _ => null,
+        };
+        if (message is not null)
+        {
+            await Dialogs.ShowErrorAsync(message);
+        }
+    }
+
+    /// <summary>
+    /// Asks for an angle (Custom rotate) and turns pending content (a selection, shape or text box) by
+    /// it, or the whole picture without any; a result the editor refuses is reported in a message.
+    /// </summary>
+    public async Task CustomRotateAsync()
+    {
+        if (_editor is null || await Dialogs.AskRotationAsync() is not { } degrees)
+        {
+            return;
+        }
+
+        var message = _editor.Rotate(degrees) switch
+        {
+            ResizeResult.TooLarge => string.Format(TransformStrings.TooLarge, Document.MaxSide),
+            ResizeResult.OverMemoryBudget => TransformStrings.OverMemoryBudget,
             _ => null,
         };
         if (message is not null)
@@ -115,6 +139,8 @@ public partial class ImageControl : UserControl
     private void OnRotateLeftClick(object? sender, RoutedEventArgs e) => Transform(ImageTransform.RotateLeft);
 
     private void OnRotate180Click(object? sender, RoutedEventArgs e) => Transform(ImageTransform.Rotate180);
+
+    private async void OnCustomRotateClick(object? sender, RoutedEventArgs e) => await CustomRotateAsync();
 
     private void OnFlipVerticalClick(object? sender, RoutedEventArgs e) => Transform(ImageTransform.FlipVertical);
 

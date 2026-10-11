@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Rendering;
 using DipsyPaint.Engine;
 using DipsyPaint.Engine.Tools;
 
@@ -16,10 +17,11 @@ namespace DipsyPaint.Drawing;
 /// Pointer positions are taken in this control's own coordinates, so a transform applied around
 /// it (e.g. zoom) still yields document pixels. Transparent pixels show a checkerboard, as in
 /// reference Paint. Also draws the frame and handles around pending content
-/// (<see cref="DocumentEditor.Adornment"/>) at a constant on-screen size, and handles Enter
-/// (commit) and Esc (cancel) for it, and Delete for a selection.
+/// (<see cref="DocumentEditor.Adornment"/>) at a constant on-screen size, with the rotate handle
+/// above it, and handles Enter (commit) and Esc (cancel) for it, and Delete for a selection. Handles
+/// that stick out past the canvas still take presses (<see cref="ICustomHitTest"/>).
 /// </summary>
-public sealed class DocumentCanvas : Control
+public sealed class DocumentCanvas : Control, ICustomHitTest
 {
     /// <summary>Side of a handle square, in device-independent pixels on screen.</summary>
     private const double HandleSize = 7;
@@ -167,7 +169,17 @@ public sealed class DocumentCanvas : Control
         {
             context.DrawRectangle(Brushes.White, solid, new Rect(x - half, y - half, 2 * half, 2 * half));
         }
+
+        // The rotate handle: a circle above the top edge's handle, joined to it by a line.
+        var (rx, ry) = adornment.RotateHandle(HandleReach * unit);
+        context.DrawLine(solid, new Point(rx, frame.Y - half), new Point(rx, ry + half));
+        context.DrawEllipse(Brushes.White, solid, new Point(rx, ry), half, half);
     }
+
+    /// <summary>The canvas, and any handle of the adornment, even where it sticks out past the canvas.</summary>
+    public bool HitTest(Point point) =>
+        new Rect(Bounds.Size).Contains(point)
+        || (_editor?.Adornment?.HitTest(point.X, point.Y, _editor.HandleTolerance) ?? FrameHandle.None) is not (FrameHandle.None or FrameHandle.Move);
 
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
@@ -255,6 +267,7 @@ public sealed class DocumentCanvas : Control
         FrameHandle.BottomRight => new Cursor(StandardCursorType.BottomRightCorner),
         FrameHandle.BottomLeft => new Cursor(StandardCursorType.BottomLeftCorner),
         FrameHandle.Top or FrameHandle.Bottom => new Cursor(StandardCursorType.SizeNorthSouth),
+        FrameHandle.Rotate => new Cursor(StandardCursorType.Hand),
         _ => new Cursor(StandardCursorType.SizeWestEast),
     };
 

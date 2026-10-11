@@ -25,11 +25,13 @@ public class ImageTests
         public List<(int Width, int Height)> ResizeRequests { get; } = [];
         public List<string> Errors { get; } = [];
 
-        public Task<(int Width, int Height)?> AskResizeAsync(int width, int height)
+        public Task<ResizeAndSkew?> AskResizeAsync(int width, int height)
         {
             ResizeRequests.Add((width, height));
-            return Task.FromResult(ResizeResult);
+            return Task.FromResult(ResizeResult is { } size ? new ResizeAndSkew(size.Width, size.Height) : (ResizeAndSkew?)null);
         }
+
+        public Task<int?> AskRotationAsync() => Task.FromResult<int?>(null);
 
         public Task ShowErrorAsync(string message)
         {
@@ -109,7 +111,7 @@ public class ImageTests
             var button = image.GetLogicalDescendants().OfType<Button>().Single(b => AutomationProperties.GetName(b) == name);
             Assert.True(button.Focusable && button.IsTabStop);
         });
-        string[] items = ["RotateRightItem", "RotateLeftItem", "Rotate180Item", "FlipVerticalItem", "FlipHorizontalItem"];
+        string[] items = ["RotateRightItem", "RotateLeftItem", "Rotate180Item", "CustomRotateItem", "FlipVerticalItem", "FlipHorizontalItem"];
         Assert.All(items, name => Assert.False(string.IsNullOrEmpty(AutomationProperties.GetName(image.FindControl<MenuItem>(name)!))));
     }
 
@@ -233,7 +235,7 @@ public class ImageTests
 
         Assert.Equal(50m, vertical.Value);
         dialog.FindControl<Button>("OkButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Assert.Equal((32, 24), dialog.Result);
+        Assert.Equal(new ResizeAndSkew(32, 24), dialog.Result);
     }
 
     [AvaloniaFact]
@@ -255,7 +257,7 @@ public class ImageTests
         Assert.Equal(128m, horizontal.Value);
 
         dialog.FindControl<Button>("OkButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Assert.Equal((128, 10), dialog.Result);
+        Assert.Equal(new ResizeAndSkew(128, 10), dialog.Result);
     }
 
     [AvaloniaFact]

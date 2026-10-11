@@ -1,12 +1,13 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using DipsyPaint.Engine;
 
 namespace DipsyPaint.Images;
 
 /// <summary>
-/// The resize part of reference Paint's Resize and Skew dialog: a new size by percentage (default,
-/// 100%) or in pixels, keeping the aspect ratio unless unticked. Skew is not offered yet (ticket 23).
-/// Closes with the new size in pixels, or null if cancelled.
+/// Reference Paint's Resize and skew dialog: a new size by percentage (default, 100%) or in pixels,
+/// keeping the aspect ratio unless unticked, then a horizontal and a vertical skew in whole degrees
+/// (−89 to 89, default 0). Closes with the new size in pixels and the skew, or null if cancelled.
 /// </summary>
 public partial class ResizeDialog : Window
 {
@@ -31,12 +32,15 @@ public partial class ResizeDialog : Window
         VerticalBox.ValueChanged += (_, _) => KeepAspectRatio(VerticalBox, HorizontalBox, _height, _width);
     }
 
-    /// <summary>The size chosen, in pixels; null until OK is pressed.</summary>
-    public (int Width, int Height)? Result { get; private set; }
+    /// <summary>The size chosen, in pixels, and the skew; null until OK is pressed.</summary>
+    public ResizeAndSkew? Result { get; private set; }
 
     private bool ByPercentage => PercentageOption.IsChecked == true;
 
     private static int Value(NumericUpDown box) => (int)Math.Clamp(box.Value ?? 1, 1, int.MaxValue);
+
+    private static int Skew(NumericUpDown box) =>
+        (int)Math.Clamp(box.Value ?? 0, -LinearTransform.MaxSkewDegrees, LinearTransform.MaxSkewDegrees);
 
     private static int Scale(int value, int numerator, int denominator) =>
         (int)Math.Clamp(Math.Round((double)value * numerator / denominator, MidpointRounding.AwayFromZero), 1, int.MaxValue);
@@ -78,7 +82,8 @@ public partial class ResizeDialog : Window
     private void OnOkClick(object? sender, RoutedEventArgs e)
     {
         var (horizontal, vertical) = (Value(HorizontalBox), Value(VerticalBox));
-        Result = ByPercentage ? (Scale(_width, horizontal, 100), Scale(_height, vertical, 100)) : (horizontal, vertical);
+        var (width, height) = ByPercentage ? (Scale(_width, horizontal, 100), Scale(_height, vertical, 100)) : (horizontal, vertical);
+        Result = new ResizeAndSkew(width, height, Skew(HorizontalSkewBox), Skew(VerticalSkewBox));
         Close(Result);
     }
 
