@@ -15,6 +15,9 @@
   <data name="Brush" xml:space="preserve">
     <value>Brush</value>
   </data>
+  <data name="Brushes" xml:space="preserve">
+    <value>Brushes</value>
+  </data>
   <data name="Eraser" xml:space="preserve">
     <value>Eraser</value>
   </data>
