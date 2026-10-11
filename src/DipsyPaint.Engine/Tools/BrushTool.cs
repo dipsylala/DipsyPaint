@@ -2,8 +2,8 @@ namespace DipsyPaint.Engine.Tools;
 
 /// <summary>
 /// Reference Paint's basic brush: a round, antialiased tip of <see cref="StrokeSettings.Size"/>
-/// pixels diameter swept along the pointer path. The left button paints in the primary colour,
-/// the right button in the secondary colour. The tip is centred on the pixel under the pointer.
+/// pixels diameter swept along the pointer path, at <see cref="StrokeSettings.Opacity"/>. The left
+/// button paints in the primary colour, the right button in the secondary colour. The tip is centred on the pixel under the pointer.
 /// </summary>
 public sealed class BrushTool(StrokeSettings settings) : ITool
 {
@@ -20,7 +20,7 @@ public sealed class BrushTool(StrokeSettings settings) : ITool
         if (input.Action == PointerAction.Down)
         {
             var color = input.Button == PointerButton.Right ? context.SecondaryColor : context.PrimaryColor;
-            _stroke = new Stroke(context.Target, color);
+            _stroke = new Stroke(context.Target, color, settings.OpacityFraction);
             _radius = settings.Size / 2.0;
             _lastX = x;
             _lastY = y;

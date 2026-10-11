@@ -2,10 +2,16 @@ namespace DipsyPaint.Engine.Tools;
 
 /// <summary>
 /// Hard-edged, aliased 1 px freehand line, as reference Paint's pencil: the left button
-/// draws in the primary colour, the right button in the secondary colour.
+/// draws in the primary colour, the right button in the secondary colour, at
+/// <see cref="StrokeSettings.Opacity"/>. The pencil ignores <see cref="StrokeSettings.Size"/>.
 /// </summary>
-public sealed class PencilTool : ITool
+public sealed class PencilTool(StrokeSettings settings) : ITool
 {
+    /// <summary>Creates a fully opaque pencil.</summary>
+    public PencilTool() : this(new StrokeSettings(StrokeSettings.MinSize))
+    {
+    }
+
     private Stroke? _stroke;
     private int _lastX;
     private int _lastY;
@@ -18,7 +24,7 @@ public sealed class PencilTool : ITool
         if (input.Action == PointerAction.Down)
         {
             var color = input.Button == PointerButton.Right ? context.SecondaryColor : context.PrimaryColor;
-            _stroke = new Stroke(context.Target, color);
+            _stroke = new Stroke(context.Target, color, settings.OpacityFraction);
             _stroke.Plot(x, y);
         }
         else if (_stroke is not null)
