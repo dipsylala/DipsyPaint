@@ -2,7 +2,7 @@
 
 **What to build:** While a document has unsaved changes, DipsyPaint periodically writes a recovery snapshot. After a crash, the next launch offers to restore it. Large operations are checked against a memory budget beforehand. Out-of-memory triggers an emergency snapshot. Spec: AC22 to AC27, ADR-0013.
 
-**Blocked by:** 18 (OpenRaster open/save), 13 (Local crash log + "Report a problem")
+**Blocked by:** 18 (OpenRaster open/save), 13 (Local crash log + "Report a problem"), 36 ("Save changes?" prompt and unsaved-changes tracking)
 
 **Status:** ready-for-agent
 
