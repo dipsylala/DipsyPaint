@@ -8,7 +8,8 @@ using DipsyPaint.Resources;
 namespace DipsyPaint.Tools;
 
 /// <summary>
-/// Options panel with a size slider for a stroke tool (brush, eraser). While shown, it also handles
+/// Options panel with a size slider for a stroke tool (brush, eraser), followed by its
+/// <see cref="StrokeOpacityOptions"/>. While shown, it also handles
 /// reference Paint's size shortcuts for the whole window: Ctrl+Plus and Ctrl+Minus (Cmd on macOS)
 /// change the size by one pixel.
 /// </summary>
@@ -30,6 +31,7 @@ public partial class StrokeSizeOptions : UserControl
         SizeSlider.Value = settings.Size;
         SizeSlider.ValueChanged += (_, e) => SetSize((int)Math.Round(e.NewValue));
         UpdateSizeText();
+        Items.Children.Add(new StrokeOpacityOptions(settings));
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

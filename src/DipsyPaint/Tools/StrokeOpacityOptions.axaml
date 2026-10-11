@@ -1,0 +1,13 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             xmlns:layout="using:DipsyPaint.Layout"
+             x:Class="DipsyPaint.Tools.StrokeOpacityOptions">
+  <StackPanel Orientation="{Binding $self.(layout:CommandGroup.Orientation)}" Spacing="8">
+    <TextBlock Text="{x:Static res:OpacityStrings.Opacity}" VerticalAlignment="Center" />
+    <Slider x:Name="OpacitySlider" Width="140" Height="40" VerticalAlignment="Center"
+            SmallChange="1" LargeChange="10" TickFrequency="1" IsSnapToTickEnabled="True"
+            AutomationProperties.Name="{x:Static res:OpacityStrings.Opacity}" />
+    <TextBlock x:Name="OpacityText" MinWidth="48" VerticalAlignment="Center" />
+  </StackPanel>
+</UserControl>

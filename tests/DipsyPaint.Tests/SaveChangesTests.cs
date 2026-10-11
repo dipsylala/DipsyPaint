@@ -66,6 +66,11 @@ public sealed class SaveChangesTests : IDisposable
             Errors.Add(message);
             return Task.CompletedTask;
         }
+
+        /// <summary>The answer to the lossy-save warning (palette formats).</summary>
+        public bool ConfirmLossySave { get; set; } = true;
+
+        public Task<bool> ConfirmLossySaveAsync() => Task.FromResult(ConfirmLossySave);
     }
 
     private sealed class FakeUpdater : IUpdater
@@ -254,6 +259,23 @@ public sealed class SaveChangesTests : IDisposable
         Assert.False(await Run(trigger, setup));
 
         Assert.StartsWith("Could not save", Assert.Single(setup.Dialogs.Errors));
+        Assert.Same(document, setup.Window.Document);
+        Assert.True(setup.Window.Editor.HasUnsavedChanges);
+    }
+
+    [AvaloniaTheory]
+    [MemberData(nameof(Triggers))]
+    public async Task Save_ThenCancellingTheLossySaveWarning_KeepsTheDocument(string trigger)
+    {
+        var setup = ShowWindow();
+        DrawDot(setup.Window, 1, 1);
+        var document = setup.Window.Document;
+        setup.Prompt.Choice = SaveChangesChoice.Save;
+        setup.Dialogs.SaveResult = FileOnDisk("palette.gif");
+        setup.Dialogs.ConfirmLossySave = false;
+
+        Assert.False(await Run(trigger, setup));
+
         Assert.Same(document, setup.Window.Document);
         Assert.True(setup.Window.Editor.HasUnsavedChanges);
     }

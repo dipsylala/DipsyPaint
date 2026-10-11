@@ -55,6 +55,8 @@ public sealed class FileMenuTests : IDisposable
             Errors.Add(message);
             return Task.CompletedTask;
         }
+
+        public Task<bool> ConfirmLossySaveAsync() => Task.FromResult(true);
     }
 
     // These tests discard drawings without being asked; SaveChangesTests covers the prompt.

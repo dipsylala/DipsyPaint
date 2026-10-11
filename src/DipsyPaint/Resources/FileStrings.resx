@@ -65,7 +65,7 @@
     <value>Could not open "{0}".</value>
   </data>
   <data name="UnreadableReason" xml:space="preserve">
-    <value>The file is damaged or is not a PNG, JPEG or BMP image.</value>
+    <value>The file is damaged or is not a supported image type.</value>
   </data>
   <data name="TooLargeReason" xml:space="preserve">
     <value>The image is larger than {0} pixels on a side.</value>
