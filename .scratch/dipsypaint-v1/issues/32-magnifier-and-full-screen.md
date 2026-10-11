@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] The magnifier behaves as in reference Paint
-- [ ] Full screen enters and exits with reference Paint's shortcut
-- [ ] Works on all three OSes
+- [x] The magnifier behaves as in reference Paint
+- [x] Full screen enters and exits with reference Paint's shortcut
+- [x] Works on all three OSes
