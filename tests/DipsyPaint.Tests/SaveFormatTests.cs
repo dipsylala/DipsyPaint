@@ -65,6 +65,12 @@ public sealed class SaveFormatTests : IDisposable
 
     private string PathOf(string name) => Path.Combine(_folder, name);
 
+    // These tests discard drawings without being asked; SaveChangesTests covers the prompt.
+    private sealed class DontSavePrompt : ISaveChangesPrompt
+    {
+        public Task<SaveChangesChoice> AskAsync(string documentName) => Task.FromResult(SaveChangesChoice.DontSave);
+    }
+
     private static short BmpBitsPerPixel(byte[] file) => BinaryPrimitives.ReadInt16LittleEndian(file.AsSpan(28));
 
     private static (MainWindow Window, FileMenu Menu, FakeDialogs Dialogs) ShowWindow()
@@ -75,6 +81,7 @@ public sealed class SaveFormatTests : IDisposable
         var menu = window.FindControl<FileMenu>("FileMenu")!;
         var dialogs = new FakeDialogs();
         menu.Dialogs = dialogs;
+        menu.SaveChangesPrompt = new DontSavePrompt();
         window.Editor.Apply(new PointerInput(PointerAction.Down, 4.5, 4.5, PointerButton.Left));
         window.Editor.Apply(new PointerInput(PointerAction.Up, 4.5, 4.5, PointerButton.Left));
         return (window, menu, dialogs);
@@ -126,7 +133,7 @@ public sealed class SaveFormatTests : IDisposable
 
         Assert.Equal(1, dialogs.Warnings);
         Assert.False(File.Exists(PathOf("drawing.gif")));
-        Assert.Equal("Untitled - DipsyPaint", window.Title);
+        Assert.Equal("*Untitled - DipsyPaint", window.Title); // still unsaved
     }
 
     [AvaloniaFact]

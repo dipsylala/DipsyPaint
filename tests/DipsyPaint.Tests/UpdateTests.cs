@@ -55,7 +55,7 @@ public sealed class UpdateTests
         await updates.CheckAsync(updater); // does not throw
 
         Assert.False(updates.IsVisible);
-        updates.RestartToUpdate();
+        await updates.RestartToUpdateAsync();
         Assert.Equal(0, updater.Applied);
     }
 
@@ -95,7 +95,7 @@ public sealed class UpdateTests
         await updates.CheckAsync(updater);
         window.Closing += (_, e) => e.Cancel = true; // e.g. the user keeps unsaved work
 
-        updates.RestartToUpdate();
+        await updates.RestartToUpdateAsync();
 
         Assert.True(window.IsVisible);
         Assert.Equal(0, updater.Applied);
