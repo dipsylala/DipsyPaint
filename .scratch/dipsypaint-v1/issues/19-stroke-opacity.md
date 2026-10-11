@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] An opacity slider applies to pencil, brush and eraser as in reference Paint
-- [ ] Golden images at several opacities for each tool
-- [ ] Overlapping strokes within a single stroke behave as in reference Paint
+- [x] An opacity slider applies to pencil, brush and eraser as in reference Paint
+- [x] Golden images at several opacities for each tool
+- [x] Overlapping strokes within a single stroke behave as in reference Paint
