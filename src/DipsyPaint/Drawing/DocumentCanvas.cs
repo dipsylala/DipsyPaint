@@ -49,6 +49,8 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
     private WriteableBitmap? _bitmap;
     private PointerButton? _strokeButton;
     private Point _lastPosition;
+    private PointerInput _lastInput;
+    private readonly StrokeRepeater _repeater = new();
     private TopLevel? _topLevel;
     private FrameHandle _hoveredHandle;
 
@@ -56,6 +58,12 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
     private double _scale = 1;
 
     public DocumentCanvas() => RenderOptions.SetBitmapInterpolationMode(this, BitmapInterpolationMode.None);
+
+    /// <summary>
+    /// The clock that times pointer input (<see cref="PointerInput.Time"/>) and repeats it while a
+    /// stroke of an <see cref="IRepeatingTool"/> is held; tests may replace it.
+    /// </summary>
+    public TimeProvider Clock { get; set; } = TimeProvider.System;
 
     protected override void OnDataContextChanged(EventArgs e)
     {
@@ -237,6 +245,19 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
         e.Pointer.Capture(this);
         e.Handled = true;
         Apply(PointerAction.Down, e);
+        if (_editor?.ActiveTool is IRepeatingTool repeating)
+        {
+            _repeater.Start(Clock, repeating.RepeatInterval, RepeatLastInput);
+        }
+    }
+
+    // The pointer is held still: the tool gets the same position again, at the current time.
+    private void RepeatLastInput()
+    {
+        if (_strokeButton is not null && _editor is not null)
+        {
+            _editor.Apply(_lastInput with { Action = PointerAction.Move, Time = Clock.GetElapsedTime(0) });
+        }
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
@@ -285,6 +306,7 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
             return;
         }
 
+        _repeater.Stop();
         Apply(PointerAction.Up, e);
         _strokeButton = null;
         e.Pointer.Capture(null);
@@ -294,6 +316,7 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
+        _repeater.Stop();
         if (_strokeButton is { } button)
         {
             _strokeButton = null;
@@ -306,9 +329,10 @@ public sealed class DocumentCanvas : Control, ICustomHitTest
     {
         var point = e.GetCurrentPoint(this);
         _lastPosition = point.Position;
-        _editor?.Apply(new PointerInput(
+        _lastInput = new PointerInput(
             action, point.Position.X, point.Position.Y, _strokeButton!.Value, point.Properties.Pressure,
-            e.KeyModifiers.HasFlag(KeyModifiers.Shift)));
+            e.KeyModifiers.HasFlag(KeyModifiers.Shift), Clock.GetElapsedTime(0));
+        _editor?.Apply(_lastInput);
         InvalidateVisual(); // the adornment may change without the composite changing
     }
 

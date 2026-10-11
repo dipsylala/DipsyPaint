@@ -53,16 +53,25 @@ public class BrushGalleryTests
         root.GetVisualDescendants().OfType<ComboBox>().Single(c => AutomationProperties.GetName(c) == BrushStrings.Brushes);
 
     [AvaloniaFact]
-    public void WithOneBrush_TheBrushMenuIsHidden_AndTheBrushToolPaintsWithIt()
+    public void TheBrushTool_StartsWithTheBasicBrush_AndShowsTheBrushMenu()
     {
         var window = new MainWindow(Document.CreateBlank(8, 8));
         window.Show();
         window.UpdateLayout();
         Click(window, BrushStrings.Brush);
 
-        Assert.False(BrushMenu(window).IsEffectivelyVisible);
+        Assert.True(BrushMenu(window).IsEffectivelyVisible);
         Assert.IsType<BrushTool>(window.Editor.ActiveTool);
         Assert.Contains(window.GetVisualDescendants().OfType<Slider>(), s => s.IsEffectivelyVisible && AutomationProperties.GetName(s) == BrushStrings.Size);
+    }
+
+    [AvaloniaFact]
+    public void WithOneBrush_TheBrushMenuIsHidden()
+    {
+        var (picker, editor, _) = ShowPicker(new BrushGallery([new("brush", BrushStrings.Brush, "M0 0h24v24H0z", s => new BrushTool(s))]));
+
+        Assert.False(BrushMenu(picker).IsEffectivelyVisible);
+        Assert.IsType<BrushTool>(editor.ActiveTool);
     }
 
     [AvaloniaFact]

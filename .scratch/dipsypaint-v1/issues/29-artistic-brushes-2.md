@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] The three brushes are present and their strokes resemble reference Paint's
-- [ ] Size and opacity controls apply
-- [ ] Golden images per brush; randomised brushes (e.g. airbrush) are seeded so golden tests are deterministic
-- [ ] Brush latency stays within the ≤ 16 ms target (benchmark from ticket 15 extended)
+- [x] The three brushes are present and their strokes resemble reference Paint's
+- [x] Size and opacity controls apply
+- [x] Golden images per brush; randomised brushes (e.g. airbrush) are seeded so golden tests are deterministic
+- [x] Brush latency stays within the ≤ 16 ms target (benchmark from ticket 15 extended)

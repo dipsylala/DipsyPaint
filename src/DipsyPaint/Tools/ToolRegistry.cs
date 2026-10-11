@@ -39,6 +39,9 @@ public static class ToolRegistry
     public static BrushGallery Brushes { get; } = new(
     [
         new("brush", BrushStrings.Brush, PaintBrushIcon, settings => new BrushTool(settings)),
+        ArtisticBrushes2Entries.Airbrush,
+        ArtisticBrushes2Entries.OilBrush,
+        ArtisticBrushes2Entries.WatercolourBrush,
     ]);
 
     // Bespoke: a square and a circle (the Fluent set's shape icons are not a good match), ADR-0012.

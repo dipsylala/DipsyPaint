@@ -10,6 +10,7 @@ below).
 | Benchmark | Measures | Target |
 | --- | --- | --- |
 | `Brush.StrokeEvent [Size=5\|100]` | One brush stroke on a 3840×2160 document with 20 layers, drawing on the top layer: pointer down, 20 moves 10 px apart, pointer up, all through `DocumentEditor.Apply`. Covers painting, the history step and recompositing the dirty rectangle. Reported as the mean cost per pointer event, at the shell's default brush size (5) and the largest (100). | ≤ 16 ms (AC31) |
+| `AirbrushOilWatercolour.StrokeEvent [Brush=Airbrush\|Oil\|Watercolour, Size=5\|100]` | The same stroke as `Brush.StrokeEvent` with the airbrush, oil brush and watercolour brush (ticket 29). The airbrush sprays for 16 ms per event, as for events without a time. | ≤ 16 ms (AC31) |
 | `Fill.FloodFill [Layers=1\|20]` | A flood fill of a whole 3840×2160 layer through the editor: region search, write, history step and recompositing. Measured on a one-layer document and with 20 layers. | ≤ 200 ms (AC32) |
 | `ColdStart.FirstFrame` | Time from process start to the main window's first rendered frame. Median of 10 launches. | ≤ 2 s (AC33) |
 
@@ -74,7 +75,7 @@ an Intel Core i5-10210U or an AMD Ryzen 5 4500U.
 
 - [ ] Plug in the laptop, choose the balanced or performance power plan, and close other programs.
 - [ ] Record the CPU, RAM, GPU, OS version and the commit being measured.
-- [ ] Engine benchmarks (default job, no `--job short`): `Brush.StrokeEvent` ≤ 16 ms per event at both sizes; `Fill.FloodFill` ≤ 200 ms.
+- [ ] Engine benchmarks (default job, no `--job short`): `Brush.StrokeEvent` and `AirbrushOilWatercolour.StrokeEvent` ≤ 16 ms per event at both sizes; `Fill.FloodFill` ≤ 200 ms.
 - [ ] Cold start with the release package (the publish mode chosen in ticket 14), `--runs 10`: median ≤ 2 s. Note the first run after a reboot as well.
 - [ ] By hand on a 3840×2160 document with 20 layers: brush strokes keep up with the pointer, with no visible lag.
 - [ ] By hand: a flood fill of the whole canvas feels instant, and the window stays responsive during large operations (AC34).
