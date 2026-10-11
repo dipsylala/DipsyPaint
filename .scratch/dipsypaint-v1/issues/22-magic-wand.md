@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] Clicking selects the contiguous region within the colour tolerance
-- [ ] A tolerance control is available
-- [ ] Scanline-based; no recursion
-- [ ] The result is a normal selection (move, delete, copy, invert all work)
-- [ ] Golden images for selections at several tolerances
+- [x] Clicking selects the contiguous region within the colour tolerance
+- [x] A tolerance control is available
+- [x] Scanline-based; no recursion
+- [x] The result is a normal selection (move, delete, copy, invert all work)
+- [x] Golden images for selections at several tolerances
