@@ -18,7 +18,7 @@ namespace DipsyPaint.Tests;
 
 public sealed class CommandBarLayoutTests : IDisposable
 {
-    private static readonly string[] DefaultOrder = ["file", "view", "history", "clipboard", "image", "tools", "colours", "help", "update"];
+    private static readonly string[] DefaultOrder = ["menu", "history", "clipboard", "image", "tools", "colours", "update"];
 
     // Never the real user profile.
     private readonly string _settingsDirectory = Path.Combine(Path.GetTempPath(), "DipsyPaintTests-" + Guid.NewGuid().ToString("N"));
@@ -271,25 +271,39 @@ public sealed class CommandBarLayoutTests : IDisposable
         Choose(window, "tools", LayoutStrings.MoveLater);
         Assert.Equal(["colours", "tools"], Layout(window).Arrangement[DockEdge.Left]);
 
-        Choose(window, "file", LayoutStrings.MoveToRight);
-        Choose(window, "help", LayoutStrings.MoveToBottom);
-        Assert.Equal(["layers", "file"], Layout(window).Arrangement[DockEdge.Right]);
-        Assert.Equal(["help"], Layout(window).Arrangement[DockEdge.Bottom]);
-        Assert.True(RectOf(Layout(window).Host("file"), window).Left > window.ClientSize.Width / 2);
-        Assert.True(RectOf(Layout(window).Host("help"), window).Top > window.ClientSize.Height / 2);
+        Choose(window, "menu", LayoutStrings.MoveToRight);
+        Choose(window, "clipboard", LayoutStrings.MoveToBottom);
+        Assert.Equal(["layers", "menu"], Layout(window).Arrangement[DockEdge.Right]);
+        Assert.Equal(["clipboard"], Layout(window).Arrangement[DockEdge.Bottom]);
+        Assert.True(RectOf(Layout(window).Host("menu"), window).Left > window.ClientSize.Width / 2);
+        Assert.True(RectOf(Layout(window).Host("clipboard"), window).Top > window.ClientSize.Height / 2);
+    }
+
+    [AvaloniaFact]
+    public void FileViewAndHelpShareOneMenuGroupFirstOnTheTopEdge()
+    {
+        var window = ShowWindow();
+        var menu = Layout(window).Host("menu");
+
+        Assert.Equal("menu", Layout(window).Arrangement[DockEdge.Top][0]);
+        var headers = menu.Group.GetVisualDescendants().OfType<MenuItem>().Where(i => i.Parent is Menu)
+            .Select(i => (string?)i.Header).ToList();
+        Assert.Equal([FileStrings.File, ViewStrings.View, ReportStrings.Help], headers);
+        var tops = headers.Select(h => RectOf(menu.Group.GetVisualDescendants().OfType<MenuItem>().Single(i => (string?)i.Header == h), window).Top);
+        Assert.Single(tops.Distinct());
     }
 
     [AvaloniaFact]
     public void MoveEarlierAndLaterSkipHiddenGroupsAndStopAtTheEnds()
     {
         var window = ShowWindow();
-        var help = Layout(window).Host("help");
-        help.Grip.Flyout!.ShowAt(help.Grip);
+        var colours = Layout(window).Host("colours");
+        colours.Grip.Flyout!.ShowAt(colours.Grip);
 
-        // The update group is hidden until an update is ready, so Help is effectively last.
-        Assert.False(Item(help, LayoutStrings.MoveLater).IsEnabled);
-        Assert.True(Item(help, LayoutStrings.MoveEarlier).IsEnabled);
-        Assert.False(Layout(window).CanMoveBy("file", -1));
+        // The update group is hidden until an update is ready, so Colours is effectively last.
+        Assert.False(Item(colours, LayoutStrings.MoveLater).IsEnabled);
+        Assert.True(Item(colours, LayoutStrings.MoveEarlier).IsEnabled);
+        Assert.False(Layout(window).CanMoveBy("menu", -1));
     }
 
     [AvaloniaFact]
@@ -309,26 +323,26 @@ public sealed class CommandBarLayoutTests : IDisposable
         Drag(window, Layout(window).Host("image").Grip, new Point(tools.Center.X, tools.Top + 2));
         Assert.Equal(["image", "tools"], Layout(window).Arrangement[DockEdge.Left]);
 
-        // Within the top edge: History dropped before File.
-        var file = RectOf(Layout(window).Host("file"), window);
-        Drag(window, Layout(window).Host("history").Grip, new Point(file.Left + 2, file.Center.Y));
-        Assert.Equal(["history", "file", "view", "clipboard", "help", "update"], Layout(window).Arrangement[DockEdge.Top]);
+        // Within the top edge: History dropped before the menus.
+        var menu = RectOf(Layout(window).Host("menu"), window);
+        Drag(window, Layout(window).Host("history").Grip, new Point(menu.Left + 2, menu.Center.Y));
+        Assert.Equal(["history", "menu", "clipboard", "update"], Layout(window).Arrangement[DockEdge.Top]);
 
         // Below the canvas: the bottom edge.
-        Drag(window, Layout(window).Host("help").Grip, new Point(canvasArea.Center.X, canvasArea.Bottom - 5));
-        Assert.Equal(["help"], Layout(window).Arrangement[DockEdge.Bottom]);
+        Drag(window, Layout(window).Host("clipboard").Grip, new Point(canvasArea.Center.X, canvasArea.Bottom - 5));
+        Assert.Equal(["clipboard"], Layout(window).Arrangement[DockEdge.Bottom]);
     }
 
     [AvaloniaFact]
     public void GroupsOnTheSidesLayOutVerticallyAndStayUsable()
     {
         var window = ShowWindow();
-        foreach (var id in new[] { "file", "history", "clipboard", "image" })
+        foreach (var id in new[] { "menu", "history", "clipboard", "image" })
         {
             Layout(window).Move(id, DockEdge.Left, int.MaxValue);
         }
 
-        foreach (var id in new[] { "tools", "colours", "help" })
+        foreach (var id in new[] { "tools", "colours" })
         {
             Layout(window).Move(id, DockEdge.Right, int.MaxValue);
         }
@@ -400,7 +414,7 @@ public sealed class CommandBarLayoutTests : IDisposable
         Assert.False(File.Exists(SettingsPath)); // nothing written until the layout changes
 
         Layout(first).Move("colours", DockEdge.Left, 0);
-        Layout(first).Move("help", DockEdge.Bottom, 0);
+        Layout(first).Move("clipboard", DockEdge.Bottom, 0);
         Layout(first).Move("history", DockEdge.Top, 0);
         Assert.True(File.Exists(SettingsPath));
 
@@ -412,7 +426,7 @@ public sealed class CommandBarLayoutTests : IDisposable
         }
 
         Assert.Same(Layout(second).EdgePanel(DockEdge.Left), Layout(second).Host("colours").Parent);
-        Assert.Equal(DockEdge.Bottom, Layout(second).Arrangement.EdgeOf("help"));
+        Assert.Equal(DockEdge.Bottom, Layout(second).Arrangement.EdgeOf("clipboard"));
     }
 
     [AvaloniaTheory]
@@ -448,14 +462,15 @@ public sealed class CommandBarLayoutTests : IDisposable
     public void UnknownGroupsAreIgnoredAndNewGroupsAppearInTheirDefaultPlace()
     {
         Directory.CreateDirectory(_settingsDirectory);
-        // A layout from a version with a "ruler" group and without most of today's groups.
+        // A layout from a version with a "ruler" group, a separate "file" group (now in "menu") and
+        // without most of today's groups.
         File.WriteAllText(SettingsPath, """
             {"commandBar": {"top": ["file", "tools", "file", "ruler"], "left": ["colours", "bogus", null]}}
             """);
 
         var window = ShowWindow(Store());
 
-        Assert.Equal(["file", "view", "history", "clipboard", "image", "tools", "help", "update"], Layout(window).Arrangement[DockEdge.Top]);
+        Assert.Equal(["menu", "history", "clipboard", "image", "tools", "update"], Layout(window).Arrangement[DockEdge.Top]);
         Assert.Equal(["colours"], Layout(window).Arrangement[DockEdge.Left]);
         Assert.Equal(["layers"], Layout(window).Arrangement[DockEdge.Right]);
     }
@@ -480,7 +495,7 @@ public sealed class CommandBarLayoutTests : IDisposable
     {
         var window = ShowWindow(Store());
         Choose(window, "colours", LayoutStrings.MoveToLeft);
-        Choose(window, "file", LayoutStrings.MoveToBottom);
+        Choose(window, "menu", LayoutStrings.MoveToBottom);
         Choose(window, "history", LayoutStrings.MoveLater);
 
         Choose(window, "tools", LayoutStrings.ResetLayout);
