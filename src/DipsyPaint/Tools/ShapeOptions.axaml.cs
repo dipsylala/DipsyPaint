@@ -1,9 +1,13 @@
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
+using Avalonia.Layout;
 using Avalonia.Media;
 using DipsyPaint.Engine;
 using DipsyPaint.Engine.Tools;
+using DipsyPaint.Layout;
 using DipsyPaint.Resources;
 
 namespace DipsyPaint.Tools;
@@ -15,14 +19,39 @@ namespace DipsyPaint.Tools;
 /// </summary>
 public partial class ShapeOptions : UserControl
 {
-    // Bespoke icons (the Fluent set has no plain line/rectangle/oval shapes), ADR-0012.
-    private static readonly (ShapeKind Kind, string Name, string Icon)[] Gallery =
+    // Reference Paint's gallery, in its order.
+    private static readonly (ShapeKind Kind, string Name)[] Gallery =
     [
-        (ShapeKind.Line, ShapeStrings.Line, "M4.47 18.47l14-14 1.06 1.06-14 14z"),
-        (ShapeKind.Rectangle, ShapeStrings.Rectangle, "M3 5h18v14H3zM4.5 6.5v11h15v-11z"),
-        (ShapeKind.Ellipse, ShapeStrings.Ellipse,
-            "M12 5c5 0 9 3.13 9 7s-4 7-9 7-9-3.13-9-7 4-7 9-7zm0 1.5c-4.14 0-7.5 2.46-7.5 5.5s3.36 5.5 7.5 5.5 7.5-2.46 7.5-5.5-3.36-5.5-7.5-5.5z"),
+        (ShapeKind.Line, ShapeStrings.Line),
+        (ShapeKind.Curve, ShapeStrings.Curve),
+        (ShapeKind.Ellipse, ShapeStrings.Ellipse),
+        (ShapeKind.Rectangle, ShapeStrings.Rectangle),
+        (ShapeKind.RoundedRectangle, ShapeStrings.RoundedRectangle),
+        (ShapeKind.Polygon, ShapeStrings.Polygon),
+        (ShapeKind.Triangle, ShapeStrings.Triangle),
+        (ShapeKind.RightTriangle, ShapeStrings.RightTriangle),
+        (ShapeKind.Diamond, ShapeStrings.Diamond),
+        (ShapeKind.Pentagon, ShapeStrings.Pentagon),
+        (ShapeKind.Hexagon, ShapeStrings.Hexagon),
+        (ShapeKind.RightArrow, ShapeStrings.RightArrow),
+        (ShapeKind.LeftArrow, ShapeStrings.LeftArrow),
+        (ShapeKind.UpArrow, ShapeStrings.UpArrow),
+        (ShapeKind.DownArrow, ShapeStrings.DownArrow),
+        (ShapeKind.FourPointStar, ShapeStrings.FourPointStar),
+        (ShapeKind.FivePointStar, ShapeStrings.FivePointStar),
+        (ShapeKind.SixPointStar, ShapeStrings.SixPointStar),
+        (ShapeKind.RoundedRectangularCallout, ShapeStrings.RoundedRectangularCallout),
+        (ShapeKind.OvalCallout, ShapeStrings.OvalCallout),
+        (ShapeKind.CloudCallout, ShapeStrings.CloudCallout),
+        (ShapeKind.Heart, ShapeStrings.Heart),
+        (ShapeKind.Lightning, ShapeStrings.Lightning),
     ];
+
+    /// <summary>Gallery columns: two rows on a top or bottom edge, a narrow column on a side edge.</summary>
+    private const int HorizontalColumns = 12;
+    private const int VerticalColumns = 4;
+
+    private const double IconSize = 16;
 
     private readonly ShapeSettings _settings;
     private readonly Dictionary<ShapeKind, ToggleButton> _shapeButtons = [];
@@ -35,9 +64,21 @@ public partial class ShapeOptions : UserControl
     {
         _settings = settings;
         InitializeComponent();
-        foreach (var (kind, name, icon) in Gallery)
+        foreach (var (kind, name) in Gallery)
         {
-            var button = new ToggleButton { Content = new PathIcon { Data = Geometry.Parse(icon) }, Width = 32, Height = 32 };
+            var button = new ToggleButton { Width = 26, Height = 26, Padding = new Thickness(4), Margin = new Thickness(1) };
+            var icon = new Avalonia.Controls.Shapes.Path
+            {
+                Data = Icon(kind),
+                StrokeThickness = 1.25,
+                StrokeJoin = PenLineJoin.Round,
+                Width = IconSize,
+                Height = IconSize,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            icon.Bind(Shape.StrokeProperty, button.GetObservable(TemplatedControl.ForegroundProperty));
+            button.Content = icon;
             AutomationProperties.SetName(button, name);
             ToolTip.SetTip(button, name);
             button.Click += (_, _) => SelectShape(kind);
@@ -50,9 +91,73 @@ public partial class ShapeOptions : UserControl
         FillBox.SelectedIndex = (int)settings.Fill;
         SizeBox.SelectedIndex = Math.Max(0, ShapeSettings.Sizes.ToList().IndexOf(settings.Size));
         UpdateShapeButtons();
+        ArrangeGallery(CommandGroup.GetOrientation(this));
     }
 
     private DocumentEditor? Editor => DataContext as DocumentEditor;
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == CommandGroup.OrientationProperty)
+        {
+            ArrangeGallery(change.GetNewValue<Orientation>());
+        }
+    }
+
+    private void ArrangeGallery(Orientation orientation) =>
+        ShapeButtons.Columns = orientation == Orientation.Vertical ? VerticalColumns : HorizontalColumns;
+
+    // Bespoke icons drawn from the shapes' own outlines (ADR-0012); line, curve and polygon get a sample.
+    private static Geometry Icon(ShapeKind kind)
+    {
+        const double inset = 1, full = IconSize - 2 * inset;
+        IReadOnlyList<(double X, double Y)[]> contours;
+        var closed = true;
+        switch (kind)
+        {
+            case ShapeKind.Line:
+                (contours, closed) = ([[(2, 14), (14, 2)]], false);
+                break;
+            case ShapeKind.Curve:
+                (contours, closed) = ([ShapeOutlines.FlattenCubic((1, 12), (5, -2), (11, 18), (15, 4), 16)], false);
+                break;
+            case ShapeKind.Polygon:
+                contours = [[(1, 14), (3, 3), (9, 7), (15, 2), (13, 14)]];
+                break;
+            default:
+                // Wide shapes look wide, as in reference Paint's gallery.
+                var (width, height) = kind switch
+                {
+                    ShapeKind.Rectangle or ShapeKind.Ellipse or ShapeKind.RoundedRectangle or ShapeKind.RoundedRectangularCallout
+                        or ShapeKind.OvalCallout or ShapeKind.CloudCallout => (full, 11.0),
+                    ShapeKind.RightArrow or ShapeKind.LeftArrow => (full, 10.0),
+                    ShapeKind.UpArrow or ShapeKind.DownArrow => (10.0, full),
+                    _ => (full, full),
+                };
+                var (left, top) = ((IconSize - width) / 2, (IconSize - height) / 2);
+                contours = ShapeOutlines.Of(kind, width, height)
+                    .Select(c => c.Select(p => (p.X + left, p.Y + top)).ToArray()).ToList();
+                break;
+        }
+
+        var geometry = new StreamGeometry();
+        using (var context = geometry.Open())
+        {
+            foreach (var contour in contours)
+            {
+                context.BeginFigure(new Point(contour[0].X, contour[0].Y), isFilled: false);
+                foreach (var (x, y) in contour.Skip(1))
+                {
+                    context.LineTo(new Point(x, y));
+                }
+
+                context.EndFigure(closed);
+            }
+        }
+
+        return geometry;
+    }
 
     private void SelectShape(ShapeKind kind)
     {
@@ -68,7 +173,7 @@ public partial class ShapeOptions : UserControl
             button.IsChecked = kind == _settings.Kind;
         }
 
-        FillBox.IsEnabled = _settings.Kind != ShapeKind.Line; // a line has no inside
+        FillBox.IsEnabled = ShapeSettings.CanFill(_settings.Kind); // a line or curve has no inside
     }
 
     private void OnOutlineChanged(object? sender, SelectionChangedEventArgs e) =>

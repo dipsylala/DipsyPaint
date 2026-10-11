@@ -2,11 +2,14 @@ namespace DipsyPaint.Engine.Tools;
 
 /// <summary>
 /// Renders shapes as hard-edged (aliased) pixels, as reference Paint's solid shapes, into a
-/// transparent buffer for the <see cref="Overlay"/>. Rectangles and ellipses fill the frame given
-/// by two corner pixels, with the outline growing inwards; a line runs between two pixel centres.
+/// transparent buffer for the <see cref="Overlay"/>. Box shapes fill the frame given by two corner
+/// pixels, with the outline growing inwards: a pixel is inside when its centre is, and outline
+/// when its centre is also nearer the edge than the outline size. Lines and curves run through
+/// pixel centres.
 /// </summary>
 internal static class ShapeRasterizer
 {
+    /// <summary>A line between two pixels, or a box shape filling the frame they span.</summary>
     public static (IntRect Bounds, Rgba[] Pixels) Render(
         ShapeKind kind, (int X, int Y) a, (int X, int Y) b, ShapeStyle outlineStyle, ShapeStyle fillStyle, int size,
         Rgba outline, Rgba fill)
@@ -14,13 +17,21 @@ internal static class ShapeRasterizer
         size = Math.Max(size, 1);
         if (kind == ShapeKind.Line)
         {
-            return outlineStyle == ShapeStyle.None ? (IntRect.Empty, []) : Line(a, b, size, outline);
+            return outlineStyle == ShapeStyle.None ? (IntRect.Empty, []) : Polyline([a, b], size, outline);
         }
 
         var bounds = Adornment.FrameOf(a, b);
-        var pixels = new Rgba[bounds.Width * bounds.Height];
         var thickness = outlineStyle == ShapeStyle.None ? 0 : size;
         var fillPaint = fillStyle == ShapeStyle.None ? Rgba.Transparent : fill;
+        if (kind is not (ShapeKind.Rectangle or ShapeKind.Ellipse))
+        {
+            var contours = ShapeOutlines.Of(kind, bounds.Width, bounds.Height)
+                .Select(c => c.Select(p => (bounds.X + p.X, bounds.Y + p.Y)).ToArray())
+                .ToList();
+            return (bounds, Closed(bounds, contours, thickness, outline, fillPaint));
+        }
+
+        var pixels = new Rgba[bounds.Width * bounds.Height];
         for (var y = 0; y < bounds.Height; y++)
         {
             for (var x = 0; x < bounds.Width; x++)
@@ -39,6 +50,115 @@ internal static class ShapeRasterizer
 
         return (bounds, pixels);
     }
+
+    /// <summary>
+    /// Closed polygons (in document coordinates, pixel edges at whole numbers) within
+    /// <paramref name="bounds"/>: even-odd inside, with an outline of <paramref name="thickness"/>
+    /// (0 for none) along the inside of every edge.
+    /// </summary>
+    public static Rgba[] Closed(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours, int thickness, Rgba outline, Rgba fill)
+    {
+        var inside = new bool[bounds.Width * bounds.Height];
+        var crossings = new List<double>();
+        for (var y = 0; y < bounds.Height; y++)
+        {
+            var cy = bounds.Y + y + 0.5;
+            crossings.Clear();
+            foreach (var contour in contours)
+            {
+                for (var i = 0; i < contour.Length; i++)
+                {
+                    var (p, q) = (contour[i], contour[(i + 1) % contour.Length]);
+                    if ((p.Y <= cy) != (q.Y <= cy))
+                    {
+                        crossings.Add(p.X + (cy - p.Y) * (q.X - p.X) / (q.Y - p.Y));
+                    }
+                }
+            }
+
+            crossings.Sort();
+            for (var k = 0; k + 1 < crossings.Count; k += 2)
+            {
+                // Pixels whose centre lies in [crossings[k], crossings[k + 1]).
+                var from = Math.Max(0, (int)Math.Ceiling(crossings[k] - bounds.X - 0.5));
+                var to = Math.Min(bounds.Width, (int)Math.Ceiling(crossings[k + 1] - bounds.X - 0.5));
+                Array.Fill(inside, true, y * bounds.Width + from, Math.Max(0, to - from));
+            }
+        }
+
+        // An edge through pixel centres (e.g. an arrow's shaft at three quarters of an even height)
+        // leaves the pixels beside it exactly a whole number of pixels away; counting those keeps the
+        // outline `thickness` pixels wide there. Edges along pixel edges are unaffected.
+        var reach = thickness + 1e-9;
+        var edge = new bool[inside.Length];
+        if (thickness > 0)
+        {
+            foreach (var contour in contours)
+            {
+                for (var i = 0; i < contour.Length; i++)
+                {
+                    var (p, q) = (contour[i], contour[(i + 1) % contour.Length]);
+                    MarkNear(edge, bounds, p.X, p.Y, q.X, q.Y, reach);
+                }
+            }
+        }
+
+        var pixels = new Rgba[inside.Length];
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            pixels[i] = !inside[i] ? Rgba.Transparent : edge[i] ? outline : fill;
+        }
+
+        return pixels;
+    }
+
+    /// <summary>
+    /// A line through pixels (pixel centres; fractional points allowed), <paramref name="size"/>
+    /// wide with round ends and joins; 1 px wide it is a Bresenham line between the rounded points.
+    /// </summary>
+    public static (IntRect Bounds, Rgba[] Pixels) Polyline(IReadOnlyList<(double X, double Y)> points, int size, Rgba color)
+    {
+        size = Math.Max(size, 1);
+        var margin = size / 2 + 1;
+        int minX = (int)Math.Floor(points.Min(p => p.X)), maxX = (int)Math.Ceiling(points.Max(p => p.X));
+        int minY = (int)Math.Floor(points.Min(p => p.Y)), maxY = (int)Math.Ceiling(points.Max(p => p.Y));
+        var bounds = new IntRect(minX - margin, minY - margin, maxX - minX + 1 + 2 * margin, maxY - minY + 1 + 2 * margin);
+        var pixels = new Rgba[bounds.Width * bounds.Height];
+        if (size == 1)
+        {
+            for (var i = 0; i < points.Count; i++)
+            {
+                var from = Round(points[Math.Max(0, i - 1)]);
+                Bresenham(from, Round(points[i]), (x, y) => pixels[(y - bounds.Y) * bounds.Width + x - bounds.X] = color);
+            }
+
+            return (bounds, pixels);
+        }
+
+        // Every pixel whose centre lies within size/2 of the line. An even width centres on the
+        // pixel corner so that it covers exactly `size` rows or columns.
+        var offset = size % 2 == 0 ? 1.0 : 0.5;
+        var near = new bool[pixels.Length];
+        for (var i = 0; i < points.Count; i++)
+        {
+            var (p, q) = (points[Math.Max(0, i - 1)], points[i]);
+            MarkNear(near, bounds, p.X + offset, p.Y + offset, q.X + offset, q.Y + offset, size / 2.0);
+        }
+
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            if (near[i])
+            {
+                pixels[i] = color;
+            }
+        }
+
+        return (bounds, pixels);
+    }
+
+    /// <summary>The pixel nearest a point given in pixel-centre coordinates.</summary>
+    public static (int X, int Y) Round((double X, double Y) point) =>
+        ((int)Math.Floor(point.X + 0.5), (int)Math.Floor(point.Y + 0.5));
 
     private enum Part
     {
@@ -67,35 +187,47 @@ internal static class ShapeRasterizer
     private static bool Inside(double dx, double dy, double rx, double ry) =>
         rx > 0 && ry > 0 && (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
 
-    private static (IntRect Bounds, Rgba[] Pixels) Line((int X, int Y) a, (int X, int Y) b, int size, Rgba color)
+    /// <summary>
+    /// Marks the pixels of <paramref name="bounds"/> whose centre is nearer than
+    /// <paramref name="radius"/> to the segment, visiting only the rows and columns it can reach.
+    /// </summary>
+    private static void MarkNear(bool[] mask, IntRect bounds, double x0, double y0, double x1, double y1, double radius)
     {
-        var margin = size / 2 + 1;
-        var frame = Adornment.FrameOf(a, b);
-        var bounds = new IntRect(frame.X - margin, frame.Y - margin, frame.Width + 2 * margin, frame.Height + 2 * margin);
-        var pixels = new Rgba[bounds.Width * bounds.Height];
-        if (size == 1)
+        var radiusSquared = radius * radius;
+        var top = Math.Max(0, (int)Math.Floor(Math.Min(y0, y1) - radius - bounds.Y) - 1);
+        var bottom = Math.Min(bounds.Height - 1, (int)Math.Ceiling(Math.Max(y0, y1) + radius - bounds.Y) + 1);
+        for (var y = top; y <= bottom; y++)
         {
-            Bresenham(a, b, (x, y) => pixels[(y - bounds.Y) * bounds.Width + x - bounds.X] = color);
-            return (bounds, pixels);
-        }
+            var cy = bounds.Y + y + 0.5;
 
-        // Thick lines: every pixel whose centre lies within size/2 of the segment (round caps). An
-        // even width centres on the pixel corner so that it covers exactly `size` rows or columns.
-        var offset = size % 2 == 0 ? 1.0 : 0.5;
-        double x0 = a.X + offset, y0 = a.Y + offset, x1 = b.X + offset, y1 = b.Y + offset;
-        var radius = size / 2.0;
-        for (var y = 0; y < bounds.Height; y++)
-        {
-            for (var x = 0; x < bounds.Width; x++)
+            // Only the part of the segment within `radius` of this row can be near its pixels.
+            double t0 = 0, t1 = 1, dy = y1 - y0;
+            if (dy != 0)
             {
-                if (DistanceSquared(bounds.X + x + 0.5, bounds.Y + y + 0.5, x0, y0, x1, y1) < radius * radius)
+                double ta = (cy - radius - y0) / dy, tb = (cy + radius - y0) / dy;
+                t0 = Math.Max(0, Math.Min(ta, tb));
+                t1 = Math.Min(1, Math.Max(ta, tb));
+                if (t0 > t1)
                 {
-                    pixels[y * bounds.Width + x] = color;
+                    continue;
+                }
+            }
+            else if (Math.Abs(y0 - cy) > radius)
+            {
+                continue;
+            }
+
+            double xa = x0 + t0 * (x1 - x0), xb = x0 + t1 * (x1 - x0);
+            var left = Math.Max(0, (int)Math.Floor(Math.Min(xa, xb) - radius - bounds.X) - 1);
+            var right = Math.Min(bounds.Width - 1, (int)Math.Ceiling(Math.Max(xa, xb) + radius - bounds.X) + 1);
+            for (var x = left; x <= right; x++)
+            {
+                if (DistanceSquared(bounds.X + x + 0.5, cy, x0, y0, x1, y1) < radiusSquared)
+                {
+                    mask[y * bounds.Width + x] = true;
                 }
             }
         }
-
-        return (bounds, pixels);
     }
 
     private static double DistanceSquared(double px, double py, double x0, double y0, double x1, double y1)

@@ -46,4 +46,64 @@
     <value>{0} px</value>
     <comment>{0} = outline width in pixels</comment>
   </data>
+  <data name="Curve" xml:space="preserve">
+    <value>Curve</value>
+  </data>
+  <data name="RoundedRectangle" xml:space="preserve">
+    <value>Rounded rectangle</value>
+  </data>
+  <data name="Polygon" xml:space="preserve">
+    <value>Polygon</value>
+  </data>
+  <data name="Triangle" xml:space="preserve">
+    <value>Triangle</value>
+  </data>
+  <data name="RightTriangle" xml:space="preserve">
+    <value>Right triangle</value>
+  </data>
+  <data name="Diamond" xml:space="preserve">
+    <value>Diamond</value>
+  </data>
+  <data name="Pentagon" xml:space="preserve">
+    <value>Pentagon</value>
+  </data>
+  <data name="Hexagon" xml:space="preserve">
+    <value>Hexagon</value>
+  </data>
+  <data name="RightArrow" xml:space="preserve">
+    <value>Right arrow</value>
+  </data>
+  <data name="LeftArrow" xml:space="preserve">
+    <value>Left arrow</value>
+  </data>
+  <data name="UpArrow" xml:space="preserve">
+    <value>Up arrow</value>
+  </data>
+  <data name="DownArrow" xml:space="preserve">
+    <value>Down arrow</value>
+  </data>
+  <data name="FourPointStar" xml:space="preserve">
+    <value>Four-point star</value>
+  </data>
+  <data name="FivePointStar" xml:space="preserve">
+    <value>Five-point star</value>
+  </data>
+  <data name="SixPointStar" xml:space="preserve">
+    <value>Six-point star</value>
+  </data>
+  <data name="RoundedRectangularCallout" xml:space="preserve">
+    <value>Rounded rectangular callout</value>
+  </data>
+  <data name="OvalCallout" xml:space="preserve">
+    <value>Oval callout</value>
+  </data>
+  <data name="CloudCallout" xml:space="preserve">
+    <value>Cloud callout</value>
+  </data>
+  <data name="Heart" xml:space="preserve">
+    <value>Heart</value>
+  </data>
+  <data name="Lightning" xml:space="preserve">
+    <value>Lightning</value>
+  </data>
 </root>
