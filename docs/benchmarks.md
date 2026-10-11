@@ -10,7 +10,7 @@ below).
 | Benchmark | Measures | Target |
 | --- | --- | --- |
 | `Brush.StrokeEvent [Size=5\|100]` | One brush stroke on a 3840×2160 document with 20 layers, drawing on the top layer: pointer down, 20 moves 10 px apart, pointer up, all through `DocumentEditor.Apply`. Covers painting, the history step and recompositing the dirty rectangle. Reported as the mean cost per pointer event, at the shell's default brush size (5) and the largest (100). | ≤ 16 ms (AC31) |
-| `ArtisticBrush.StrokeEvent [Brush=calligraphy-brush\|calligraphy-pen\|crayon\|marker\|natural-pencil]` | The `Brush.StrokeEvent` stroke at size 100 with each artistic brush of ticket 28. | ≤ 16 ms (AC31) |
+| `ArtisticBrush.StrokeEvent [Brush=calligraphy-brush\|calligraphy-pen\|airbrush\|oil-brush\|crayon\|marker\|natural-pencil\|watercolour-brush]` | The `Brush.StrokeEvent` stroke at size 100 with each artistic brush of tickets 28 and 29. The airbrush sprays for 16 ms per event, as for events without a time. | ≤ 16 ms (AC31) |
 | `Fill.FloodFill [Layers=1\|20]` | A flood fill of a whole 3840×2160 layer through the editor: region search, write, history step and recompositing. Measured on a one-layer document and with 20 layers. | ≤ 200 ms (AC32) |
 | `ColdStart.FirstFrame` | Time from process start to the main window's first rendered frame. Median of 10 launches. | ≤ 2 s (AC33) |
 
