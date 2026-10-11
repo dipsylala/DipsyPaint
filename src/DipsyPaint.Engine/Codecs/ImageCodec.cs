@@ -59,6 +59,7 @@ public static class ImageCodec
         ImageFormat.Tiff => [".tif", ".tiff"],
         ImageFormat.Ico => [".ico"],
         ImageFormat.Webp => [".webp"],
+        ImageFormat.OpenRaster => [".ora"],
         _ => throw new ArgumentOutOfRangeException(nameof(format)),
     };
 
@@ -110,7 +111,8 @@ public static class ImageCodec
     /// Decodes a PNG, JPEG, BMP, GIF, TIFF, ICO or WebP into a new one-layer document, detecting the
     /// format by content. Only the first frame of an animated or multi-page image is read. The size
     /// declared in the header is checked against <see cref="Document.MaxSide"/> and
-    /// <paramref name="budget"/> before any pixels are decoded.
+    /// <paramref name="budget"/> before any pixels are decoded. A ZIP archive is read as an OpenRaster
+    /// project file, keeping its layers (<see cref="OpenRasterCodec.Open"/>).
     /// </summary>
     /// <exception cref="ImageOpenException">The file could not be opened, for any reason.</exception>
     public static Document Open(Stream stream, MemoryBudget? budget = null)
@@ -120,6 +122,14 @@ public static class ImageCodec
         {
             var source = stream.CanSeek ? stream : CopyToMemory(stream);
             var start = source.Position;
+            Span<byte> signature = stackalloc byte[4];
+            var isZip = source.ReadAtLeast(signature, 4, throwOnEndOfStream: false) == 4 && signature.SequenceEqual("PK\x03\x04"u8);
+            source.Position = start;
+            if (isZip)
+            {
+                return OpenRasterCodec.Open(source, budget);
+            }
+
             var info = Image.Identify(Decoding, source);
             CheckSize(info.Width, info.Height, budget);
 
@@ -135,7 +145,11 @@ public static class ImageCodec
         }
     }
 
-    /// <summary>Writes the composited document to <paramref name="stream"/>; layers are not kept.</summary>
+    /// <summary>
+    /// Writes the composited document to <paramref name="stream"/>; layers are not kept, except by
+    /// <see cref="ImageFormat.OpenRaster"/>, the project format (<see cref="OpenRasterCodec.Save"/>,
+    /// which needs a seekable stream).
+    /// </summary>
     /// <remarks>
     /// Only PNG keeps alpha (ImageSharp writes TIFF without it); for the other formats the composite is
     /// flattened onto white first.
@@ -146,6 +160,12 @@ public static class ImageCodec
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="format"/> cannot be exported (<see cref="CanExport"/>).</exception>
     public static void Export(Compositor compositor, Stream stream, ImageFormat format)
     {
+        if (format == ImageFormat.OpenRaster)
+        {
+            OpenRasterCodec.Save(compositor, stream);
+            return;
+        }
+
         ImageEncoder encoder = format switch
         {
             ImageFormat.Png => new PngEncoder { ColorType = PngColorType.RgbWithAlpha, BitDepth = PngBitDepth.Bit8 },

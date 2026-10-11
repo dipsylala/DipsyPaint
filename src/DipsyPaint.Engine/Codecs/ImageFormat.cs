@@ -1,8 +1,9 @@
 namespace DipsyPaint.Engine.Codecs;
 
 /// <summary>
-/// A flat file type the engine can open or export (ADR-0019), as listed in reference Paint's Open and
-/// Save dialogs. The BMP variants differ only in how they are exported; all of them open.
+/// A file type the engine can open or save (ADR-0019), as listed in reference Paint's Open and
+/// Save dialogs: flat image formats, plus <see cref="OpenRaster"/>, the layered project format.
+/// The BMP variants differ only in how they are exported; all of them open.
 /// </summary>
 public enum ImageFormat
 {
@@ -22,4 +23,6 @@ public enum ImageFormat
     Bmp16,
     /// <summary>BMP exported in black and white, 1 bit per pixel.</summary>
     BmpMonochrome,
+    /// <summary>OpenRaster <c>.ora</c>, the project file format; keeps layers (ADR-0006).</summary>
+    OpenRaster,
 }

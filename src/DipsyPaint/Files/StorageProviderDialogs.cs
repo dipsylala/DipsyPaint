@@ -23,13 +23,23 @@ internal sealed class StorageProviderDialogs(Visual anchor) : IFileDialogs
     private static readonly FilePickerFileType Ico = FileType(FormatStrings.IcoFileType, ImageFormat.Ico, "image/x-icon", "com.microsoft.ico");
     private static readonly FilePickerFileType Webp = FileType(FormatStrings.WebpFileType, ImageFormat.Webp, "image/webp", "org.webmproject.webp");
 
-    // Reference Paint's order (ADR-0019). Opening needs only one BMP entry.
-    private static readonly FilePickerFileType[] OpenTypes = [Bmp, Jpeg, Gif, Tiff, Png, Ico, Webp];
+    // OpenRaster has no system-declared Apple type identifier; macOS matches it by extension.
+    private static readonly FilePickerFileType OpenRaster = new(OpenRasterStrings.OpenRasterFileType)
+    {
+        Patterns = ["*.ora"],
+        MimeTypes = ["image/openraster"],
+        AppleUniformTypeIdentifiers = [],
+    };
+
+    // Reference Paint's order (ADR-0019), then the project format last, where Paint lists .paint.
+    // Opening needs only one BMP entry.
+    private static readonly FilePickerFileType[] OpenTypes = [Bmp, Jpeg, Gif, Tiff, Png, Ico, Webp, OpenRaster];
 
     private static readonly (ImageFormat Format, FilePickerFileType Type)[] SaveTypes =
     [
         (ImageFormat.BmpMonochrome, BmpMonochrome), (ImageFormat.Bmp16, Bmp16), (ImageFormat.Bmp256, Bmp256),
         (ImageFormat.Bmp, Bmp), (ImageFormat.Jpeg, Jpeg), (ImageFormat.Gif, Gif), (ImageFormat.Tiff, Tiff), (ImageFormat.Png, Png),
+        (ImageFormat.OpenRaster, OpenRaster),
     ];
 
     private static readonly FilePickerFileType AllPictures = new(FileStrings.AllPicturesFileType)
