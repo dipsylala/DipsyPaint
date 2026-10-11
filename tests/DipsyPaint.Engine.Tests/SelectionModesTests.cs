@@ -55,7 +55,7 @@ public class SelectionModesTests
 
         var selection = Assert.IsType<Selection>(editor.Selection);
         Assert.Equal(new IntRect(4, 4, 8, 8), selection.Bounds);
-        Assert.Equal(new Adornment(new IntRect(4, 4, 8, 8)), editor.Adornment);
+        Assert.Equal(new Adornment(new IntRect(4, 4, 8, 8)) { HasHandles = false }, editor.Adornment);
         Assert.NotNull(selection.Mask);
         for (var y = 0; y < 32; y++)
         {
@@ -109,6 +109,7 @@ public class SelectionModesTests
         var editor = CreateEditor();
         var before = Snapshot(editor);
         SelectTriangle(editor);
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
 
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (21.5, 17.5)); // move by (16, 12)
 
@@ -160,6 +161,7 @@ public class SelectionModesTests
         SelectTriangle(editor);
 
         var copied = editor.CopySelection()!;
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (21.5, 17.5));
         var copiedAfterMoving = editor.CopySelection()!;
 
@@ -214,6 +216,7 @@ public class SelectionModesTests
     {
         var editor = CreateEditor();
         Script.Stroke(editor, PointerButton.Left, (4.5, 4.5), (11.5, 11.5));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (6.5, 6.5), (16.5, 6.5)); // move by (10, 0)
 
         editor.SelectAll();
@@ -283,6 +286,7 @@ public class SelectionModesTests
     {
         var editor = CreateEditor();
         Script.Stroke(editor, PointerButton.Left, (4.5, 4.5), (11.5, 11.5));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (6.5, 6.5), (16.5, 6.5)); // move by (10, 0)
 
         editor.InvertSelection();
@@ -300,6 +304,7 @@ public class SelectionModesTests
         var editor = CreateEditor(new SelectionSettings { Transparent = true }); // colour 2 is white
         Layer(editor).WriteRegion(new IntRect(20, 4, 8, 8), Enumerable.Repeat(Blue, 64).ToArray());
         Script.Stroke(editor, PointerButton.Left, (2.5, 2.5), (13.5, 13.5)); // the red square and a white border
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
 
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (22.5, 5.5));   // over the blue square, by (17, 0)
 

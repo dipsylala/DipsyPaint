@@ -62,6 +62,7 @@ public class ClipboardEditingTests
     {
         var editor = CreateEditor();
         Script.Stroke(editor, PointerButton.Left, (4.5, 4.5), (7.5, 7.5)); // the red square exactly
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (8, 8), (12, 12));        // stretch it to 8×8
 
         var image = editor.CopySelection()!;
@@ -77,6 +78,7 @@ public class ClipboardEditingTests
         var editor = CreateEditor();
         var before = Snapshot(editor);
         SelectSquare(editor);
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (15.5, 7.5)); // move it by (10, 2)
 
         var image = editor.CopySelection()!;
@@ -180,6 +182,7 @@ public class ClipboardEditingTests
     {
         var editor = CreateEditor();
         SelectSquare(editor);
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (15.5, 7.5)); // move the square
 
         editor.Paste(BlueImage(3, 2), 0, 0);

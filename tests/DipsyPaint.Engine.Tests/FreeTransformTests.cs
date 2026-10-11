@@ -196,6 +196,7 @@ public class FreeTransformTests
         var editor = CreateEditor(40, 40, new SelectionTool());
         editor.HandleTolerance = 1;
         editor.Select(new IntRect(10, 15, 20, 10));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         var adornment = editor.Adornment!.Value;
         var (hx, hy) = adornment.RotateHandle(editor.HandleTolerance);
         Assert.Equal((20.0, 11.0), (hx, hy));
@@ -214,6 +215,7 @@ public class FreeTransformTests
         var editor = CreateEditor(40, 40, new SelectionTool());
         editor.HandleTolerance = 1;
         editor.Select(new IntRect(10, 10, 20, 20));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         var (hx, hy) = editor.Adornment!.Value.RotateHandle(1);
 
         // To 88° clockwise of straight up (just short of a quarter turn): snaps to 90°.
@@ -236,6 +238,8 @@ public class FreeTransformTests
         editor.CancelPending();
 
         Assert.Equal(before, Snapshot(editor));
+        Assert.Equal(new Selection(new IntRect(10, 10, 10, 10), null), editor.Selection); // where it was lifted from
+        editor.CancelPending();
         Assert.Null(editor.Selection);
     }
 

@@ -86,7 +86,7 @@ public class MagicWandTests
         Assert.Null(selection.Mask);                 // a whole rectangle
         Assert.False(selection.Contains(20, 20));    // same colour, not connected
         Assert.Null(selection.FloatingPixels);
-        Assert.Equal(new Adornment(new IntRect(4, 4, 8, 8)), editor.Adornment);
+        Assert.Equal(new Adornment(new IntRect(4, 4, 8, 8)) { HasHandles = false }, editor.Adornment);
         Assert.Equal(before, Snapshot(editor));
         editor.CommitPending();
         Assert.False(editor.History.CanUndo);
@@ -158,6 +158,7 @@ public class MagicWandTests
         var editor = CreateEditor(tolerance: 12);
         var before = Snapshot(editor);
         Click(editor, 6.5, 6.5);
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
 
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (5.5, 17.5)); // move by (0, 12)
         editor.CommitPending();
@@ -235,11 +236,13 @@ public class MagicWandTests
     }
 
     [Fact]
-    public void PressOnAnUnselectedPixelInsideTheFrame_CommitsAMovedSelectionFirst()
+    public void SelectingAfterAMove_CommitsTheMovedPixelsFirst()
     {
         var editor = CreateEditor(tolerance: 0);
         Click(editor, 0.5, 0.5);                                             // the background
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (0.5, 0.5), (1.5, 0.5));   // move by (1, 0)
+        Script.Use(editor, SelectionToolMode.Select);
 
         Click(editor, 6.5, 6.5); // red, in the moved selection's hole
 
@@ -252,10 +255,11 @@ public class MagicWandTests
     }
 
     [Fact]
-    public void PressOnASelectedPixel_MovesTheSelection()
+    public void MoveSelectedPixels_MovesTheSelection_FromAnywhereInItsFrame()
     {
         var editor = CreateEditor(tolerance: 0);
         Click(editor, 0.5, 0.5);
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
 
         Script.Stroke(editor, PointerButton.Left, (1.5, 1.5), (3.5, 1.5)); // move by (2, 0)
 

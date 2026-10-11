@@ -70,9 +70,12 @@ public sealed class SelectionModesTests : IDisposable
         window.UpdateLayout();
     }
 
-    private static void UseSelectTool(Window window)
+    private static void UseSelectTool(Window window) => UseTool(window, SelectionStrings.Select);
+
+    private static void UseTool(Window window, string name)
     {
-        SelectToolButton(window).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.GetLogicalDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetName(b) == name)
+            .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         window.UpdateLayout();
     }
 
@@ -148,8 +151,9 @@ public sealed class SelectionModesTests : IDisposable
         Assert.False(selection.Contains(29, 29));
         Assert.True(Item(window, "DeleteItem").IsEnabled);
 
+        UseTool(window, SelectionStrings.MoveSelectedPixels);
         Drag(window, (12.5, 12.5), (42.5, 22.5));  // move it by (30, 10)
-        Drag(window, (60.5, 2.5), (60.5, 2.5));    // a click outside puts it down
+        UseTool(window, SelectionStrings.Select);  // puts it down
 
         Assert.Equal(Rgba.Transparent, LayerPixel(window, 10, 10));
         Assert.Equal(Red, LayerPixel(window, 29, 29));   // outside the triangle: stays
@@ -270,6 +274,7 @@ public sealed class SelectionModesTests : IDisposable
 
         UseSelectTool(window);
         Drag(window, (5.5, 5.5), (34.5, 34.5));   // the red square in a white border
+        UseTool(window, SelectionStrings.MoveSelectedPixels);
         Drag(window, (20.5, 20.5), (40.5, 20.5)); // move by (20, 0)
         window.Editor.CommitPending();
 

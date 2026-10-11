@@ -32,6 +32,13 @@ public class SelectionToolTests
     /// <summary>Selects the red square plus a one-pixel white border: pixels (3, 3) to (8, 8).</summary>
     private static void SelectSquare(DocumentEditor editor) => Script.Stroke(editor, PointerButton.Left, (3.5, 3.5), (8.5, 8.5));
 
+    /// <summary>Selects the square, then switches to Move selected pixels (ADR-0025).</summary>
+    private static void SelectSquareToMove(DocumentEditor editor)
+    {
+        SelectSquare(editor);
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
+    }
+
     [Fact]
     public void Marquee_SelectsWithoutWriting_AndCommittingRecordsNoStep()
     {
@@ -41,7 +48,7 @@ public class SelectionToolTests
         SelectSquare(editor);
 
         Assert.Equal(new Selection(new IntRect(3, 3, 6, 6), null), editor.Selection);
-        Assert.Equal(new Adornment(new IntRect(3, 3, 6, 6)), editor.Adornment);
+        Assert.Equal(new Adornment(new IntRect(3, 3, 6, 6)) { HasHandles = false }, editor.Adornment);
 
         Script.Stroke(editor, PointerButton.Left, (20.5, 20.5), (20.5, 20.5)); // a click outside deselects
 
@@ -64,7 +71,7 @@ public class SelectionToolTests
     public void ClickInsideWithoutMoving_LiftsNothing()
     {
         var editor = CreateEditor();
-        SelectSquare(editor);
+        SelectSquareToMove(editor);
 
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (5.5, 5.5));
         editor.CommitPending();
@@ -76,7 +83,7 @@ public class SelectionToolTests
     public void Move_LiftsThePixels_LeavingTheLayerTransparent()
     {
         var editor = CreateEditor();
-        SelectSquare(editor);
+        SelectSquareToMove(editor);
 
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (15.5, 7.5));
 
@@ -95,7 +102,7 @@ public class SelectionToolTests
     {
         var editor = CreateEditor();
         var before = Snapshot(editor);
-        SelectSquare(editor);
+        SelectSquareToMove(editor);
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (15.5, 7.5));
         Script.Stroke(editor, PointerButton.Left, (15.5, 7.5), (20.5, 17.5)); // move again
 
@@ -125,6 +132,7 @@ public class SelectionToolTests
         Layer(editor).WriteRegion(new IntRect(20, 10, 4, 4), new Rgba[16]);
         Layer(editor).SetPixel(21, 11, blue);
         Script.Stroke(editor, PointerButton.Left, (20.5, 10.5), (23.5, 13.5)); // a transparent square with a blue pixel
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (21.5, 11.5), (5.5, 5.5));   // onto the red square
 
         editor.CommitPending();
@@ -134,11 +142,12 @@ public class SelectionToolTests
     }
 
     [Fact]
-    public void PressOutsideAfterMoving_CommitsAndStartsANewMarquee()
+    public void SelectingAfterMoving_CommitsAndStartsANewMarquee()
     {
         var editor = CreateEditor();
-        SelectSquare(editor);
+        SelectSquareToMove(editor);
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (15.5, 7.5));
+        Script.Use(editor, SelectionToolMode.Select);
 
         Script.Stroke(editor, PointerButton.Left, (25.5, 25.5), (29.5, 29.5));
 
@@ -151,7 +160,7 @@ public class SelectionToolTests
     public void SwitchingTools_CommitsTheMove()
     {
         var editor = CreateEditor();
-        SelectSquare(editor);
+        SelectSquareToMove(editor);
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (15.5, 7.5));
 
         editor.ActiveTool = new PencilTool();
@@ -165,12 +174,12 @@ public class SelectionToolTests
     {
         var editor = CreateEditor();
         var before = Snapshot(editor);
-        SelectSquare(editor);
+        SelectSquareToMove(editor);
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (15.5, 7.5));
 
         editor.CancelPending();
 
-        Assert.Null(editor.Selection);
+        Assert.Equal(new Selection(new IntRect(3, 3, 6, 6), null), editor.Selection); // back where it was lifted from
         Assert.Equal(before, Snapshot(editor));
         Assert.Equal(Red, Shown(editor, 4, 4));
         Assert.Equal(Rgba.White, Shown(editor, 14, 6));
@@ -202,7 +211,7 @@ public class SelectionToolTests
     public void DeleteAfterMoving_DiscardsTheFloatingPixels()
     {
         var editor = CreateEditor();
-        SelectSquare(editor);
+        SelectSquareToMove(editor);
         Script.Stroke(editor, PointerButton.Left, (5.5, 5.5), (15.5, 7.5));
 
         editor.DeleteSelection();
@@ -222,6 +231,7 @@ public class SelectionToolTests
     {
         var editor = CreateEditor();
         Script.Stroke(editor, PointerButton.Left, (4.5, 4.5), (7.5, 7.5)); // the red square exactly
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
 
         Script.Stroke(editor, PointerButton.Left, (8, 8), (12, 12));        // bottom-right handle
 

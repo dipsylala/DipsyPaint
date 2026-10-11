@@ -67,6 +67,14 @@ public static class ToolRegistry
     private const string SelectionIcon =
         "M3 3h5v1.5H4.5V8H3zM10 3h4v1.5h-4zM16 3h5v5h-1.5V4.5H16zM19.5 10H21v4h-1.5zM21 16v5h-5v-1.5h3.5V16zM10 19.5h4V21h-4zM3 16h1.5v3.5H8V21H3zM3 10h1.5v4H3z";
 
+    // Bespoke: the dashed square with a four-way arrow inside, ADR-0012.
+    private const string MoveSelectionIcon = SelectionIcon +
+        "M12 6.5l2.5 2.5h-1.75v2.25H15V9.5l2.5 2.5-2.5 2.5v-1.75h-2.25V15h1.75L12 17.5 9.5 15h1.75v-2.25H9v1.75L6.5 12 9 9.5v1.75h2.25V9H9.5z";
+
+    // Fluent UI System Icons "Arrow Move" (MIT licence, © Microsoft Corporation), ADR-0012.
+    private const string MoveSelectedPixelsIcon =
+        "M15.2803 6.03033C14.9874 6.32322 14.5126 6.32322 14.2197 6.03033L12.75 4.56066L12.75 8.25C12.75 8.66421 12.4142 9 12 9C11.5858 9 11.25 8.66421 11.25 8.25L11.25 4.56066L9.78033 6.03033C9.48744 6.32322 9.01256 6.32322 8.71967 6.03033C8.42678 5.73744 8.42678 5.26256 8.71967 4.96967L11.4697 2.21967C11.6103 2.07902 11.8011 2 12 2C12.1989 2 12.3897 2.07902 12.5303 2.21967L15.2803 4.96967C15.5732 5.26256 15.5732 5.73744 15.2803 6.03033ZM6.03033 14.2197C6.32322 14.5126 6.32322 14.9874 6.03033 15.2803C5.73744 15.5732 5.26256 15.5732 4.96967 15.2803L2.21967 12.5303C2.07902 12.3897 2 12.1989 2 12C2 11.8011 2.07902 11.6103 2.21967 11.4697L4.96967 8.71967C5.26256 8.42678 5.73744 8.42678 6.03033 8.71967C6.32322 9.01256 6.32322 9.48744 6.03033 9.78033L4.56066 11.25H8.25C8.66421 11.25 9 11.5858 9 12C9 12.4142 8.66421 12.75 8.25 12.75H4.56066L6.03033 14.2197ZM17.9697 15.2803C17.6768 14.9874 17.6768 14.5126 17.9697 14.2197L19.4393 12.75H15.75C15.3358 12.75 15 12.4142 15 12C15 11.5858 15.3358 11.25 15.75 11.25H19.4393L17.9697 9.78033C17.6768 9.48744 17.6768 9.01256 17.9697 8.71967C18.2626 8.42678 18.7374 8.42678 19.0303 8.71967L21.7803 11.4697C21.921 11.6103 22 11.8011 22 12C22 12.1989 21.921 12.3897 21.7803 12.5303L19.0303 15.2803C18.7374 15.5732 18.2626 15.5732 17.9697 15.2803ZM15.2803 17.9697C14.9874 17.6768 14.5126 17.6768 14.2197 17.9697L12.75 19.4393L12.75 15.75C12.75 15.3358 12.4142 15 12 15C11.5858 15 11.25 15.3358 11.25 15.75L11.25 19.4393L9.78033 17.9697C9.48744 17.6768 9.01256 17.6768 8.71967 17.9697C8.42678 18.2626 8.42678 18.7374 8.71967 19.0303L11.4697 21.7803C11.6103 21.921 11.8011 22 12 22C12.1989 22 12.3897 21.921 12.5303 21.7803L15.2803 19.0303C15.5732 18.7374 15.5732 18.2626 15.2803 17.9697Z";
+
     /// <summary>Selection options are app-wide, as in reference Paint: shared with the Selection menu and the editor.</summary>
     public static SelectionSettings SelectionSettings { get; } = new();
 
@@ -83,7 +91,12 @@ public static class ToolRegistry
         new("eraser", BrushStrings.Eraser, EraserIcon, new KeyGesture(Key.E),
             () => new EraserTool(EraserSettings), () => new StrokeSizeOptions(EraserSettings)),
         new("shapes", ShapeStrings.Shapes, ShapesIcon, null, () => new ShapeTool(ShapeSettings), () => new ShapeOptions(ShapeSettings)),
+        // Making and moving selections are separate tools (ADR-0025); switching among them keeps the selection.
         new("selection", SelectionStrings.Select, SelectionIcon, null, () => new SelectionTool(SelectionSettings),
             () => new MagicWandOptions(SelectionSettings)),
+        new("move-selection", SelectionStrings.MoveSelection, MoveSelectionIcon, null,
+            () => new SelectionTool(SelectionSettings) { Mode = SelectionToolMode.MoveSelection }),
+        new("move-selected-pixels", SelectionStrings.MoveSelectedPixels, MoveSelectedPixelsIcon, null,
+            () => new SelectionTool(SelectionSettings) { Mode = SelectionToolMode.MoveSelectedPixels }),
     ];
 }

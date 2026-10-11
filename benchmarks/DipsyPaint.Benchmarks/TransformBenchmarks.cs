@@ -101,6 +101,7 @@ public class TransformBenchmarks
 
         _editor = new DocumentEditor(document) { ActiveTool = new SelectionTool() };
         _editor.SelectAll();
+        _editor.ActiveTool = new SelectionTool { Mode = SelectionToolMode.MoveSelectedPixels }; // its handles drag (ADR-0025)
         _direction = 0;
     }
 }

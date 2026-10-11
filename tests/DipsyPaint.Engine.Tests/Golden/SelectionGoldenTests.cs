@@ -31,6 +31,7 @@ public class SelectionGoldenTests
         var editor = CreateEditor();
 
         Script.Stroke(editor, PointerButton.Left, (4.5, 4.5), (19.5, 15.5));   // select 16×12 pixels
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         Script.Stroke(editor, PointerButton.Left, (12.5, 10.5), (34.5, 20.5)); // move by (22, 10)
         editor.CommitPending();
 

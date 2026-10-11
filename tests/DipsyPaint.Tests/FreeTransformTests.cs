@@ -182,6 +182,10 @@ public class FreeTransformTests
     {
         var (window, _, _) = ShowWindow();
         Drag(window, (0.5, 0.5), (39.5, 9.5)); // 40×10 along the top edge: the handle is above the canvas
+        window.GetLogicalDescendants().OfType<ToggleButton>()
+            .Single(b => AutomationProperties.GetName(b) == SelectionStrings.MoveSelectedPixels)
+            .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout();
         var editor = window.Editor;
         var (hx, hy) = editor.Adornment!.Value.RotateHandle(editor.HandleTolerance);
         Assert.True(hy < 0);

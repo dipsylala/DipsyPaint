@@ -53,6 +53,7 @@ public class FreeTransformGoldenTests
         editor.HandleTolerance = 1;
         // A triangle, 24 wide and 16 tall.
         Script.Stroke(editor, PointerButton.Left, (20.5, 40.5), (32.5, 24.5), (44.5, 40.5), (20.5, 40.5));
+        Script.Use(editor, SelectionToolMode.MoveSelectedPixels);
         var frame = editor.Adornment!.Value.Frame;
         var (cx, cy) = (frame.X + frame.Width / 2.0, frame.Y + frame.Height / 2.0);
         var (hx, hy) = editor.Adornment!.Value.RotateHandle(1);
