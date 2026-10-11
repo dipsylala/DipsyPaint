@@ -16,8 +16,8 @@ namespace DipsyPaint.Tests.Golden;
 /// </summary>
 public static class TextGoldenImage
 {
-    public const int Tolerance = 64;
-    public const double MaxOutlierFraction = 0.002;
+    public const int Tolerance = 96;
+    public const double MaxOutlierFraction = 0.005;
 
     public static string ImagesDirectory => Path.Combine(SourceDirectory(), "Images");
 

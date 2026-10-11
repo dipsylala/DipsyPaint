@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
@@ -18,6 +19,7 @@ namespace DipsyPaint.Text;
 public partial class TextOptions : UserControl
 {
     private readonly TextSettings _settings;
+    private readonly ObservableCollection<string> _fonts;
     private bool _showing;
 
     public TextOptions() : this(new TextSettings())
@@ -33,14 +35,9 @@ public partial class TextOptions : UserControl
             settings.FontFamily = FontManager.Current.DefaultFontFamily.Name;
         }
 
-        var fonts = FontManager.Current.SystemFonts.Select(f => f.Name).Distinct()
-            .Order(StringComparer.CurrentCultureIgnoreCase).ToList();
-        if (!fonts.Contains(settings.FontFamily))
-        {
-            fonts.Insert(0, settings.FontFamily);
-        }
-
-        FontBox.ItemsSource = fonts;
+        _fonts = new ObservableCollection<string>(FontManager.Current.SystemFonts.Select(f => f.Name).Distinct()
+            .Order(StringComparer.CurrentCultureIgnoreCase));
+        FontBox.ItemsSource = _fonts;
         SizeBox.ItemsSource = TextSettings.Sizes.Select(size => FormatSize(size)).ToList();
 
         FontBox.SelectionChanged += (_, _) => Apply(() => _settings.FontFamily = FontBox.SelectedItem as string ?? _settings.FontFamily);
@@ -84,6 +81,12 @@ public partial class TextOptions : UserControl
     private void ShowSettings()
     {
         _showing = true;
+        // A family that isn't a listed system font (e.g. the platform's hidden default) is listed first.
+        if (!_fonts.Contains(_settings.FontFamily))
+        {
+            _fonts.Insert(0, _settings.FontFamily);
+        }
+
         FontBox.SelectedItem = _settings.FontFamily;
         var size = FormatSize(_settings.Size);
         SizeBox.SelectedItem = SizeBox.Items.OfType<string>().FirstOrDefault(s => s == size);
