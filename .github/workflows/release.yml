@@ -109,11 +109,12 @@ jobs:
     steps:
       - name: Linux prerequisites
         if: runner.os == 'Linux'
-        # clang and zlib for the NativeAOT linker; git for the checkout; libicu for the .NET SDK.
+        # clang and zlib for the NativeAOT linker; git for the checkout; libicu for the .NET SDK;
+        # zstd for vpk's delta packages (needed once a previous release exists).
         # vpk builds the AppImage with mksquashfs, which must be 4.5 or newer (AlmaLinux 8 has 4.3),
         # so it is built from a pinned source release.
         run: |
-          dnf install -y --setopt=install_weak_deps=False clang lld zlib-devel git libicu findutils tar gzip which gcc make
+          dnf install -y --setopt=install_weak_deps=False clang lld zlib-devel git libicu findutils tar gzip which gcc make zstd
           cd /tmp
           curl -fsSL -o squashfs.tar.gz https://github.com/plougher/squashfs-tools/archive/refs/tags/4.6.1.tar.gz
           echo "9c4974e07c61547dae14af4ed1f358b7d04618ae194e54d6be72ee126f0d2f53  squashfs.tar.gz" | sha256sum -c -
