@@ -48,8 +48,12 @@ within a per-pixel tolerance. ADR-0016.
 id, dockable to a window edge and saved in the per-user layout (ADR-0022). Distinct from a
 *tool*, which is one entry within the Tools group.
 
-**Selection** — a region of pixels lifted for move/rotate/skew before being
-committed back to a layer. Exact semantics to be agreed with tool scoping.
+**Selection** — an outline marking part of the canvas (rectangle, free-form or magic-wand
+shape), made with the Select tool (ADR-0025). Moving the outline with Move selection changes no
+pixels. Distinct from *floating pixels*.
+
+**Floating pixels** — selected pixels lifted off the layer by Move selected pixels (or a paste),
+shown above it while they are moved, stretched or rotated, and composited back when committed.
 
 **Unsaved changes** — history steps made since the document was last saved, opened or
 created. Undoing back to the saved point clears them. They trigger the "Save changes?"

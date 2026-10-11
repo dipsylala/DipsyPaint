@@ -26,6 +26,7 @@
 | [0022](0022-command-bar-layout.md) | Command bar wraps; command groups dock to window edges; layout is saved per user | Accepted |
 | [0023](0023-transform-drag-target.md) | Transform drags have the brush's 16 ms target; previews may be cheaper than the result | Accepted |
 | [0024](0024-image-resolution.md) | Documents carry a resolution (DPI) that files keep; sizes stay in pixels | Accepted |
+| [0025](0025-selection-tools.md) | Selections are made and moved with separate tools | Accepted |
 
 ## Open Questions
 
