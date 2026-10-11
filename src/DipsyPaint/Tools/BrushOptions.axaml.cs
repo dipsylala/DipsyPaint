@@ -1,5 +1,6 @@
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using DipsyPaint.Engine;
@@ -14,6 +15,21 @@ namespace DipsyPaint.Tools;
 /// </summary>
 public partial class BrushOptions : UserControl
 {
+    // A menu entry: the brush's icon and name.
+    private static readonly FuncDataTemplate<BrushDescriptor> MenuEntry = new((brush, _) => new StackPanel
+    {
+        Orientation = Orientation.Horizontal,
+        Spacing = 8,
+        Children =
+        {
+            Icon(brush),
+            new TextBlock { Text = brush.DisplayName, VerticalAlignment = VerticalAlignment.Center },
+        },
+    });
+
+    // The closed menu shows only the chosen brush's icon, so the options fit beside the tool buttons.
+    private static readonly FuncDataTemplate<BrushDescriptor> ChosenEntry = new((brush, _) => Icon(brush));
+
     private readonly StrokeSettings _settings;
     private readonly BrushGallery _gallery;
 
@@ -28,29 +44,20 @@ public partial class BrushOptions : UserControl
         InitializeComponent();
         foreach (var brush in gallery.Brushes)
         {
-            var item = new ComboBoxItem
-            {
-                Tag = brush,
-                Content = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    Children =
-                    {
-                        new PathIcon { Data = Geometry.Parse(brush.IconData), Width = 16, Height = 16 },
-                        new TextBlock { Text = brush.DisplayName, VerticalAlignment = VerticalAlignment.Center },
-                    },
-                },
-            };
+            var item = new ComboBoxItem { Tag = brush, Content = brush, ContentTemplate = MenuEntry };
             AutomationProperties.SetName(item, brush.DisplayName);
             BrushBox.Items.Add(item);
         }
+
+        BrushBox.SelectionBoxItemTemplate = ChosenEntry;
 
         BrushBox.SelectedIndex = gallery.Brushes.ToList().IndexOf(gallery.Selected);
         BrushBox.IsVisible = gallery.Brushes.Count > 1;
         BrushBox.SelectionChanged += (_, _) => Choose((BrushBox.SelectedItem as ComboBoxItem)?.Tag as BrushDescriptor);
         Items.Children.Add(new StrokeSizeOptions(settings));
     }
+
+    private static PathIcon Icon(BrushDescriptor brush) => new() { Data = Geometry.Parse(brush.IconData), Width = 16, Height = 16 };
 
     private void Choose(BrushDescriptor? brush)
     {
