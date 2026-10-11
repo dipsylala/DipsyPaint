@@ -68,8 +68,9 @@ public class ImageTests
     private static void Select(MainWindow window, (double X, double Y) from, (double X, double Y) to)
     {
         window.GetLogicalDescendants().OfType<ToggleButton>()
-            .Single(b => AutomationProperties.GetName(b) == SelectionStrings.RectangleSelection)
+            .Single(b => AutomationProperties.GetName(b) == SelectionStrings.Select)
             .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout(); // the command bar may rewrap for the tool's options, moving the canvas
         window.MouseDown(InWindow(window, from.X, from.Y), MouseButton.Left);
         window.MouseMove(InWindow(window, to.X, to.Y));
         window.MouseUp(InWindow(window, to.X, to.Y), MouseButton.Left);

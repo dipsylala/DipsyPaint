@@ -15,4 +15,25 @@
   <data name="RectangleSelection" xml:space="preserve">
     <value>Rectangle selection</value>
   </data>
+  <data name="Select" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="Selection" xml:space="preserve">
+    <value>Selection</value>
+  </data>
+  <data name="FreeFormSelection" xml:space="preserve">
+    <value>Free-form selection</value>
+  </data>
+  <data name="SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="InvertSelection" xml:space="preserve">
+    <value>Invert selection</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="TransparentSelection" xml:space="preserve">
+    <value>Transparent selection</value>
+  </data>
 </root>

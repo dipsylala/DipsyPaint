@@ -85,6 +85,12 @@ public sealed class DocumentEditor
     /// <summary>The selection of the active <see cref="SelectionTool"/>, or null when there is none.</summary>
     public Selection? Selection => (ActiveTool as SelectionTool)?.Selection;
 
+    /// <summary>
+    /// The options of the selection tools the editor creates itself (<see cref="Paste"/>,
+    /// <see cref="Select"/>); the shell shares one instance with its own selection tools.
+    /// </summary>
+    public SelectionSettings SelectionSettings { get; set; } = new();
+
     /// <summary>Raised with the document-space rectangle, within the canvas, whose composited pixels changed.</summary>
     public event EventHandler<IntRect>? CompositeChanged;
 
@@ -179,29 +185,62 @@ public sealed class DocumentEditor
 
     /// <summary>
     /// A copy of the selected pixels (Copy), or null when nothing is selected: the lifted pixels
-    /// as shown, else the active layer's within the selection. The selection is left as it is.
-    /// Cut is a copy followed by <see cref="DeleteSelection"/>.
+    /// as shown, else the active layer's within the selection, transparent outside its shape (see
+    /// <see cref="SelectionTool.Copy"/>). The selection is left as it is. Cut is a copy followed by
+    /// <see cref="DeleteSelection"/>.
     /// </summary>
-    public PixelImage? CopySelection()
+    public PixelImage? CopySelection() => (ActiveTool as SelectionTool)?.Copy(Context(Document.ActiveLayer.Pixels));
+
+    /// <summary>Selects the whole canvas (Select all), as <see cref="Select"/>.</summary>
+    public void SelectAll() => Select(new IntRect(0, 0, Document.Width, Document.Height));
+
+    /// <summary>
+    /// Selects every pixel of the canvas outside the selection (Invert selection), or the whole canvas
+    /// without one, as <see cref="Select"/>; a moved selection is committed first, and its shape where it
+    /// now is is inverted. Inverting a selection of the whole canvas leaves nothing selected.
+    /// </summary>
+    public void InvertSelection()
     {
-        if (Selection is not { } selection)
+        if (_inGesture)
         {
-            return null;
+            return;
         }
 
-        var bounds = selection.Bounds;
-        Rgba[] pixels;
-        if (selection.FloatingPixels is { } floating)
+        var canvas = new IntRect(0, 0, Document.Width, Document.Height);
+        if (SelectionMasks.Invert(Selection, canvas) is { } inverse)
         {
-            pixels = (Rgba[])floating.Clone();
+            Select(inverse.Bounds, inverse.Mask);
         }
         else
         {
-            pixels = new Rgba[bounds.Width * bounds.Height];
-            Document.ActiveLayer.Pixels.ReadRegion(bounds, pixels);
+            CommitPending();
+        }
+    }
+
+    /// <summary>
+    /// Selects <paramref name="bounds"/> (within the canvas), or the pixels set in <paramref name="mask"/>
+    /// within it (see <see cref="Selection.Mask"/>; build one with <see cref="SelectionMasks"/>), switching
+    /// to the selection tool as reference Paint does; pending content (including a current selection) is
+    /// committed first. Selecting writes nothing. The editor keeps the mask. Ignored during a gesture.
+    /// </summary>
+    public void Select(IntRect bounds, bool[]? mask = null)
+    {
+        if (_inGesture)
+        {
+            return;
         }
 
-        return new PixelImage(bounds.Width, bounds.Height, pixels);
+        if (ActiveTool is SelectionTool)
+        {
+            CommitPending();
+        }
+        else
+        {
+            ActiveTool = new SelectionTool(SelectionSettings);
+        }
+
+        var tool = (SelectionTool)ActiveTool!;
+        Refresh(tool.Select(Context(Document.ActiveLayer.Pixels), bounds, mask));
     }
 
     /// <summary>
@@ -227,7 +266,7 @@ public sealed class DocumentEditor
         }
         else
         {
-            ActiveTool = new SelectionTool();
+            ActiveTool = new SelectionTool(SelectionSettings);
         }
 
         var (oldWidth, oldHeight) = (Document.Width, Document.Height);

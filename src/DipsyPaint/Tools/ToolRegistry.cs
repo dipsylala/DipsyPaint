@@ -43,6 +43,9 @@ public static class ToolRegistry
     private const string SelectionIcon =
         "M3 3h5v1.5H4.5V8H3zM10 3h4v1.5h-4zM16 3h5v5h-1.5V4.5H16zM19.5 10H21v4h-1.5zM21 16v5h-5v-1.5h3.5V16zM10 19.5h4V21h-4zM3 16h1.5v3.5H8V21H3zM3 10h1.5v4H3z";
 
+    /// <summary>Selection options are app-wide, as in reference Paint: shared with the Selection menu and the editor.</summary>
+    public static SelectionSettings SelectionSettings { get; } = new();
+
     public static IReadOnlyList<ToolDescriptor> Tools { get; } =
     [
         new("pencil", ToolStrings.Pencil, EditIcon, new KeyGesture(Key.P),
@@ -55,6 +58,6 @@ public static class ToolRegistry
         new("eraser", BrushStrings.Eraser, EraserIcon, new KeyGesture(Key.E),
             () => new EraserTool(EraserSettings), () => new StrokeSizeOptions(EraserSettings)),
         new("shapes", ShapeStrings.Shapes, ShapesIcon, null, () => new ShapeTool(ShapeSettings), () => new ShapeOptions(ShapeSettings)),
-        new("rectangle-selection", SelectionStrings.RectangleSelection, SelectionIcon, null, () => new SelectionTool()),
+        new("selection", SelectionStrings.Select, SelectionIcon, null, () => new SelectionTool(SelectionSettings)),
     ];
 }
