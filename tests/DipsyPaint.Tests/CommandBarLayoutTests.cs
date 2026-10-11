@@ -198,6 +198,23 @@ public sealed class CommandBarLayoutTests : IDisposable
             $"kept {reserve} for options, but the largest panel shown is {largest}");
     }
 
+    [AvaloniaFact]
+    public void ToolsGroupIsNoTallerThanItsButtonRow()
+    {
+        var window = ShowWindow(windowWidth: 1100);
+        var picker = window.GetVisualDescendants().OfType<Tools.ToolPicker>().Single();
+        var buttons = picker.FindControl<WrapPanel>("ToolButtons")!;
+        var button = buttons.Children[0];
+
+        foreach (var tool in Tools.ToolRegistry.Tools)
+        {
+            SelectTool(window, tool.DisplayName);
+            window.UpdateLayout();
+            Assert.True(picker.Bounds.Height <= button.Bounds.Height + buttons.Margin.Top + buttons.Margin.Bottom + 0.5,
+                $"{tool.DisplayName}: the group is {picker.Bounds.Height} px tall, its buttons {button.Bounds.Height} px");
+        }
+    }
+
     // At the default width the options share the tool buttons' row; narrower, they wrap below.
     [AvaloniaFact]
     public void ToolOptionSlidersLineUpWithTheToolButtons()
