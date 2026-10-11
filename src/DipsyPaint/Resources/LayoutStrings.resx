@@ -43,6 +43,9 @@
   <data name="HistoryGroupName" xml:space="preserve">
     <value>History</value>
   </data>
+  <data name="MenuGroupName" xml:space="preserve">
+    <value>Menu</value>
+  </data>
   <data name="UpdateGroupName" xml:space="preserve">
     <value>Update</value>
   </data>

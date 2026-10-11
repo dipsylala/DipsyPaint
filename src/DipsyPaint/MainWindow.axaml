@@ -30,14 +30,18 @@
     <Border x:Name="CommandBar" DockPanel.Dock="Top"
             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
       <WrapPanel x:Name="TopEdge">
-        <files:FileMenu x:Name="FileMenu" layout:CommandGroup.Id="file" layout:CommandGroup.Title="{x:Static res:FileStrings.File}" />
-        <view:ViewMenu x:Name="ViewMenu" layout:CommandGroup.Id="view" layout:CommandGroup.Title="{x:Static res:ViewStrings.View}" />
+        <!-- File, View and Help together, like a menu bar. -->
+        <StackPanel x:Name="MenuBar" Orientation="{Binding $self.(layout:CommandGroup.Orientation)}"
+                    layout:CommandGroup.Id="menu" layout:CommandGroup.Title="{x:Static res:LayoutStrings.MenuGroupName}">
+          <files:FileMenu x:Name="FileMenu" />
+          <view:ViewMenu x:Name="ViewMenu" />
+          <diagnostics:HelpMenu x:Name="HelpMenu" />
+        </StackPanel>
         <local:HistoryControl layout:CommandGroup.Id="history" layout:CommandGroup.Title="{x:Static res:LayoutStrings.HistoryGroupName}" />
         <local:ClipboardControl layout:CommandGroup.Id="clipboard" layout:CommandGroup.Title="{x:Static res:ClipboardStrings.Clipboard}" />
         <images:ImageControl x:Name="ImageGroup" layout:CommandGroup.Id="image" layout:CommandGroup.Title="{x:Static res:ImageStrings.ImageGroupName}" />
         <tools:ToolPicker layout:CommandGroup.Id="tools" layout:CommandGroup.Title="{x:Static res:ToolStrings.ToolsGroupName}" />
         <local:ColourControl layout:CommandGroup.Id="colours" layout:CommandGroup.Title="{x:Static res:ColourStrings.ColoursGroupName}" />
-        <diagnostics:HelpMenu x:Name="HelpMenu" layout:CommandGroup.Id="help" layout:CommandGroup.Title="{x:Static res:ReportStrings.Help}" />
         <updates:UpdateControl x:Name="Updates" layout:CommandGroup.Id="update" layout:CommandGroup.Title="{x:Static res:LayoutStrings.UpdateGroupName}" />
       </WrapPanel>
     </Border>
