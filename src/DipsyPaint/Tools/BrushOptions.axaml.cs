@@ -1,5 +1,6 @@
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using DipsyPaint.Engine;
@@ -26,22 +27,22 @@ public partial class BrushOptions : UserControl
         _settings = settings;
         _gallery = gallery;
         InitializeComponent();
+        // Like reference Paint's Brushes button, the closed menu shows only the chosen brush's icon,
+        // which keeps the tools row narrow; the open menu lists each brush's icon and name.
+        BrushBox.SelectionBoxItemTemplate = new FuncDataTemplate<BrushDescriptor>((brush, _) => Icon(brush));
+        var entry = new FuncDataTemplate<BrushDescriptor>((brush, _) => new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            Children =
+            {
+                Icon(brush),
+                new TextBlock { Text = brush.DisplayName, VerticalAlignment = VerticalAlignment.Center },
+            },
+        });
         foreach (var brush in gallery.Brushes)
         {
-            var item = new ComboBoxItem
-            {
-                Tag = brush,
-                Content = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    Children =
-                    {
-                        new PathIcon { Data = Geometry.Parse(brush.IconData), Width = 16, Height = 16 },
-                        new TextBlock { Text = brush.DisplayName, VerticalAlignment = VerticalAlignment.Center },
-                    },
-                },
-            };
+            var item = new ComboBoxItem { Tag = brush, Content = brush, ContentTemplate = entry };
             AutomationProperties.SetName(item, brush.DisplayName);
             BrushBox.Items.Add(item);
         }
@@ -51,6 +52,9 @@ public partial class BrushOptions : UserControl
         BrushBox.SelectionChanged += (_, _) => Choose((BrushBox.SelectedItem as ComboBoxItem)?.Tag as BrushDescriptor);
         Items.Children.Add(new StrokeSizeOptions(settings));
     }
+
+    private static PathIcon Icon(BrushDescriptor? brush) =>
+        new() { Data = brush is null ? null : Geometry.Parse(brush.IconData), Width = 16, Height = 16 };
 
     private void Choose(BrushDescriptor? brush)
     {
