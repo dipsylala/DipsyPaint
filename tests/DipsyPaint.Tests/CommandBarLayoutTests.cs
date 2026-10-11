@@ -174,6 +174,23 @@ public sealed class CommandBarLayoutTests : IDisposable
         }
     }
 
+    // At the default width the options share the tool buttons' row; narrower, they wrap below.
+    [AvaloniaFact]
+    public void ToolOptionSlidersLineUpWithTheToolButtons()
+    {
+        var window = ShowWindow(windowWidth: 1100);
+
+        foreach (var tool in new[] { ToolStrings.Pencil, BrushStrings.Brush, BrushStrings.Eraser })
+        {
+            SelectTool(window, tool);
+            window.UpdateLayout();
+            var button = window.GetLogicalDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetName(b) == tool);
+            var slider = window.GetVisualDescendants().OfType<Slider>().First(s => s.IsEffectivelyVisible && s.FindAncestorOfType<Tools.ToolPicker>() is not null);
+            Assert.True(Math.Abs(CentreOf(button, window).Y - CentreOf(slider, window).Y) < 1,
+                $"{tool}: the button's centre is at {CentreOf(button, window).Y}, the slider's at {CentreOf(slider, window).Y}");
+        }
+    }
+
     [AvaloniaFact]
     public void WindowCannotBeNarrowerThanTheWidthTheCommandBarIsCheckedAt()
     {
