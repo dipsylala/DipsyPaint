@@ -37,6 +37,8 @@ internal abstract class RoundTip : BrushTip
     public override void Fill(Stroke stroke, int x, int y, float coverage) =>
         stroke.Cover(x, y, coverage * Coverage(x, y, 0, double.PositiveInfinity));
 
+    public override float Interior(int x, int y) => Coverage(x, y, 0, double.PositiveInfinity);
+
     /// <summary>
     /// Coverage (0–1) of pixel (x, y), whose centre lies <paramref name="distance"/> from the path
     /// of a tip of <paramref name="radius"/>; within half a pixel of the rim it fades out.
