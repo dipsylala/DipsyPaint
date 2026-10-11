@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:DipsyPaint.Resources"
+        x:Class="DipsyPaint.Files.NewImageDialog"
+        Title="{x:Static res:FileStrings.NewImageDialogTitle}"
+        SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="24" Spacing="12" MinWidth="280">
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="12">
+      <Label Content="{x:Static res:FileStrings.Width}" Target="WidthBox" VerticalAlignment="Center" />
+      <NumericUpDown x:Name="WidthBox" Grid.Column="1" Minimum="1" Increment="1"
+                     FormatString="0" ParsingNumberStyle="Integer"
+                     AutomationProperties.Name="{x:Static res:FileStrings.Width}" />
+      <Label Grid.Row="1" Content="{x:Static res:FileStrings.Height}" Target="HeightBox" VerticalAlignment="Center" />
+      <NumericUpDown x:Name="HeightBox" Grid.Row="1" Grid.Column="1" Minimum="1" Increment="1"
+                     FormatString="0" ParsingNumberStyle="Integer"
+                     AutomationProperties.Name="{x:Static res:FileStrings.Height}" />
+    </Grid>
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="OkButton" IsDefault="True" MinWidth="80" Click="OnOkClick"
+              Content="{x:Static res:FileStrings.Ok}"
+              AutomationProperties.Name="{x:Static res:FileStrings.Ok}" />
+      <Button x:Name="CancelButton" IsCancel="True" MinWidth="80" Click="OnCancelClick"
+              Content="{x:Static res:FileStrings.Cancel}"
+              AutomationProperties.Name="{x:Static res:FileStrings.Cancel}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

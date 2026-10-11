@@ -33,11 +33,24 @@ public partial class FileMenu : UserControl
     private KeyModifiers CommandModifiers =>
         this.GetPlatformSettings()?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control;
 
-    /// <summary>Replaces the document with a blank one of the default size.</summary>
-    public Task NewAsync()
+    /// <summary>
+    /// Asks for a size (prefilled with the default) and replaces the document with a blank one of
+    /// that size. Cancelling, or a size over the memory budget, leaves the document as it was.
+    /// </summary>
+    public async Task NewAsync()
     {
-        ShowDocument(Document.CreateBlank(), null);
-        return Task.CompletedTask;
+        if (await Dialogs.AskNewImageSizeAsync(Document.DefaultWidth, Document.DefaultHeight) is not var (width, height))
+        {
+            return;
+        }
+
+        if (!MemoryBudget.Default.Allows((long)width * height * ImageCodec.OpenCostPerPixel))
+        {
+            await Dialogs.ShowErrorAsync(string.Format(FileStrings.NewImageOverMemoryBudget, width, height));
+            return;
+        }
+
+        ShowDocument(Document.CreateBlank(width, height), null);
     }
 
     /// <summary>Opens an image chosen by the user. On failure the current document stays as it was.</summary>
