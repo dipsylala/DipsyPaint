@@ -10,7 +10,7 @@ using DipsyPaint.Resources;
 namespace DipsyPaint.Files;
 
 /// <summary>
-/// Reference Paint's File menu: New, Open, Save and Save as (PNG, JPEG, BMP). Owns the current file,
+/// Reference Paint's File menu: New, Open, Save and Save as (PNG, JPEG, BMP, GIF, other formats). Owns the current file,
 /// shows its name in the window title ("name - DipsyPaint") and handles the File shortcuts for the
 /// whole window: Ctrl+N, Ctrl+O, Ctrl+S, and Ctrl+Shift+S or F12 for Save as (Cmd on macOS).
 /// </summary>
@@ -85,7 +85,7 @@ public partial class FileMenu : UserControl
     /// <summary>Saves to the current file, or asks where to save if there is none.</summary>
     public async Task SaveAsync()
     {
-        if (_file is not null && ImageCodec.FormatOf(_file.Name) is { } format)
+        if (_file is not null && ImageCodec.ExportFormatOf(_file.Name, _file.Format) is { } format)
         {
             await WriteAsync(_file, format);
         }
@@ -98,16 +98,17 @@ public partial class FileMenu : UserControl
     /// <summary>Asks where to save, offering <paramref name="format"/> (default: the current file's format, else PNG).</summary>
     public async Task SaveAsAsync(ImageFormat? format = null)
     {
-        var offered = format ?? (_file is null ? null : ImageCodec.FormatOf(_file.Name)) ?? ImageFormat.Png;
+        var offered = format ?? (_file is null ? null : ImageCodec.ExportFormatOf(_file.Name, _file.Format)) ?? ImageFormat.Png;
         var suggestedName = _file is null ? FileStrings.Untitled : Path.GetFileNameWithoutExtension(_file.Name);
         if (await Dialogs.PickSaveAsync(suggestedName, offered) is not { } file)
         {
             return;
         }
 
-        if (await WriteAsync(file, ImageCodec.FormatOf(file.Name) ?? offered))
+        var chosen = ImageCodec.ExportFormatOf(file.Name, file.Format ?? offered) ?? offered;
+        if (await WriteAsync(file, chosen))
         {
-            _file = file;
+            _file = file with { Format = chosen };
             UpdateTitle();
         }
     }
@@ -149,6 +150,11 @@ public partial class FileMenu : UserControl
     /// <summary>Exports the composite; encodes to memory first so a failed encode never truncates the file.</summary>
     private async Task<bool> WriteAsync(PickedFile file, ImageFormat format)
     {
+        if (!await LossySaveWarning.ConfirmAsync(Dialogs, format))
+        {
+            return false;
+        }
+
         try
         {
             // A pending shape is visible in the composite but not yet in the layer.
@@ -203,4 +209,9 @@ public partial class FileMenu : UserControl
     private async void OnSaveAsJpegClick(object? sender, RoutedEventArgs e) => await SaveAsAsync(ImageFormat.Jpeg);
 
     private async void OnSaveAsBmpClick(object? sender, RoutedEventArgs e) => await SaveAsAsync(ImageFormat.Bmp);
+
+    private async void OnSaveAsGifClick(object? sender, RoutedEventArgs e) => await SaveAsAsync(ImageFormat.Gif);
+
+    // Paint's "Other formats" opens the same dialog; its type list holds TIFF and the low-colour bitmaps.
+    private async void OnSaveAsOtherClick(object? sender, RoutedEventArgs e) => await SaveAsAsync();
 }

@@ -92,7 +92,7 @@ public class ImageCodecTests
         Assert.Equal(ImageFormat.Bmp, ImageCodec.FormatOf("picture.DIB"));
         Assert.All(new[] { "a.jpg", "a.jpeg", "a.jpe", "a.JFIF" }, name => Assert.Equal(ImageFormat.Jpeg, ImageCodec.FormatOf(name)));
         Assert.Equal(ImageFormat.Png, ImageCodec.FormatOf("a.png"));
-        Assert.Null(ImageCodec.FormatOf("a.gif"));
+        Assert.Null(ImageCodec.FormatOf("a.heic"));
         Assert.Null(ImageCodec.FormatOf("noextension"));
     }
 

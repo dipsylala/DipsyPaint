@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] Format support matches the ADR-0019 table exactly (no ICO/WebP save, no HEIC, no `.paint`)
-- [ ] Animated GIFs open as their first frame only
-- [ ] Low-colour BMP and GIF saves use palette quantisation
-- [ ] A warning appears before saving to a palette format (≤ 256-colour BMP, GIF)
-- [ ] Malicious samples for the new formats are added to the CI corpus
+- [x] Format support matches the ADR-0019 table exactly (no ICO/WebP save, no HEIC, no `.paint`)
+- [x] Animated GIFs open as their first frame only
+- [x] Low-colour BMP and GIF saves use palette quantisation
+- [x] A warning appears before saving to a palette format (≤ 256-colour BMP, GIF)
+- [x] Malicious samples for the new formats are added to the CI corpus
