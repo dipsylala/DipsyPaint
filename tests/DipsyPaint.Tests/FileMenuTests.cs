@@ -55,6 +55,8 @@ public sealed class FileMenuTests : IDisposable
             Errors.Add(message);
             return Task.CompletedTask;
         }
+
+        public Task<bool> ConfirmLossySaveAsync() => Task.FromResult(true);
     }
 
     private PickedFile FileOnDisk(string name, byte[]? content = null)
