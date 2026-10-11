@@ -25,7 +25,8 @@ DipsyPaint updates itself. When it starts, it checks GitHub Releases for a newer
 downloads it in the background; **Restart to update** then appears in the toolbar. If you ignore
 it, the update installs the next time you start DipsyPaint. This check is the only network
 request DipsyPaint makes on its own: it asks GitHub for the list of releases, and sends nothing
-about you or how you use DipsyPaint. There is no telemetry.
+about you or how you use DipsyPaint. There is no telemetry. [docs/privacy.md](docs/privacy.md)
+lists what DipsyPaint stores on your computer, including recovery copies of unsaved pictures.
 
 ### Running an unsigned app
 
