@@ -28,11 +28,11 @@ public sealed class FileMenuTests : IDisposable
         public List<string> Errors { get; } = [];
 
         /// <summary>What the New dialog returns; null means Cancel. By default it accepts the prefilled size.</summary>
-        public Func<int, int, (int Width, int Height)?> NewSize { get; set; } = (width, height) => (width, height);
+        public Func<int, int, (int Width, int Height, Resolution Resolution)?> NewSize { get; set; } = (width, height) => (width, height, Resolution.Default);
 
         public List<(int Width, int Height)> NewSizeRequests { get; } = [];
 
-        public Task<(int Width, int Height)?> AskNewImageSizeAsync(int width, int height)
+        public Task<(int Width, int Height, Resolution Resolution)?> AskNewImageSizeAsync(int width, int height)
         {
             NewSizeRequests.Add((width, height));
             return Task.FromResult(NewSize(width, height));
@@ -222,7 +222,7 @@ public sealed class FileMenuTests : IDisposable
     public async Task NewUsesTheSizeChosenInTheDialog()
     {
         var (window, menu, dialogs) = ShowWindow(64, 48);
-        dialogs.NewSize = (_, _) => (320, 200);
+        dialogs.NewSize = (_, _) => (320, 200, Resolution.Default);
 
         await menu.NewAsync();
         window.UpdateLayout();
@@ -231,6 +231,19 @@ public sealed class FileMenuTests : IDisposable
         Assert.Equal("320 × 200 px · 96 dpi", StatusText(window));
         Assert.Equal(new Size(320, 200), window.FindControl<DocumentCanvas>("DocumentView")!.Bounds.Size);
         Assert.False(window.Editor.History.CanUndo);
+    }
+
+    [AvaloniaFact]
+    public async Task NewUsesTheResolutionChosenInTheDialog()
+    {
+        var (window, menu, dialogs) = ShowWindow(64, 48);
+        dialogs.NewSize = (_, _) => (2480, 3508, new Resolution(300, 300));
+
+        await menu.NewAsync();
+        window.UpdateLayout();
+
+        Assert.Equal(new Resolution(300, 300), window.Document.Resolution);
+        Assert.Equal("2480 × 3508 px · 300 dpi", StatusText(window));
     }
 
     [AvaloniaFact]
@@ -253,7 +266,7 @@ public sealed class FileMenuTests : IDisposable
     {
         var (window, menu, dialogs) = ShowWindow(64, 48);
         var before = window.Document;
-        dialogs.NewSize = (_, _) => (Document.MaxSide, Document.MaxSide);
+        dialogs.NewSize = (_, _) => (Document.MaxSide, Document.MaxSide, Resolution.Default);
 
         await menu.NewAsync();
 
@@ -274,7 +287,7 @@ public sealed class FileMenuTests : IDisposable
         height.Value = 768;
         dialog.FindControl<Button>("OkButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
-        Assert.Equal((1024, 768), dialog.Result);
+        Assert.Equal((1024, 768, Resolution.Default), dialog.Result);
     }
 
     [AvaloniaFact]

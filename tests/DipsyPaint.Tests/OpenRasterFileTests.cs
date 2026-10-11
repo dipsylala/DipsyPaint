@@ -25,7 +25,7 @@ public sealed class OpenRasterFileTests : IDisposable
 
         public Task<PickedFile?> PickSaveAsync(string suggestedName, ImageFormat format) => Task.FromResult(SaveResult);
 
-        public Task<(int Width, int Height)?> AskNewImageSizeAsync(int width, int height) => Task.FromResult<(int, int)?>((width, height));
+        public Task<(int Width, int Height, Resolution Resolution)?> AskNewImageSizeAsync(int width, int height) => Task.FromResult<(int, int, Resolution)?>((width, height, Resolution.Default));
 
         public Task ShowErrorAsync(string message)
         {

@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using DipsyPaint.Engine;
 using DipsyPaint.Engine.Codecs;
 using DipsyPaint.Resources;
 
@@ -80,9 +81,9 @@ internal sealed class StorageProviderDialogs(Visual anchor) : IFileDialogs
     public async Task<bool> ConfirmLossySaveAsync() =>
         TopLevel is Window owner && await new LossySaveWarning().ShowDialog<bool>(owner);
 
-    public async Task<(int Width, int Height)?> AskNewImageSizeAsync(int width, int height) =>
+    public async Task<(int Width, int Height, Resolution Resolution)?> AskNewImageSizeAsync(int width, int height) =>
         TopLevel is Window owner
-            ? await new NewImageDialog(width, height).ShowDialog<(int Width, int Height)?>(owner)
+            ? await new NewImageDialog(width, height).ShowDialog<(int Width, int Height, Resolution Resolution)?>(owner)
             : null;
 
     public Task ShowErrorAsync(string message)

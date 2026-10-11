@@ -43,10 +43,10 @@ public sealed class SaveChangesTests : IDisposable
         public int NewSizeRequests { get; private set; }
         public List<string> Errors { get; } = [];
 
-        public Task<(int Width, int Height)?> AskNewImageSizeAsync(int width, int height)
+        public Task<(int Width, int Height, Resolution Resolution)?> AskNewImageSizeAsync(int width, int height)
         {
             NewSizeRequests++;
-            return Task.FromResult<(int, int)?>((width, height));
+            return Task.FromResult<(int, int, Resolution)?>((width, height, Resolution.Default));
         }
 
         public Task<PickedFile?> PickOpenAsync()
