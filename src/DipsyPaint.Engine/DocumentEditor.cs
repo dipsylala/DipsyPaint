@@ -14,7 +14,7 @@ namespace DipsyPaint.Engine;
 /// apply to the selection when there is one, else to every layer, and may change the canvas size
 /// (<see cref="SizeChanged"/>).
 /// </summary>
-public sealed class DocumentEditor
+public sealed partial class DocumentEditor
 {
     /// <summary>Handle grab distance at 100% zoom, in document pixels.</summary>
     public const double DefaultHandleTolerance = 4;
@@ -286,7 +286,7 @@ public sealed class DocumentEditor
         if (!_inGesture)
         {
             CommitPending();
-            Refresh(History.Undo());
+            Refresh(History.Undo(), anyLayer: true);
         }
     }
 
@@ -300,7 +300,7 @@ public sealed class DocumentEditor
         if (!_inGesture)
         {
             CommitPending();
-            Refresh(History.Redo());
+            Refresh(History.Redo(), anyLayer: true);
         }
     }
 
@@ -327,7 +327,7 @@ public sealed class DocumentEditor
         CommitPending();
         CanvasTransformStep.Apply(Document, transform);
         History.Record(new CanvasTransformStep(Document, transform));
-        Refresh(new IntRect(0, 0, Document.Width, Document.Height));
+        Refresh(new IntRect(0, 0, Document.Width, Document.Height), anyLayer: true);
     }
 
     /// <summary>
@@ -412,7 +412,7 @@ public sealed class DocumentEditor
         var beforeSize = (Document.Width, Document.Height);
         var before = Document.ReplacePixels(width, height, map);
         History.Record(new CanvasPixelsStep(Document, before, beforeSize));
-        Refresh(new IntRect(0, 0, width, height));
+        Refresh(new IntRect(0, 0, width, height), anyLayer: true);
     }
 
     private void RecordStep()
@@ -440,7 +440,10 @@ public sealed class DocumentEditor
     }
 
     // Every change to the selection ends here, so this is where SelectionChanged is raised.
-    private void Refresh(IntRect dirty)
+    // anyLayer: pixels of layers other than the active one may have changed (undo, image operations,
+    // layer operations); otherwise only the active layer or the overlay did, and the compositor's
+    // cached layers above and below it are reused.
+    private void Refresh(IntRect dirty, bool anyLayer = false)
     {
         if (Selection != _selection)
         {
@@ -462,7 +465,15 @@ public sealed class DocumentEditor
             return;
         }
 
-        Compositor.Update(dirty);
+        if (anyLayer)
+        {
+            Compositor.Update(dirty);
+        }
+        else
+        {
+            Compositor.UpdateActive(dirty);
+        }
+
         CompositeChanged?.Invoke(this, dirty);
     }
 }

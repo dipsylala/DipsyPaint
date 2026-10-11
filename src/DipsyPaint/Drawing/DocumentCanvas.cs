@@ -30,7 +30,7 @@ public sealed class DocumentCanvas : Control
     private static readonly IBrush FrameBrush = new SolidColorBrush(Color.FromRgb(0, 103, 192));
 
     // 8×8 document-pixel squares, light grey on white.
-    private static readonly IBrush Checkerboard = new DrawingBrush(new DrawingGroup
+    internal static readonly IBrush Checkerboard = new DrawingBrush(new DrawingGroup
     {
         Children =
         {
