@@ -28,6 +28,14 @@ public abstract class BrushTip
     /// <summary>Covers the mark the tip leaves moving from (x0, y0) to (x1, y1) at <paramref name="size"/> pixels.</summary>
     public abstract void Segment(Stroke stroke, double x0, double y0, double x1, double y1, double size);
 
+    /// <summary>
+    /// Covers the mark the tip leaves moving from (x0, y0) to (x1, y1) while its size changes evenly
+    /// from <paramref name="startSize"/> to <paramref name="endSize"/> pixels, as pen pressure varies.
+    /// A tip that cannot taper uses the larger size.
+    /// </summary>
+    public virtual void Segment(Stroke stroke, double x0, double y0, double x1, double y1, double startSize, double endSize) =>
+        Segment(stroke, x0, y0, x1, y1, Math.Max(startSize, endSize));
+
     /// <summary>Covers the mark the tip leaves along <paramref name="points"/>; a single point leaves one dab.</summary>
     public void Polyline(Stroke stroke, ReadOnlySpan<(double X, double Y)> points, double size)
     {

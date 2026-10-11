@@ -2,30 +2,34 @@ namespace DipsyPaint.Engine.Tools.Brushes;
 
 /// <summary>
 /// A round tip of the given size (diameter) swept along a segment, like the basic brush, whose
-/// coverage each subclass shapes from the pixel's distance to the path and the paper grain.
+/// coverage each subclass shapes from the pixel's distance to the path and the paper grain. When
+/// the size changes along the segment (pen pressure), the swept shape tapers between the ends.
 /// </summary>
 internal abstract class RoundTip : BrushTip
 {
-    public override void Segment(Stroke stroke, double x0, double y0, double x1, double y1, double size)
+    public override void Segment(Stroke stroke, double x0, double y0, double x1, double y1, double size) =>
+        Segment(stroke, x0, y0, x1, y1, size, size);
+
+    public override void Segment(Stroke stroke, double x0, double y0, double x1, double y1, double startSize, double endSize)
     {
-        var radius = size / 2.0;
-        var reach = radius + 0.5;
+        double radius0 = startSize / 2.0, radius1 = endSize / 2.0;
+        var reach = Math.Max(radius0, radius1) + 0.5;
         var left = Math.Max(0, (int)Math.Floor(Math.Min(x0, x1) - reach));
         var top = Math.Max(0, (int)Math.Floor(Math.Min(y0, y1) - reach));
         var right = Math.Min(stroke.Width - 1, (int)Math.Ceiling(Math.Max(x0, x1) + reach));
         var bottom = Math.Min(stroke.Height - 1, (int)Math.Ceiling(Math.Max(y0, y1) + reach));
 
-        double dx = x1 - x0, dy = y1 - y0;
-        var lengthSquared = dx * dx + dy * dy;
+        double dx = x1 - x0, dy = y1 - y0, dr = radius1 - radius0;
         for (var py = top; py <= bottom; py++)
         {
             for (var px = left; px <= right; px++)
             {
                 double cx = px + 0.5 - x0, cy = py + 0.5 - y0;
-                var t = lengthSquared == 0 ? 0 : Math.Clamp((cx * dx + cy * dy) / lengthSquared, 0, 1);
+                var t = PenPressure.Nearest(cx, cy, dx, dy, dr);
                 double ex = cx - t * dx, ey = cy - t * dy;
                 var distance = Math.Sqrt(ex * ex + ey * ey);
-                if (distance < reach)
+                var radius = radius0 + t * dr;
+                if (distance < radius + 0.5)
                 {
                     stroke.Cover(px, py, Coverage(px, py, distance, radius));
                 }

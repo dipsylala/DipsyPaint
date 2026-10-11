@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] Pressure affects strokes for pressure-capable tools when the OS reports it
-- [ ] Mouse input and pressure-less devices behave exactly as before
-- [ ] An input-event replay test with recorded pressure values produces a golden image
+- [x] Pressure affects strokes for pressure-capable tools when the OS reports it
+- [x] Mouse input and pressure-less devices behave exactly as before
+- [x] An input-event replay test with recorded pressure values produces a golden image
