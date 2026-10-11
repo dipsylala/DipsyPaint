@@ -104,8 +104,11 @@ internal static class PixelWarp
         return result;
     }
 
-    /// <summary>Warps a shape mask as <see cref="Warp(Rgba[], int, int, LinearTransform, int, int, Rgba)"/> does pixels, keeping pixels at least half covered.</summary>
-    public static bool[] Warp(bool[] mask, int width, int height, LinearTransform transform, int newWidth, int newHeight)
+    /// <summary>
+    /// Warps a shape mask (null for the whole rectangle) as <see cref="Warp(Rgba[], int, int, LinearTransform, int, int, Rgba)"/>
+    /// does pixels, keeping pixels at least half covered.
+    /// </summary>
+    public static bool[] Warp(bool[]? mask, int width, int height, LinearTransform transform, int newWidth, int newHeight)
     {
         var result = new bool[newWidth * newHeight];
         ForEachRow(width, height, transform, newWidth, newHeight, (y, sx, sy, stepX, stepY) =>
@@ -114,7 +117,7 @@ internal static class PixelWarp
             {
                 var (x0, fx) = Split(sx + x * stepX);
                 var (y0, fy) = Split(sy + x * stepY);
-                bool At(int i, int j) => i >= 0 && j >= 0 && i < width && j < height && mask[j * width + i];
+                bool At(int i, int j) => i >= 0 && j >= 0 && i < width && j < height && (mask is null || mask[j * width + i]);
                 var coverage = (At(x0, y0) ? (1 - fx) * (1 - fy) : 0) + (At(x0 + 1, y0) ? fx * (1 - fy) : 0)
                     + (At(x0, y0 + 1) ? (1 - fx) * fy : 0) + (At(x0 + 1, y0 + 1) ? fx * fy : 0);
                 result[y * newWidth + x] = coverage * 255 >= 127.5; // as an opaque pixel's alpha rounded to 128 or more
@@ -192,4 +195,49 @@ internal static class PixelWarp
 
         return ((int)Math.Clamp(whole, int.MinValue / 2, int.MaxValue / 2), fraction);
     }
+}
+
+/// <summary>
+/// A bitmap mapped through a <see cref="LinearTransform"/> as <see cref="PixelWarp.Warp(Rgba[], int, int, LinearTransform, int, int, Rgba)"/>
+/// maps it into a <c>newWidth</c>×<c>newHeight</c> bitmap with the same centre, but sampled on demand and
+/// nearest-neighbour: each new pixel is the source pixel nearest its centre's preimage, transparent off the
+/// source. Nothing is computed up front, so it is cheap to show while a turn is dragged (see
+/// <see cref="Overlay.ShowTurned"/>); edges are hard where the warp softens them.
+/// </summary>
+internal sealed class TurnedPixels(Rgba[] source, int width, int height, LinearTransform transform, int newWidth, int newHeight)
+{
+    private const double One = 4294967296.0; // 1 in 32.32 fixed point
+
+    private readonly LinearTransform _inverse = transform.Inverse();
+
+    /// <summary>
+    /// Composites the new bitmap's pixels from column <paramref name="x"/> of row <paramref name="y"/>
+    /// source-over onto <paramref name="destination"/>, leaving out pixels equal to <paramref name="hidden"/>.
+    /// </summary>
+    public void CompositeRow(int y, int x, Span<Rgba> destination, Rgba? hidden)
+    {
+        // The preimage of the first pixel's centre, plus a half to round to the nearest source pixel, and
+        // the step per column, in 32.32 fixed point so the row is stepped exactly.
+        double dx = x + 0.5 - newWidth / 2.0, dy = y + 0.5 - newHeight / 2.0;
+        var fx = Fixed(_inverse.M11 * dx + _inverse.M12 * dy + width / 2.0);
+        var fy = Fixed(_inverse.M21 * dx + _inverse.M22 * dy + height / 2.0);
+        long stepX = Fixed(_inverse.M11), stepY = Fixed(_inverse.M21);
+        var pixels = source.AsSpan();
+        var skips = hidden.HasValue;
+        var skip = hidden.GetValueOrDefault();
+        for (var i = 0; i < destination.Length; i++, fx += stepX, fy += stepY)
+        {
+            int sx = (int)(fx >> 32), sy = (int)(fy >> 32);
+            if ((uint)sx < (uint)width && (uint)sy < (uint)height)
+            {
+                var pixel = pixels[sy * width + sx];
+                if (pixel.A != 0 && !(skips && pixel == skip))
+                {
+                    destination[i] = pixel.Over(destination[i]);
+                }
+            }
+        }
+    }
+
+    private static long Fixed(double value) => (long)Math.Floor(value * One);
 }

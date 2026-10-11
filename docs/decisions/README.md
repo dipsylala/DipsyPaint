@@ -19,11 +19,12 @@
 | [0015](0015-distribution-unsigned-first.md) | Distribute unsigned via GitHub Releases first; add signing later | Accepted |
 | [0016](0016-testing-ui-free-engine.md) | UI-free engine; unit, golden-image and headless UI tests on 3-OS CI | Accepted |
 | [0017](0017-no-telemetry.md) | No telemetry; local crash logs and user-submitted reports | Accepted |
-| [0018](0018-performance-targets.md) | Performance targets with non-blocking CI benchmark tracking | Accepted |
+| [0018](0018-performance-targets.md) | Performance targets with non-blocking CI benchmark tracking | Accepted; amended by 0023 |
 | [0019](0019-file-formats-match-paint.md) | Flat file formats match reference Paint, minus HEIC | Accepted |
 | [0020](0020-imagesharp-licence-key.md) | ImageSharp 4 licence key: obtain one; CI falls back to Debug without it | Accepted |
 | [0021](0021-clipboard-image-formats.md) | Clipboard image formats per OS; Windows output through Avalonia's bitmap | Accepted |
 | [0022](0022-command-bar-layout.md) | Command bar wraps; command groups dock to window edges; layout is saved per user | Accepted |
+| [0023](0023-transform-drag-target.md) | Transform drags have the brush's 16 ms target; previews may be cheaper than the result | Accepted |
 
 ## Open Questions
 

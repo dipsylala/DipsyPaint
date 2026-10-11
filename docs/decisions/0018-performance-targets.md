@@ -1,6 +1,7 @@
 # ADR-0018: Performance targets with non-blocking CI benchmark tracking
 
 - **Status:** Accepted (assumptions confirmed 2026-10-10)
+- **Amended by:** [ADR-0023](0023-transform-drag-target.md) (transform-drag target)
 - **Date:** 2026-10-10
 - **Depends on:** [ADR-0005](0005-document-model-flat-layers.md), [ADR-0013](0013-crash-recovery-snapshots.md), [ADR-0016](0016-testing-ui-free-engine.md)
 

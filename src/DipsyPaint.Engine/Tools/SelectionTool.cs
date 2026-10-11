@@ -15,8 +15,9 @@ namespace DipsyPaint.Engine.Tools;
 /// removes the selected pixels; <see cref="Replace"/> rotates, flips or resizes them; <see cref="Paste"/>
 /// shows pasted pixels as a lifted selection; <see cref="Select"/> selects a given shape (select all,
 /// invert). Dragging the rotate handle, or <see cref="Rotate"/>, turns the selected pixels and their
-/// shape to any angle about the frame's centre (bilinear); the frame grows to the upright rectangle
-/// around them, transparent where nothing lands. The right button does nothing (Paint opens a context
+/// shape to any angle about the frame's centre (bilinear; while the handle is dragged, the overlay shows
+/// a quick nearest-neighbour preview); the frame grows to the upright rectangle around them,
+/// transparent where nothing lands. The right button does nothing (Paint opens a context
 /// menu there).
 /// </summary>
 public sealed class SelectionTool : IRotatableTool
@@ -58,6 +59,11 @@ public sealed class SelectionTool : IRotatableTool
     private (double X, double Y) _turnCentre;
     private RotateDrag? _rotateDrag;
 
+    // While the rotate handle is dragged: the angle and frame shown. The overlay shows a quick preview of
+    // the turn (Overlay.ShowTurned) and the selection stays as it was at the press; releasing the handle,
+    // or committing, turns it exactly (bilinear). Null otherwise.
+    private (double Angle, IntRect Frame)? _preview;
+
     private Gesture _gesture;
     private FrameHandle _handle;
     private (int X, int Y) _dragStart;
@@ -70,9 +76,12 @@ public sealed class SelectionTool : IRotatableTool
 
     public SelectionTool(SelectionSettings settings) => _settings = settings;
 
-    public Adornment? Adornment => _selected ? new Adornment(Bounds) : null;
+    public Adornment? Adornment => _selected ? new Adornment(_preview?.Frame ?? Bounds) : null;
 
-    /// <summary>The current selection, or null when there is none.</summary>
+    /// <summary>
+    /// The current selection, or null when there is none. While the rotate handle is dragged it stays as it
+    /// was at the press (the overlay shows a preview); it is turned when the handle is released.
+    /// </summary>
     public Selection? Selection => _selected ? new Selection(Bounds, _shown, _shownMask) : null;
 
     /// <summary>
@@ -162,7 +171,7 @@ public sealed class SelectionTool : IRotatableTool
                 var (a, b) = Engine.Adornment.Drag(_dragA, _dragB, _handle, pixel.X - _dragStart.X, pixel.Y - _dragStart.Y);
                 if ((a, b) != (_a, _b))
                 {
-                    dirty = Lift(context);
+                    dirty = Settle(context).Union(Lift(context));
                     if (_handle == FrameHandle.Move)
                     {
                         _turnCentre = (_turnCentre.X + a.X - _a.X, _turnCentre.Y + a.Y - _a.Y);
@@ -179,9 +188,10 @@ public sealed class SelectionTool : IRotatableTool
                 break;
             case Gesture.Rotate:
                 var angle = _rotateDrag!.AngleAt(input);
-                if (angle != Angle)
+                var released = input.Action == PointerAction.Up;
+                if (angle != (_preview?.Angle ?? Angle) || (released && _preview is not null))
                 {
-                    dirty = Turn(context, angle, _rotateDrag.CentreX, _rotateDrag.CentreY);
+                    dirty = Turn(context, angle, _rotateDrag.CentreX, _rotateDrag.CentreY, preview: !released);
                 }
 
                 break;
@@ -211,14 +221,15 @@ public sealed class SelectionTool : IRotatableTool
 
     public IntRect Commit(ToolContext context)
     {
-        var dirty = _lifted is null ? IntRect.Empty : context.Overlay.DrawOnto(context.Target);
+        var dirty = Settle(context);
+        dirty = dirty.Union(_lifted is null ? IntRect.Empty : context.Overlay.DrawOnto(context.Target));
         return dirty.Union(Cancel(context));
     }
 
     public IntRect Cancel(ToolContext context)
     {
         (_selected, _gesture, _lifted, _shown, _mask, _shownMask) = (false, Gesture.None, null, null, null, null);
-        (_unturned, _rotateDrag) = (null, null);
+        (_unturned, _rotateDrag, _preview) = (null, null, null);
         _path.Clear();
         return context.Overlay.Clear();
     }
@@ -253,6 +264,7 @@ public sealed class SelectionTool : IRotatableTool
     /// </summary>
     public PixelImage? Copy(ToolContext context)
     {
+        Settle(context);
         if (Selection is not { } selection)
         {
             return null;
@@ -323,7 +335,7 @@ public sealed class SelectionTool : IRotatableTool
             return IntRect.Empty;
         }
 
-        var dirty = Lift(context);
+        var dirty = Settle(context).Union(Lift(context));
         var bounds = Bounds;
         var resized = (bounds.Width, bounds.Height) != (_source.Width, _source.Height);
         _lifted = map(resized ? Stretch(_lifted!, _source, bounds) : _lifted!, bounds.Width, bounds.Height);
@@ -378,8 +390,9 @@ public sealed class SelectionTool : IRotatableTool
     private (double X, double Y) TurnCentre =>
         _unturned is null ? (Bounds.X + Bounds.Width / 2.0, Bounds.Y + Bounds.Height / 2.0) : _turnCentre;
 
-    // Shows the pixels as they were before the first turn, turned to `angle` about the centre.
-    private IntRect Turn(ToolContext context, double angle, double centreX, double centreY)
+    // Shows the pixels as they were before the first turn, turned to `angle` about the centre: exactly
+    // (bilinear), or with `preview` as a quick preview in the overlay only (see _preview).
+    private IntRect Turn(ToolContext context, double angle, double centreX, double centreY, bool preview = false)
     {
         var dirty = Lift(context);
         if (_unturned is null)
@@ -389,20 +402,31 @@ public sealed class SelectionTool : IRotatableTool
             _unturned = resized ? Stretch(_lifted!, _source, bounds) : _lifted!;
             _unturnedMask = _mask is not null && resized ? Stretch(_mask, _source, bounds) : _mask;
             _unturnedSize = (bounds.Width, bounds.Height);
+            (_angle, _turnCentre) = (0, (centreX, centreY));
         }
 
         var transform = LinearTransform.Rotation(angle);
         var (w, h) = _unturnedSize;
         var (width, height) = transform.SizeOf(w, h);
-        var shape = _unturnedMask ?? Enumerable.Repeat(true, w * h).ToArray();
-        _lifted = PixelWarp.Warp(_unturned, w, h, transform, width, height);
-        _mask = PixelWarp.Warp(shape, w, h, transform, width, height);
         var x = (int)Math.Floor(centreX - width / 2.0 + 0.5);
         var y = (int)Math.Floor(centreY - height / 2.0 + 0.5);
+        if (preview)
+        {
+            _preview = (angle, new IntRect(x, y, width, height));
+            return dirty.Union(Show(context));
+        }
+
+        _preview = null;
+        _lifted = PixelWarp.Warp(_unturned, w, h, transform, width, height);
+        _mask = PixelWarp.Warp(_unturnedMask, w, h, transform, width, height);
         (_a, _b, _angle, _turnCentre) = ((x, y), (x + width - 1, y + height - 1), angle, (centreX, centreY));
         _source = Bounds;
         return dirty.Union(Show(context));
     }
+
+    // Replaces a preview of the turn with the exact turn; returns the changed rectangle.
+    private IntRect Settle(ToolContext context) =>
+        _preview is { } preview ? Turn(context, preview.Angle, _turnCentre.X, _turnCentre.Y) : IntRect.Empty;
 
     private void SetShape(IntRect bounds, bool[]? mask)
     {
@@ -440,28 +464,55 @@ public sealed class SelectionTool : IRotatableTool
 
     private IntRect Show(ToolContext context)
     {
+        Rgba? hidden = _settings.Transparent ? context.SecondaryColor : null;
+        if (_preview is { } preview)
+        {
+            var (w, h) = _unturnedSize;
+            return context.Overlay.ShowTurned(preview.Frame, _unturned!, w, h, LinearTransform.Rotation(preview.Angle), hidden);
+        }
+
         var bounds = Bounds;
         var resized = (bounds.Width, bounds.Height) != (_source.Width, _source.Height);
         _shown = resized ? Stretch(_lifted!, _source, bounds) : _lifted!;
         _shownMask = resized && _mask is not null ? Stretch(_mask, _source, bounds) : _mask;
-        if (_settings.Transparent && Array.IndexOf(_shown, context.SecondaryColor) >= 0)
+        if (hidden is { } colour && Array.IndexOf(_shown, colour) >= 0)
         {
-            _shown = Array.ConvertAll(_shown, pixel => pixel == context.SecondaryColor ? Rgba.Transparent : pixel);
+            _shown = Array.ConvertAll(_shown, pixel => pixel == colour ? Rgba.Transparent : pixel);
         }
 
         return context.Overlay.Show(bounds, _shown);
     }
 
+    // Nearest neighbour; large bitmaps (a stretch drag) are done in parallel rows.
     private static T[] Stretch<T>(T[] source, IntRect from, IntRect to)
     {
-        var result = new T[to.Width * to.Height];
-        for (var y = 0; y < to.Height; y++)
+        var result = GC.AllocateUninitializedArray<T>(to.Width * to.Height); // every element is written below
+        var columns = new int[to.Width];
+        for (var x = 0; x < to.Width; x++)
         {
-            var row = (int)((long)y * from.Height / to.Height) * from.Width;
-            for (var x = 0; x < to.Width; x++)
+            columns[x] = (int)((long)x * from.Width / to.Width);
+        }
+
+        void Row(int y)
+        {
+            var row = source.AsSpan((int)((long)y * from.Height / to.Height) * from.Width, from.Width);
+            var target = result.AsSpan(y * to.Width, to.Width);
+            for (var x = 0; x < target.Length; x++)
             {
-                result[y * to.Width + x] = source[row + (int)((long)x * from.Width / to.Width)];
+                target[x] = row[columns[x]];
             }
+        }
+
+        if (result.Length < 1 << 16)
+        {
+            for (var y = 0; y < to.Height; y++)
+            {
+                Row(y);
+            }
+        }
+        else
+        {
+            Parallel.For(0, to.Height, Row);
         }
 
         return result;

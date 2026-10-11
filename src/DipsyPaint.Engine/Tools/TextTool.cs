@@ -11,8 +11,8 @@ namespace DipsyPaint.Engine.Tools;
 /// outside the box commits it without opening a new one. The right button does nothing.
 /// <para>
 /// Dragging the rotate handle, or <see cref="Rotate"/>, turns the text box to any angle about its
-/// centre: the text is rendered upright and then turned (bilinear), and the frame becomes the upright
-/// rectangle around it. A turned box can be moved, stretched (which stretches the turned text) and
+/// centre: the text is rendered upright and then turned (bilinear; while the handle is dragged, a quick
+/// nearest-neighbour preview), and the frame becomes the upright rectangle around it. A turned box can be moved, stretched (which stretches the turned text) and
 /// restyled, but not edited: <see cref="TextBounds"/> is null, so the shell hides its editor.
 /// </para>
 /// </summary>
@@ -55,6 +55,10 @@ public sealed class TextTool(TextSettings settings, ITextRenderer renderer) : IR
     private LinearTransform _dragTransform;
     private (double X, double Y) _dragCentre;
     private RotateDrag? _rotateDrag;
+
+    // While the rotate handle is dragged: the upright rendering, kept because only the turn changes, and
+    // shown turned as a quick preview (Overlay.ShowTurned). Releasing the handle renders exactly. Null otherwise.
+    private PixelImage? _upright;
 
     /// <summary>Raised when the pending text box appears, moves, resizes, is re-rendered or goes away.</summary>
     public event EventHandler? Changed;
@@ -150,7 +154,7 @@ public sealed class TextTool(TextSettings settings, ITextRenderer renderer) : IR
             _gesture = Gesture.None;
         }
 
-        return Render(context);
+        return Render(context, preview: _gesture == Gesture.Rotate);
     }
 
     public IntRect Commit(ToolContext context)
@@ -160,7 +164,8 @@ public sealed class TextTool(TextSettings settings, ITextRenderer renderer) : IR
             return IntRect.Empty;
         }
 
-        var dirty = Text.Length > 0 ? context.Overlay.DrawOnto(context.Target) : IntRect.Empty;
+        var dirty = _upright is null ? IntRect.Empty : Render(context); // a preview: render exactly first
+        dirty = dirty.Union(Text.Length > 0 ? context.Overlay.DrawOnto(context.Target) : IntRect.Empty);
         return dirty.Union(Cancel(context));
     }
 
@@ -173,6 +178,7 @@ public sealed class TextTool(TextSettings settings, ITextRenderer renderer) : IR
 
         _pending = false;
         _gesture = Gesture.None;
+        _upright = null;
         var dirty = context.Overlay.Clear();
         Changed?.Invoke(this, EventArgs.Empty);
         return dirty;
@@ -216,23 +222,31 @@ public sealed class TextTool(TextSettings settings, ITextRenderer renderer) : IR
         _centre = (_dragCentre.X + to.X + to.Width / 2.0 - (from.X + from.Width / 2.0), _dragCentre.Y + to.Y + to.Height / 2.0 - (from.Y + from.Height / 2.0));
     }
 
-    private IntRect Render(ToolContext context)
+    // Renders the text, turned exactly (bilinear) or, with `preview`, as a quick preview (see _upright).
+    private IntRect Render(ToolContext context, bool preview = false)
     {
         var request = new TextRequest(
             Text, settings.ToStyle(), _area.Width, _area.Height, context.PrimaryColor,
             settings.FillBackground ? context.SecondaryColor : null);
-        var image = renderer.Render(request);
+        var image = preview && _upright is { } kept ? kept : renderer.Render(request);
+        _upright = preview ? image : null;
         var pixels = image.Pixels;
         _bounds = new IntRect(_area.X, _area.Y, image.Width, image.Height);
-        if (!_transform.IsIdentity)
+        IntRect dirty;
+        if (_transform.IsIdentity)
+        {
+            dirty = context.Overlay.Show(_bounds, pixels);
+        }
+        else
         {
             var (width, height) = _transform.SizeOf(image.Width, image.Height);
-            pixels = PixelWarp.Warp(image.Pixels, image.Width, image.Height, _transform, width, height);
             _bounds = new IntRect(
                 (int)Math.Floor(_centre.X - width / 2.0 + 0.5), (int)Math.Floor(_centre.Y - height / 2.0 + 0.5), width, height);
+            dirty = preview
+                ? context.Overlay.ShowTurned(_bounds, pixels, image.Width, image.Height, _transform, hidden: null)
+                : context.Overlay.Show(_bounds, PixelWarp.Warp(pixels, image.Width, image.Height, _transform, width, height));
         }
 
-        var dirty = context.Overlay.Show(_bounds, pixels);
         Changed?.Invoke(this, EventArgs.Empty);
         return dirty;
     }
