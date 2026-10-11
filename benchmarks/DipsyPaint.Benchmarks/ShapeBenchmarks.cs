@@ -5,8 +5,9 @@ using DipsyPaint.Engine.Tools;
 namespace DipsyPaint.Benchmarks;
 
 /// <summary>
-/// Shape drags (ADR-0023, ticket 37): dragging a handle of a pending 3780×2080 oval, outlined at
-/// 8 px and filled in one style, on a 4K document of 20 layers, through the editor. Each invocation
+/// Shape drags (ADR-0023, ticket 37, issue #102): dragging a handle or the body of a pending
+/// 3780×2080 oval, outlined at 8 px and filled in one style, on a 4K document of 20 layers, through
+/// the editor. Each invocation
 /// is one drag (down, 20 moves, up); the result is the mean cost per pointer event. Successive drags
 /// go back and forth, so every invocation does the same work. The pending shape is redrawn on every
 /// move, so this measures the textured styles' rendering against solid's.

@@ -13,12 +13,14 @@ milestone release, someone runs them on reference hardware (see the checklist be
 | `ArtisticBrush.StrokeEvent [Brush=calligraphy-brush\|calligraphy-pen\|airbrush\|oil-brush\|crayon\|marker\|natural-pencil\|watercolour-brush]` | The `Brush.StrokeEvent` stroke at size 100 with each artistic brush of tickets 28 and 29. The airbrush sprays for 16 ms per event, as for events without a time. | ≤ 16 ms (AC31) |
 | `Transform.RotateEvent` | A drag of the rotate handle of a 3840×2160 selection (the whole canvas of a 20-layer document, lifted off the top layer): pointer down, 20 moves turning it 2° each, pointer up, all through `DocumentEditor.Apply`. Covers the preview shown while dragging, the exact turn on release and recompositing. Drags alternate between 10°–50° and back, so each does the same work. Reported as the mean cost per pointer event. | ≤ 16 ms (ADR-0023) |
 | `Transform.StretchEvent` | The same selection stretched by its bottom-right handle: pointer down, 20 moves 10 px apart, pointer up, alternately in and back out. Mean cost per pointer event. | ≤ 16 ms (ADR-0023) |
-| `Shape.RotateEvent [Style=solid\|crayon\|marker\|oil\|natural-pencil\|watercolour]` | A drag of the rotate handle of a pending 3780×2080 oval, outlined at 8 px and filled in one style, on a 3840×2160 document with 20 layers: pointer down, 20 moves turning it 2° each, pointer up, all through `DocumentEditor.Apply`. The shape is redrawn on every move, so this compares the textured styles (ticket 37) with solid. Mean cost per pointer event. | ≤ 16 ms (ADR-0023) |
+| `Shape.RotateEvent [Style=solid\|crayon\|marker\|oil\|natural-pencil\|watercolour]` | A drag of the rotate handle of a pending 3780×2080 oval, outlined at 8 px and filled in one style, on a 3840×2160 document with 20 layers: pointer down, 20 moves turning it 2° each, pointer up, all through `DocumentEditor.Apply`. The exact shape is redrawn on every move (issue #102: masks, pixel buffers and a textured fill's noise are reused between moves), so this compares the textured styles (ticket 37) with solid. Mean cost per pointer event. | ≤ 16 ms (ADR-0023) |
 | `Shape.StretchEvent [Style=…]` | The same oval stretched by its bottom-right handle: pointer down, 20 moves 10 px apart, pointer up, alternately in and back out. Mean cost per pointer event. | ≤ 16 ms (ADR-0023) |
+| `Shape.MoveEvent [Style=…]` | The same oval dragged by its body: pointer down in the middle, 20 moves 10 px apart diagonally, pointer up, alternately up-left and back. Part of the oval goes off the canvas. Mean cost per pointer event. | ≤ 16 ms (ADR-0023) |
+| `Screen.CopyFullCanvas` | The shell's copy of the composite to the screen after a change to the whole 3840×2160 canvas: the row-by-row copy of `DocumentCanvas.CopyToBitmap`, into a buffer laid out as its `WriteableBitmap`. Avalonia's upload to the GPU and drawing are not included. It comes on top of a brush or drag event's engine cost. | ≤ 16 ms (with the event, ADR-0018) |
 | `Fill.FloodFill [Layers=1\|20]` | A flood fill of a whole 3840×2160 layer through the editor: region search, write, history step and recompositing. Measured on a one-layer document and with 20 layers. | ≤ 200 ms (AC32) |
 | `ColdStart.FirstFrame` | Time from process start to the main window's first rendered frame. Median of 10 launches. | ≤ 2 s (AC33) |
 
-Not measured: copying the composite to the screen (the shell's `DocumentCanvas`) and the GPU.
+Not measured: Avalonia's upload of the shell's bitmap to the GPU, and the GPU.
 The cold-start runs follow one another, so the operating system's file cache is warm after the
 first. The log lists every run, so the first, coldest one is visible.
 
@@ -79,7 +81,7 @@ an Intel Core i5-10210U or an AMD Ryzen 5 4500U.
 
 - [ ] Plug in the laptop, choose the balanced or performance power plan, and close other programs.
 - [ ] Record the CPU, RAM, GPU, OS version and the commit being measured.
-- [ ] Engine benchmarks (default job, no `--job short`): `Brush.StrokeEvent` ≤ 16 ms per event at both sizes, and `ArtisticBrush.StrokeEvent` for every brush; `Transform.RotateEvent`, `Transform.StretchEvent`, `Shape.RotateEvent` and `Shape.StretchEvent` ≤ 16 ms per event; `Fill.FloodFill` ≤ 200 ms.
+- [ ] Engine benchmarks (default job, no `--job short`): `Brush.StrokeEvent` ≤ 16 ms per event at both sizes, and `ArtisticBrush.StrokeEvent` for every brush; `Transform.RotateEvent`, `Transform.StretchEvent`, `Shape.RotateEvent`, `Shape.StretchEvent` and `Shape.MoveEvent` ≤ 16 ms per event; `Fill.FloodFill` ≤ 200 ms.
 - [ ] Cold start with the release package (the publish mode chosen in ticket 14), `--runs 10`: median ≤ 2 s. Note the first run after a reboot as well.
 - [ ] By hand on a 3840×2160 document with 20 layers: brush strokes keep up with the pointer, with no visible lag; so do turning and stretching a selection of the whole canvas by its handles.
 - [ ] By hand: a flood fill of the whole canvas feels instant, and the window stays responsive during large operations (AC34).
