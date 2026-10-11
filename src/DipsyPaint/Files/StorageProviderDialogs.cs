@@ -49,6 +49,11 @@ internal sealed class StorageProviderDialogs(Visual anchor) : IFileDialogs
         return file is null ? null : Wrap(file);
     }
 
+    public async Task<(int Width, int Height)?> AskNewImageSizeAsync(int width, int height) =>
+        TopLevel is Window owner
+            ? await new NewImageDialog(width, height).ShowDialog<(int Width, int Height)?>(owner)
+            : null;
+
     public Task ShowErrorAsync(string message)
     {
         var ok = new Button { Content = FileStrings.Ok, IsDefault = true, IsCancel = true, MinWidth = 80, HorizontalAlignment = HorizontalAlignment.Right };

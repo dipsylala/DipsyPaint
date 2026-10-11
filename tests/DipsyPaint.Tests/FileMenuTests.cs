@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using DipsyPaint.Drawing;
 using DipsyPaint.Engine;
@@ -25,6 +26,17 @@ public sealed class FileMenuTests : IDisposable
         public int OpenRequests { get; private set; }
         public List<(string SuggestedName, ImageFormat Format)> SaveRequests { get; } = [];
         public List<string> Errors { get; } = [];
+
+        /// <summary>What the New dialog returns; null means Cancel. By default it accepts the prefilled size.</summary>
+        public Func<int, int, (int Width, int Height)?> NewSize { get; set; } = (width, height) => (width, height);
+
+        public List<(int Width, int Height)> NewSizeRequests { get; } = [];
+
+        public Task<(int Width, int Height)?> AskNewImageSizeAsync(int width, int height)
+        {
+            NewSizeRequests.Add((width, height));
+            return Task.FromResult(NewSize(width, height));
+        }
 
         public Task<PickedFile?> PickOpenAsync()
         {
@@ -112,13 +124,14 @@ public sealed class FileMenuTests : IDisposable
     [AvaloniaFact]
     public void CommandNReplacesTheDocumentWithABlankDefaultSizedOne()
     {
-        var (window, _, _) = ShowWindow(64, 48);
+        var (window, _, dialogs) = ShowWindow(64, 48);
         DrawDot(window, 3, 3);
         Assert.True(window.Editor.History.CanUndo);
         var before = window.Document;
 
         Press(window, Key.N, Command(window));
 
+        Assert.Equal((Document.DefaultWidth, Document.DefaultHeight), Assert.Single(dialogs.NewSizeRequests));
         Assert.NotSame(before, window.Document);
         Assert.Equal((Document.DefaultWidth, Document.DefaultHeight), (window.Document.Width, window.Document.Height));
         Assert.Equal(Rgba.White, window.Document.ActiveLayer.Pixels.GetPixel(3, 3));
@@ -194,6 +207,90 @@ public sealed class FileMenuTests : IDisposable
         Assert.Empty(dialogs.Errors);
         var resaved = Reopen("drawing.bmp");
         Assert.Equal(Rgba.Black, resaved.ActiveLayer.Pixels.GetPixel(10, 10));
+    }
+
+    [AvaloniaFact]
+    public async Task NewUsesTheSizeChosenInTheDialog()
+    {
+        var (window, menu, dialogs) = ShowWindow(64, 48);
+        dialogs.NewSize = (_, _) => (320, 200);
+
+        await menu.NewAsync();
+        window.UpdateLayout();
+
+        Assert.Equal((320, 200), (window.Document.Width, window.Document.Height));
+        Assert.Equal("320 × 200px", StatusText(window));
+        Assert.Equal(new Size(320, 200), window.FindControl<DocumentCanvas>("DocumentView")!.Bounds.Size);
+        Assert.False(window.Editor.History.CanUndo);
+    }
+
+    [AvaloniaFact]
+    public async Task CancellingNewKeepsTheDocument()
+    {
+        var (window, menu, dialogs) = ShowWindow(64, 48);
+        DrawDot(window, 3, 3);
+        var before = window.Document;
+        dialogs.NewSize = (_, _) => null;
+
+        await menu.NewAsync();
+
+        Assert.Same(before, window.Document);
+        Assert.True(window.Editor.History.CanUndo);
+        Assert.Empty(dialogs.Errors);
+    }
+
+    [AvaloniaFact]
+    public async Task NewRefusesASizeOverTheMemoryBudget()
+    {
+        var (window, menu, dialogs) = ShowWindow(64, 48);
+        var before = window.Document;
+        dialogs.NewSize = (_, _) => (Document.MaxSide, Document.MaxSide);
+
+        await menu.NewAsync();
+
+        Assert.Same(before, window.Document);
+        Assert.Contains($"{Document.MaxSide} × {Document.MaxSide} px", Assert.Single(dialogs.Errors));
+    }
+
+    [AvaloniaFact]
+    public void NewImageDialog_PrefillsTheSize_AndReturnsWhatIsEntered()
+    {
+        var dialog = new NewImageDialog(Document.DefaultWidth, Document.DefaultHeight);
+        dialog.Show();
+        var width = dialog.FindControl<NumericUpDown>("WidthBox")!;
+        var height = dialog.FindControl<NumericUpDown>("HeightBox")!;
+        Assert.Equal((800m, 600m), (width.Value, height.Value));
+
+        width.Value = 1024;
+        height.Value = 768;
+        dialog.FindControl<Button>("OkButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+        Assert.Equal((1024, 768), dialog.Result);
+    }
+
+    [AvaloniaFact]
+    public void NewImageDialog_LimitsEachSideToTheMaximum()
+    {
+        var dialog = new NewImageDialog(800, 600);
+        dialog.Show();
+        var width = dialog.FindControl<NumericUpDown>("WidthBox")!;
+
+        width.Value = Document.MaxSide + 1000;
+        dialog.FindControl<Button>("OkButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+        Assert.Equal(Document.MaxSide, dialog.Result!.Value.Width);
+    }
+
+    [AvaloniaFact]
+    public void NewImageDialog_Cancel_ReturnsNothing()
+    {
+        var dialog = new NewImageDialog(800, 600);
+        dialog.Show();
+
+        dialog.FindControl<Button>("CancelButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+        Assert.Null(dialog.Result);
+        Assert.False(dialog.IsVisible);
     }
 
     [AvaloniaFact]

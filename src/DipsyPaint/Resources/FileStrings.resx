@@ -82,4 +82,19 @@
   <data name="Ok" xml:space="preserve">
     <value>OK</value>
   </data>
+  <data name="NewImageDialogTitle" xml:space="preserve">
+    <value>New image</value>
+  </data>
+  <data name="Width" xml:space="preserve">
+    <value>Width (px)</value>
+  </data>
+  <data name="Height" xml:space="preserve">
+    <value>Height (px)</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="NewImageOverMemoryBudget" xml:space="preserve">
+    <value>A {0} × {1} px image needs more memory than DipsyPaint allows. Choose a smaller size.</value>
+  </data>
 </root>

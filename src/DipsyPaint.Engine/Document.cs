@@ -10,7 +10,7 @@ public sealed class Document
     /// <summary>Largest allowed canvas side, in pixels (ADR-0005).</summary>
     public const int MaxSide = 16384;
 
-    // Placeholder until reference Paint's default is confirmed by the parity audit.
+    // Prefilled in File > New's size dialog (ticket 34).
     public const int DefaultWidth = 800;
     public const int DefaultHeight = 600;
 

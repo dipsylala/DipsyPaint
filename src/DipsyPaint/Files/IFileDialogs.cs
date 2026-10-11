@@ -14,5 +14,8 @@ public interface IFileDialogs
     /// <summary>Asks where to save, offering <paramref name="format"/> first; null if the user cancels.</summary>
     Task<PickedFile?> PickSaveAsync(string suggestedName, ImageFormat format);
 
+    /// <summary>Asks for a new image's size, prefilled with <paramref name="width"/>×<paramref name="height"/> px; null if the user cancels.</summary>
+    Task<(int Width, int Height)?> AskNewImageSizeAsync(int width, int height);
+
     Task ShowErrorAsync(string message);
 }
