@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:DipsyPaint.Resources"
+             x:Class="DipsyPaint.View.ViewMenu">
+  <Menu VerticalAlignment="Center" Margin="8,0">
+    <MenuItem x:Name="ViewMenuItem" Header="{x:Static res:ViewStrings.View}"
+              AutomationProperties.Name="{x:Static res:ViewStrings.View}">
+      <MenuItem x:Name="ZoomMenuItem" Header="{x:Static res:ViewStrings.Zoom}"
+                AutomationProperties.Name="{x:Static res:ViewStrings.Zoom}">
+        <MenuItem x:Name="ZoomInItem" Header="{x:Static res:ZoomStrings.ZoomIn}" Click="OnZoomInClick"
+                  AutomationProperties.Name="{x:Static res:ZoomStrings.ZoomIn}" />
+        <MenuItem x:Name="ZoomOutItem" Header="{x:Static res:ZoomStrings.ZoomOut}" Click="OnZoomOutClick"
+                  AutomationProperties.Name="{x:Static res:ZoomStrings.ZoomOut}" />
+        <MenuItem x:Name="ActualSizeItem" Header="{x:Static res:ViewStrings.ActualSize}" Click="OnActualSizeClick"
+                  AutomationProperties.Name="{x:Static res:ViewStrings.ActualSizeAutomationName}" />
+        <MenuItem x:Name="FitToWindowItem" Header="{x:Static res:ZoomStrings.FitToWindow}" Click="OnFitToWindowClick"
+                  AutomationProperties.Name="{x:Static res:ZoomStrings.FitToWindow}" />
+      </MenuItem>
+      <MenuItem x:Name="ShowMenuItem" Header="{x:Static res:ViewStrings.Show}"
+                AutomationProperties.Name="{x:Static res:ViewStrings.Show}">
+        <MenuItem x:Name="RulersItem" Header="{x:Static res:ViewStrings.Rulers}" Click="OnRulersClick"
+                  ToggleType="CheckBox" AutomationProperties.Name="{x:Static res:ViewStrings.Rulers}" />
+        <MenuItem x:Name="GridlinesItem" Header="{x:Static res:ViewStrings.Gridlines}" Click="OnGridlinesClick"
+                  ToggleType="CheckBox" AutomationProperties.Name="{x:Static res:ViewStrings.Gridlines}" />
+        <MenuItem x:Name="StatusBarItem" Header="{x:Static res:ViewStrings.StatusBar}" Click="OnStatusBarClick"
+                  ToggleType="CheckBox" AutomationProperties.Name="{x:Static res:ViewStrings.StatusBar}" />
+      </MenuItem>
+      <MenuItem x:Name="FullScreenItem" Header="{x:Static res:ViewStrings.FullScreen}" Click="OnFullScreenClick" InputGesture="F11"
+                AutomationProperties.Name="{x:Static res:ViewStrings.FullScreen}" />
+    </MenuItem>
+  </Menu>
+</UserControl>
