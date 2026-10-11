@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace DipsyPaint.Engine.Tools;
 
 /// <summary>
@@ -75,8 +77,8 @@ internal static class ShapeRasterizer
     {
         var inside = Inside(bounds, contours);
         var edge = Edge(bounds, contours, thickness);
-        var pixels = Buffer(inside.Length, buffer);
-        ForEachRow(inside.Length, bounds.Height, () => 0, (y, _) =>
+        var pixels = Buffer(bounds.Width * bounds.Height, buffer);
+        ForEachRow(bounds.Width * bounds.Height, bounds.Height, () => 0, (y, _) =>
         {
             for (var i = y * bounds.Width; i < (y + 1) * bounds.Width; i++)
             {
@@ -84,19 +86,22 @@ internal static class ShapeRasterizer
             }
         });
 
+        ReturnMask(inside);
+        ReturnMask(edge);
         return pixels;
     }
 
     /// <summary>
     /// The pixels of <paramref name="bounds"/> (row-major) whose centre is inside the closed
-    /// polygons, even-odd; see <see cref="Closed"/>.
+    /// polygons, even-odd; see <see cref="Closed"/>. The mask is rented (see <see cref="ReturnMask"/>).
     /// </summary>
     public static bool[] Inside(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours)
     {
-        var inside = new bool[bounds.Width * bounds.Height];
+        var inside = RentMask(bounds.Width * bounds.Height);
         // Rows are independent, so a large shape (e.g. one being turned) is filled in parallel rows.
-        ForEachRow(inside.Length, bounds.Height, () => new List<double>(), (y, crossings) =>
+        ForEachRow(bounds.Width * bounds.Height, bounds.Height, () => new List<double>(), (y, crossings) =>
         {
+            inside.AsSpan(y * bounds.Width, bounds.Width).Clear();
             var cy = bounds.Y + y + 0.5;
             crossings.Clear();
             foreach (var contour in contours)
@@ -127,7 +132,7 @@ internal static class ShapeRasterizer
     /// <summary>
     /// The pixels of <paramref name="bounds"/> (row-major) whose centre is nearer than
     /// <paramref name="thickness"/> to an edge of the closed polygons (none for 0): the outline
-    /// band of <see cref="Closed"/> where it is inside.
+    /// band of <see cref="Closed"/> where it is inside. The mask is rented (see <see cref="ReturnMask"/>).
     /// </summary>
     public static bool[] Edge(IntRect bounds, IReadOnlyList<(double X, double Y)[]> contours, int thickness)
     {
@@ -135,18 +140,20 @@ internal static class ShapeRasterizer
         // leaves the pixels beside it exactly a whole number of pixels away; counting those keeps the
         // outline `thickness` pixels wide there. Edges along pixel edges are unaffected.
         var reach = thickness + 1e-9;
-        var edge = new bool[bounds.Width * bounds.Height];
-        if (thickness <= 0)
-        {
-            return edge;
-        }
+        var edge = RentMask(bounds.Width * bounds.Height);
 
         // Marks only add, so a large shape is marked in parallel bands of rows, each marking its own
         // rows near the edges that reach it.
-        var bands = edge.Length < 1 << 16 ? 1 : (bounds.Height + Band - 1) / Band;
+        var bands = bounds.Width * bounds.Height < 1 << 16 ? 1 : (bounds.Height + Band - 1) / Band;
         Parallel.For(0, bands, band =>
         {
             var (from, to) = bands == 1 ? (0, bounds.Height) : (band * Band, Math.Min(bounds.Height, (band + 1) * Band));
+            edge.AsSpan(from * bounds.Width, (to - from) * bounds.Width).Clear();
+            if (thickness <= 0)
+            {
+                return;
+            }
+
             foreach (var contour in contours)
             {
                 for (var i = 0; i < contour.Length; i++)
@@ -173,6 +180,16 @@ internal static class ShapeRasterizer
         reuse is null ? GC.AllocateUninitializedArray<Rgba>(length)
         : reuse.Length >= length ? reuse
         : GC.AllocateUninitializedArray<Rgba>((int)Math.Min(length * 5L / 4, Array.MaxLength));
+
+    /// <summary>
+    /// Gives back a mask that <see cref="Inside"/> or <see cref="Edge"/> rented, once it is no longer
+    /// used. Masks are rented because a large shape redrawn on every pointer move of a drag would
+    /// otherwise allocate megabytes per move (issue #102).
+    /// </summary>
+    public static void ReturnMask(bool[] mask) => ArrayPool<bool>.Shared.Return(mask);
+
+    // A mask of at least `length` pixels; it may hold anything.
+    private static bool[] RentMask(int length) => ArrayPool<bool>.Shared.Rent(length);
 
     // Calls `row` for rows 0..height of a bitmap of `size` pixels, in parallel when it is large, with
     // a scratch value from `scratch` per thread.

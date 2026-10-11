@@ -15,7 +15,7 @@ internal abstract class RoundTip : BrushTip
         double radius0 = startSize / 2.0, radius1 = endSize / 2.0;
         var reach = Math.Max(radius0, radius1) + 0.5;
         var left = Math.Max(0, (int)Math.Floor(Math.Min(x0, x1) - reach));
-        var top = Math.Max(0, (int)Math.Floor(Math.Min(y0, y1) - reach));
+        var top = Math.Max(stroke.Top, (int)Math.Floor(Math.Min(y0, y1) - reach));
         var right = Math.Min(stroke.Width - 1, (int)Math.Ceiling(Math.Max(x0, x1) + reach));
         var bottom = Math.Min(stroke.Height - 1, (int)Math.Ceiling(Math.Max(y0, y1) + reach));
 

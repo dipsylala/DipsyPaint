@@ -115,6 +115,11 @@ internal static class TexturedShapes
             }
         });
 
+        foreach (var mask in new[] { edge, inside, area }.OfType<bool[]>().Distinct())
+        {
+            ShapeRasterizer.ReturnMask(mask);
+        }
+
         if (IsTextured(outlineStyle))
         {
             // Painted over the fill, as a brush stroke over paint; closed, back to its start.
@@ -158,7 +163,7 @@ internal static class TexturedShapes
 
             if (brush is not null)
             {
-                var stroke = new Stroke(rows, color);
+                var stroke = new Stroke(rows, color) { Top = Math.Max(0, top) };
                 foreach (var path in paths)
                 {
                     // As BrushTip.Polyline.
@@ -179,7 +184,7 @@ internal static class TexturedShapes
                 return;
             }
 
-            var passes = new PassStroke(rows, color, 1f, double.PositiveInfinity);
+            var passes = new PassStroke(rows, color, 1f, double.PositiveInfinity) { Top = Math.Max(0, top) };
             foreach (var path in paths)
             {
                 // As TexturedPath.Polyline.

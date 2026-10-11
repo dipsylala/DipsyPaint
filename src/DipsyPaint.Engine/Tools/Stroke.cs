@@ -42,6 +42,12 @@ public sealed class Stroke
     public int Height => _target.Height;
 
     /// <summary>
+    /// The first row tips need cover (0 by default): rows above it are known to be dropped, as by
+    /// a target that holds only some rows, so tips may skip them.
+    /// </summary>
+    internal int Top { get; init; }
+
+    /// <summary>
     /// Marks <paramref name="coverage"/> (0–1) of one pixel as covered by the stroke. Lower or equal
     /// coverage than the pixel already has in this stroke is ignored; pixels off the layer are ignored.
     /// </summary>

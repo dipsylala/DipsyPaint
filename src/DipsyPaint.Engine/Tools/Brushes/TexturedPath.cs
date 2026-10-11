@@ -37,7 +37,7 @@ public static class TexturedPath
         var target = stroke.Target;
         var reach = tip.Radius * Math.Max(startScale, endScale) + 0.5;
         var left = Math.Max(0, (int)Math.Floor(Math.Min(x0, x1) - reach));
-        var top = Math.Max(0, (int)Math.Floor(Math.Min(y0, y1) - reach));
+        var top = Math.Max(stroke.Top, (int)Math.Floor(Math.Min(y0, y1) - reach));
         var right = Math.Min(target.Width - 1, (int)Math.Ceiling(Math.Max(x0, x1) + reach));
         var bottom = Math.Min(target.Height - 1, (int)Math.Ceiling(Math.Max(y0, y1) + reach));
 
