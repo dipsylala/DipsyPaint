@@ -14,6 +14,8 @@
                   ToggleType="Radio" AutomationProperties.Name="{x:Static res:SelectionStrings.RectangleSelection}" />
         <MenuItem x:Name="FreeFormItem" Header="{x:Static res:SelectionStrings.FreeFormSelection}" Click="OnFreeFormClick"
                   ToggleType="Radio" AutomationProperties.Name="{x:Static res:SelectionStrings.FreeFormSelection}" />
+        <MenuItem x:Name="MagicWandItem" Header="{x:Static res:MagicWandStrings.MagicWand}" Click="OnMagicWandClick"
+                  ToggleType="Radio" AutomationProperties.Name="{x:Static res:MagicWandStrings.MagicWand}" />
         <Separator />
         <MenuItem x:Name="SelectAllItem" Header="{x:Static res:SelectionStrings.SelectAll}" Click="OnSelectAllClick"
                   AutomationProperties.Name="{x:Static res:SelectionStrings.SelectAll}" />

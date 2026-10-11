@@ -141,7 +141,8 @@ public sealed partial class DocumentEditor
         // A press outside pending content commits it, as in reference Paint; the tool then sees a fresh press.
         var committed = false;
         if (input.Action == PointerAction.Down && !_inGesture
-            && Adornment?.HitTest(input.X, input.Y, HandleTolerance) == FrameHandle.None)
+            && (Adornment?.HitTest(input.X, input.Y, HandleTolerance) == FrameHandle.None
+                || (ActiveTool as SelectionTool)?.PassesThrough(input.X, input.Y, HandleTolerance) == true))
         {
             CommitPending();
             committed = true;
