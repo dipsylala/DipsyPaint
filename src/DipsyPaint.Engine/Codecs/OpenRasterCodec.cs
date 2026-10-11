@@ -29,6 +29,9 @@ public static class OpenRasterCodec
     /// <summary>Largest uncompressed <c>stack.xml</c>: 1 MiB.</summary>
     public const int MaxStackXmlBytes = 1 << 20;
 
+    /// <summary>Deepest element nesting allowed in <c>stack.xml</c> (groups within groups).</summary>
+    public const int MaxNesting = 100;
+
     /// <summary>The content of the <c>mimetype</c> entry.</summary>
     public const string MimeType = "image/openraster";
 
@@ -179,6 +182,18 @@ public static class OpenRasterCodec
             IgnoreComments = true,
             IgnoreProcessingInstructions = true,
         };
+        // Streams through first: deeply nested stacks would make loading and flattening slow.
+        using (var check = XmlReader.Create(new MemoryStream(xml), settings))
+        {
+            while (check.Read())
+            {
+                if (check.Depth > MaxNesting)
+                {
+                    throw Unreadable($"stack.xml is nested more than {MaxNesting} levels deep.");
+                }
+            }
+        }
+
         using var reader = XmlReader.Create(new MemoryStream(xml), settings);
         return XDocument.Load(reader);
     }

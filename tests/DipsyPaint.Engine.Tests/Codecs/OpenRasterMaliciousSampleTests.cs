@@ -124,23 +124,26 @@ public sealed class OpenRasterMaliciousSampleTests : IDisposable
         Assert.Single(document.Layers);
     }
 
-    /// <summary>Deeply nested stacks (groups) open or fail cleanly, without overflowing the call stack.</summary>
+    private static byte[] Nested(int depth) =>
+        Ora(Stack(4, 4, string.Concat(Enumerable.Repeat("<stack>", depth)) + """<layer src="data/a.png"/>""" + string.Concat(Enumerable.Repeat("</stack>", depth))));
+
+    /// <summary>Deeply nested stacks (groups) are refused quickly, without overflowing the call stack.</summary>
     [Fact]
-    public void DeeplyNestedStacks_OpenOrFailCleanly()
+    public void DeeplyNestedStacks_AreRejectedQuickly()
     {
-        const int depth = 50_000;
-        var stack = string.Concat(Enumerable.Repeat("<stack>", depth)) + """<layer src="data/a.png"/>""" + string.Concat(Enumerable.Repeat("</stack>", depth));
         var clock = Stopwatch.StartNew();
 
-        try
-        {
-            Assert.Single(Open(Ora(Stack(4, 4, stack))).Layers);
-        }
-        catch (ImageOpenException)
-        {
-        }
+        Assert.Throws<ImageOpenException>(() => Open(Nested(50_000)));
 
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(10), $"took {clock.Elapsed}");
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), $"took {clock.Elapsed}");
+    }
+
+    [Fact]
+    public void NestingUpToTheLimit_Opens()
+    {
+        // image > stack > (groups) > layer: the layer sits two levels below the groups.
+        Assert.Single(Open(Nested(OpenRasterCodec.MaxNesting - 2)).Layers);
+        Assert.Throws<ImageOpenException>(() => Open(Nested(OpenRasterCodec.MaxNesting - 1)));
     }
 
     private static byte[] Garbage(int length)
