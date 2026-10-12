@@ -153,7 +153,14 @@ internal static class TexturedShapes
         var bounds = canvas.Bounds;
         var bands = bounds.Width * bounds.Height < 1 << 16 ? 1 : (bounds.Height + SweepBand - 1) / SweepBand;
         var reach = size / 2.0 + 1; // further than any tip reaches from its path
-        Parallel.For(0, bands, band =>
+        // Each worker reuses one record of covered pixels for all its bands, rather than growing a new one per band (issue #115).
+        Parallel.For(0, bands, () => new Touched(), (band, _, touched) =>
+        {
+            Paint(band, touched);
+            return touched;
+        }, _ => { });
+
+        void Paint(int band, Touched touched)
         {
             var top = bands == 1 ? int.MinValue : bounds.Y + band * SweepBand;
             var bottom = bands == 1 ? int.MaxValue : top + SweepBand;
@@ -163,7 +170,7 @@ internal static class TexturedShapes
 
             if (brush is not null)
             {
-                var stroke = new Stroke(rows, color) { Top = Math.Max(0, top) };
+                var stroke = new Stroke(rows, color, touched.Covers) { Top = Math.Max(0, top) };
                 foreach (var path in paths)
                 {
                     // As BrushTip.Polyline.
@@ -184,7 +191,7 @@ internal static class TexturedShapes
                 return;
             }
 
-            var passes = new PassStroke(rows, color, 1f, double.PositiveInfinity) { Top = Math.Max(0, top) };
+            var passes = new PassStroke(rows, color, 1f, double.PositiveInfinity, touched.Passes) { Top = Math.Max(0, top) };
             foreach (var path in paths)
             {
                 // As TexturedPath.Polyline.
@@ -206,7 +213,15 @@ internal static class TexturedShapes
                     along += Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
                 }
             }
-        });
+        }
+    }
+
+    // A worker's records of covered pixels, reused for each band it sweeps.
+    private sealed class Touched
+    {
+        public Dictionary<PixelKey, (Rgba Before, float Coverage)> Covers { get; } = [];
+
+        public Dictionary<PixelKey, PassStroke.Entry> Passes { get; } = [];
     }
 
     // The path with every side longer than PieceLength split into equal pieces no longer than it.

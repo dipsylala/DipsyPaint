@@ -233,7 +233,8 @@ internal sealed class TurnedPixels(Rgba[] source, int width, int height, LinearT
                 var pixel = pixels[sy * width + sx];
                 if (pixel.A != 0 && !(skips && pixel == skip))
                 {
-                    destination[i] = pixel.Over(destination[i]);
+                    // An opaque pixel replaces what is there, as Over gives.
+                    destination[i] = pixel.A == 255 ? pixel : pixel.Over(destination[i]);
                 }
             }
         }

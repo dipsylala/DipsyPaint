@@ -237,14 +237,15 @@ public sealed class Compositor
 
             if (active.IsVisible)
             {
-                active.Pixels.ReadRegion(new IntRect(region.X, y, region.Width, 1), source);
                 if (active.Opacity >= 1)
                 {
-                    Blend(source, target, 1);
+                    // Read in place: copying the row first would double the memory traffic.
+                    PixelBlend.Over(active.Storage.Buffer.AsSpan(y * Width + region.X, region.Width), target);
                     _overlay?.CompositeRow(y, region.X, target);
                 }
                 else
                 {
+                    active.Pixels.ReadRegion(new IntRect(region.X, y, region.Width, 1), source);
                     // Pending content is shown as it will be once committed: part of the layer, at its opacity.
                     _overlay?.CompositeRow(y, region.X, source);
                     Blend(source, target, active.Opacity);
@@ -262,19 +263,7 @@ public sealed class Compositor
     {
         if (opacity >= 1)
         {
-            for (var x = 0; x < target.Length; x++)
-            {
-                // Shortcuts that give what Over gives: an opaque pixel replaces, a transparent one changes nothing.
-                var pixel = source[x];
-                if (pixel.A == 255)
-                {
-                    target[x] = pixel;
-                }
-                else if (pixel != Rgba.Transparent)
-                {
-                    target[x] = pixel.Over(target[x]);
-                }
-            }
+            PixelBlend.Over(source, target);
         }
         else if (opacity > 0)
         {
