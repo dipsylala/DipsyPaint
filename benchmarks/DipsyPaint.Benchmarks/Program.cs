@@ -53,8 +53,10 @@ switch (args.FirstOrDefault())
             {
                 var descriptor = r.BenchmarkCase.Descriptor;
                 var parameters = r.BenchmarkCase.HasParameters ? $" {r.BenchmarkCase.Parameters.DisplayInfo}" : "";
-                // A run limited to some CPUs (--affinity) is reported apart from a run on all of them.
-                var affinity = r.BenchmarkCase.Job.Environment.Affinity is { } mask ? $" [{BitOperations.PopCount((ulong)mask)} CPUs]" : "";
+                // A run limited to some CPUs (--affinity) is reported apart from a run on all of them. Without
+                // --affinity, BenchmarkDotNet can still report a mask (0 on Linux), which limits nothing.
+                var cpus = r.BenchmarkCase.Job.Environment.Affinity is { } mask ? BitOperations.PopCount((ulong)mask) : 0;
+                var affinity = cpus is > 0 && cpus < Environment.ProcessorCount ? $" [{cpus} CPUs]" : "";
                 return new Measurement(
                     $"{descriptor.Type.Name.Replace("Benchmarks", "")}.{descriptor.WorkloadMethod.Name}{parameters}{affinity}",
                     r.ResultStatistics!.Mean / 1e6,
