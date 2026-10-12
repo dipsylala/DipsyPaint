@@ -20,16 +20,28 @@ public sealed class PassStroke
     private readonly IPixelAccess _target;
     private readonly Rgba _color;
     private readonly float _opacity;
-    private readonly Dictionary<(int X, int Y), Entry> _touched = [];
+    private readonly Dictionary<PixelKey, Entry> _touched;
     private IntRect _dirty;
 
     /// <summary>Creates a stroke that paints <paramref name="color"/> at <paramref name="opacity"/> (0–1).</summary>
     public PassStroke(IPixelAccess target, Rgba color, float opacity, double newPassAfter)
+        : this(target, color, opacity, newPassAfter, [])
+    {
+    }
+
+    /// <summary>
+    /// As the public constructor, keeping its record of covered pixels in <paramref name="touched"/>, which it clears
+    /// first: a caller that makes many strokes one after another can reuse one, rather than grow a new one for each
+    /// (issue #115).
+    /// </summary>
+    internal PassStroke(IPixelAccess target, Rgba color, float opacity, double newPassAfter, Dictionary<PixelKey, Entry> touched)
     {
         _target = target;
         _color = color;
         _opacity = Math.Clamp(opacity, 0f, 1f);
         NewPassAfter = newPassAfter;
+        touched.Clear();
+        _touched = touched;
     }
 
     /// <summary>How many pixels of path after a pixel's pass began a new cover of it counts as a new pass.</summary>
@@ -55,7 +67,7 @@ public sealed class PassStroke
 
         shape = Math.Min(shape, 1f);
         texture = Math.Clamp(texture, 0f, 1f);
-        ref var entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_touched, (x, y), out var exists);
+        ref var entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_touched, new PixelKey(x, y), out var exists);
         if (!exists)
         {
             entry.Before = _target.GetPixel(x, y);
@@ -91,7 +103,8 @@ public sealed class PassStroke
 
     private static float Combine(float a, float b) => a == 0f ? b : 1f - (1f - a) * (1f - b);
 
-    private struct Entry
+    /// <summary>What a stroke records about one pixel it has covered.</summary>
+    internal struct Entry
     {
         public Rgba Before;
         public float Done;    // combined coverage of the finished passes

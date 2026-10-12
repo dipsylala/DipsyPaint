@@ -15,25 +15,37 @@ public sealed class Stroke
     private readonly Rgba _color;
     private readonly float _opacity;
     private readonly bool _erase;
-    private readonly Dictionary<(int X, int Y), (Rgba Before, float Coverage)> _touched = [];
+    private readonly Dictionary<PixelKey, (Rgba Before, float Coverage)> _touched;
     private IntRect _dirty;
 
     /// <summary>Creates a stroke that paints <paramref name="color"/> at <paramref name="opacity"/> (0–1).</summary>
     public Stroke(IPixelAccess target, Rgba color, float opacity = 1f)
-        : this(target, color, opacity, erase: false)
+        : this(target, color, opacity, erase: false, touched: [])
     {
     }
 
-    private Stroke(IPixelAccess target, Rgba color, float opacity, bool erase)
+    /// <summary>
+    /// As the public constructor, at full opacity, keeping its record of covered pixels in <paramref name="touched"/>,
+    /// which it clears first: a caller that makes many strokes one after another can reuse one, rather than grow a new
+    /// one for each (issue #115).
+    /// </summary>
+    internal Stroke(IPixelAccess target, Rgba color, Dictionary<PixelKey, (Rgba Before, float Coverage)> touched)
+        : this(target, color, 1f, erase: false, touched)
+    {
+        touched.Clear();
+    }
+
+    private Stroke(IPixelAccess target, Rgba color, float opacity, bool erase, Dictionary<PixelKey, (Rgba Before, float Coverage)> touched)
     {
         _target = target;
         _color = color;
         _opacity = Math.Clamp(opacity, 0f, 1f);
         _erase = erase;
+        _touched = touched;
     }
 
     /// <summary>Creates a stroke that erases to transparency at <paramref name="opacity"/> (0–1).</summary>
-    public static Stroke Erase(IPixelAccess target, float opacity = 1f) => new(target, Rgba.Transparent, opacity, erase: true);
+    public static Stroke Erase(IPixelAccess target, float opacity = 1f) => new(target, Rgba.Transparent, opacity, erase: true, touched: []);
 
     /// <summary>Width of the target in pixels; pixels from here on are off it.</summary>
     public int Width => _target.Width;
@@ -59,7 +71,7 @@ public sealed class Stroke
         }
 
         coverage = Math.Min(coverage, 1f);
-        ref var entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_touched, (x, y), out var exists);
+        ref var entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_touched, new PixelKey(x, y), out var exists);
         if (!exists)
         {
             entry.Before = _target.GetPixel(x, y);

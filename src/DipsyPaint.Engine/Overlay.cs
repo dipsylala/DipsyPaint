@@ -118,19 +118,9 @@ public sealed class Overlay
             return;
         }
 
-        var source = _pixels.AsSpan((y - Bounds.Y) * Bounds.Width);
-        for (var i = from; i < to; i++)
+        if (from < to)
         {
-            // Shortcuts that give what Over gives: an opaque pixel replaces, a transparent one changes nothing.
-            var pixel = source[i - Bounds.X];
-            if (pixel.A == 255)
-            {
-                destination[i - x] = pixel;
-            }
-            else if (pixel != Rgba.Transparent)
-            {
-                destination[i - x] = pixel.Over(destination[i - x]);
-            }
+            PixelBlend.Over(_pixels.AsSpan((y - Bounds.Y) * Bounds.Width + from - Bounds.X, to - from), destination[(from - x)..(to - x)]);
         }
     }
 }

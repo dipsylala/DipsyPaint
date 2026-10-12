@@ -17,6 +17,47 @@ public class CompositorTests
     }
 
     [Fact]
+    public void Composites_AsOverDoesPixelByPixel_WhateverThePixels()
+    {
+        // Rows are blended several pixels at a time (issue #115); the result must be Over's, for runs of
+        // transparent, opaque and part-transparent pixels, malformed ones (a channel above alpha) and odd row ends.
+        var random = new Random(115);
+        Rgba Any() => random.Next(4) switch
+        {
+            0 => Rgba.Transparent,
+            1 => new Rgba((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256), 255),
+            2 => new Rgba((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256)),
+            _ => new Rgba((byte)random.Next(64), (byte)random.Next(64), (byte)random.Next(64), (byte)random.Next(64)),
+        };
+        const int Width = 37, Height = 5;
+        var document = Document.CreateBlank(Width, Height);
+        var (bottom, middle, top) = (document.ActiveLayer, document.AddLayer(), document.AddLayer());
+        document.ActiveLayer = middle;
+        var layers = new[] { bottom, middle, top };
+        var expected = new Rgba[Width * Height];
+        var overlay = new Rgba[Width * Height];
+        for (var i = 0; i < expected.Length; i++)
+        {
+            var (x, y) = (i % Width, i / Width);
+            // Runs of the same kind of pixel, as well as single ones.
+            var pixels = layers.Select(_ => random.Next(3) == 0 ? Rgba.Transparent : Any()).ToArray();
+            for (var layer = 0; layer < layers.Length; layer++)
+            {
+                layers[layer].Pixels.SetPixel(x, y, pixels[layer]);
+            }
+
+            overlay[i] = x < 8 ? Rgba.Transparent : x < 16 ? new Rgba(10, 20, 30, 255) : Any();
+            expected[i] = pixels[2].Over(overlay[i].Over(pixels[1].Over(pixels[0])));
+        }
+
+        var shown = new Overlay();
+        var compositor = new Compositor(document, shown);
+        compositor.Update(shown.Show(new IntRect(0, 0, Width, Height), overlay));
+
+        Assert.Equal(expected, compositor.Pixels.ToArray());
+    }
+
+    [Fact]
     public void Update_RecompositesOnlyTheDirtyRectangle()
     {
         var document = Document.CreateBlank(4, 1);

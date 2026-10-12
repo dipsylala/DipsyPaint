@@ -53,6 +53,18 @@ jobs:
       - name: Engine benchmarks
         run: dotnet run -c Release --project benchmarks/DipsyPaint.Benchmarks -- --filter '*' --artifacts "$Results"
 
+      # ADR-0018's reference hardware has 4 cores, and the drag targets (ADR-0023) must hold there (issue #115).
+      # GitHub's Linux runners have 4 logical CPUs (2 physical cores), so the run above already measures at most
+      # 4. On a larger runner, the drag benchmarks also run limited to 4 CPUs, reported with "[4 CPUs]".
+      - name: Drag benchmarks on 4 CPUs
+        run: |
+          if [ "$(nproc)" -gt 4 ]; then
+            dotnet run -c Release --no-build --project benchmarks/DipsyPaint.Benchmarks -- \
+              --filter '*Transform*' '*Shape*' --affinity 15 --artifacts "$Results/four-cpus"
+          else
+            echo "::notice title=Drag benchmarks on 4 CPUs::This runner has $(nproc) CPUs, so the engine benchmarks already ran on at most 4."
+          fi
+
       - name: Cold start
         run: |
           command -v xvfb-run || { sudo apt-get update && sudo apt-get install -y xvfb; }
@@ -62,9 +74,10 @@ jobs:
 
       - name: Report
         run: |
+          four_cpus="$Results/four-cpus/results/measurements.json"
           dotnet run -c Release --no-build --project benchmarks/DipsyPaint.Benchmarks -- \
             report --previous "$Baseline" --summary "$GITHUB_STEP_SUMMARY" --out "$Results/results.json" \
-            "$Results/results/measurements.json" "$Results/coldstart.json"
+            "$Results/results/measurements.json" "$Results/coldstart.json" $([ -f "$four_cpus" ] && echo "$four_cpus")
 
       - uses: actions/upload-artifact@v7
         with:
