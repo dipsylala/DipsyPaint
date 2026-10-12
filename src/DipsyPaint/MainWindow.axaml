@@ -16,6 +16,7 @@
         Title="{x:Static res:Strings.AppName}"
         Icon="avares://DipsyPaint/Assets/dipsypaint.ico"
         Width="1100" Height="750" MinWidth="480" MinHeight="400">
+  <Panel>
   <DockPanel>
     <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Padding="12,4"
             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
@@ -56,6 +57,8 @@
         <layers:LayersPanel x:Name="Layers" layout:CommandGroup.Id="layers" layout:CommandGroup.Title="{x:Static res:LayerStrings.Layers}" />
       </WrapPanel>
     </Border>
+    <!-- The canvas area. Undocked command groups (ADR-0026) sit over it, kept inside it. -->
+    <Panel>
     <view:CanvasRulers x:Name="Rulers" Canvas="{Binding #Canvas}">
     <ScrollViewer x:Name="CanvasScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                   Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
@@ -74,5 +77,19 @@
       </LayoutTransformControl>
     </ScrollViewer>
     </view:CanvasRulers>
+    <layout:UndockedGroupsPanel x:Name="UndockedGroups" ClipToBounds="True">
+      <layout:UndockedGroupsPanel.Styles>
+        <Style Selector="layout|CommandGroupHost">
+          <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+        </Style>
+      </layout:UndockedGroupsPanel.Styles>
+    </layout:UndockedGroupsPanel>
+    </Panel>
   </DockPanel>
+  <!-- Over everything, so drawing it never moves the layout: where a dragged command group will land. -->
+  <Canvas IsHitTestVisible="False">
+    <Rectangle x:Name="DragOutline" IsVisible="False" StrokeThickness="2" StrokeDashArray="3,2"
+               Stroke="{DynamicResource SystemControlHighlightAccentBrush}" />
+  </Canvas>
+  </Panel>
 </Window>

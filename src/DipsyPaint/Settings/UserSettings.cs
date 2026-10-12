@@ -33,7 +33,7 @@ public sealed class ViewSettings
     public bool? StatusBar { get; set; }
 }
 
-/// <summary>The command group ids docked to each window edge, in order.</summary>
+/// <summary>The command group ids docked to each window edge, in order, and the undocked groups.</summary>
 public sealed class CommandBarSettings
 {
     public List<string?>? Top { get; set; }
@@ -43,6 +43,21 @@ public sealed class CommandBarSettings
     public List<string?>? Left { get; set; }
 
     public List<string?>? Right { get; set; }
+
+    /// <summary>The undocked groups (ADR-0026), bottom to top; null in layouts saved by v0.2.0 and earlier.</summary>
+    public List<UndockedGroupSettings?>? Undocked { get; set; }
+}
+
+/// <summary>An undocked command group and where it is.</summary>
+public sealed class UndockedGroupSettings
+{
+    public string? Id { get; set; }
+
+    /// <summary>The group's left edge, in device-independent pixels from the canvas area's.</summary>
+    public double? X { get; set; }
+
+    /// <summary>The group's top edge, in device-independent pixels from the canvas area's.</summary>
+    public double? Y { get; set; }
 }
 
 /// <summary>Crash-recovery snapshot settings.</summary>
