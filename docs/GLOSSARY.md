@@ -45,8 +45,11 @@ within a per-pixel tolerance. ADR-0016.
 ## Suggested (not yet agreed)
 
 **Command group** — a movable unit of the command bar (e.g. Menu, Tools, Colours) with a stable
-id, dockable to a window edge and saved in the per-user layout (ADR-0022). Distinct from a
-*tool*, which is one entry within the Tools group.
+id, dockable to a window edge or undocked over the canvas, and saved in the per-user layout
+(ADR-0022, ADR-0026). Distinct from a *tool*, which is one entry within the Tools group.
+
+**Undocked group** — a command group placed over the canvas instead of on a window edge
+(ADR-0026). Not "floating", which means *floating pixels*.
 
 **Selection** — an outline marking part of the canvas (rectangle, free-form or magic-wand
 shape), made with the Select tool (ADR-0025). Moving the outline with Move selection changes no

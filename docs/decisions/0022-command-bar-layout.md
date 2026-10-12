@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-11
+- **Amended by:** [ADR-0026](0026-undocked-command-groups.md) (groups can be undocked over the canvas)
 - **Related:** [ADR-0011](0011-additions-beyond-parity.md), [ADR-0012](0012-ui-familiar-own-identity.md), [ADR-0017](0017-no-telemetry.md)
 
 ## Context
