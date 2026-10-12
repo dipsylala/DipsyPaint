@@ -28,9 +28,29 @@ of updates depends on the GitHub account and on who can release.
    - Settings → Actions → General → Workflow permissions: keep *Read repository contents*. Only
      the upload job asks for write access.
 
+## Before tagging
+
+Choose the commit on `main` to release, then check it:
+
+- [ ] **CI and benchmarks.** CI is green on the commit. The latest Benchmarks run on `main` meets
+  every target, or each miss has an open issue.
+- [ ] **Release notes** are in `docs/release-notes/vX.Y.Z.md`, merged through a pull request.
+  Write them for people using the app. List open issues that users will notice under *Known issues*.
+- [ ] **Dry run.** Actions → Release → Run workflow on `main`, with *validate* **unticked**. Every
+  platform builds, packs and passes the startup probe. Nothing is uploaded (see
+  *Checking the pipeline without a release*).
+- [ ] **Performance.** For a milestone release, work through the reference-hardware checklist in
+  [benchmarks.md](benchmarks.md).
+- [ ] **By hand.** These are things the headless tests can't cover. Check at least one machine per OS:
+  - a layered `.ora` saved by DipsyPaint opens in Krita or GIMP with its layers;
+  - copy and paste an image to and from another app;
+  - full screen (F11) enters and exits;
+  - with unsaved changes, closing the window shows "Save changes?". On macOS, try Cmd+Q too;
+  - with a pen tablet, if one is available, pressure changes the stroke width.
+
 ## Cutting a release
 
-1. Make sure `main` is green.
+1. Complete *Before tagging*.
 2. Tag the commit on `main` and push the tag. The tag sets the version; nothing in the repository
    needs bumping.
 
@@ -52,8 +72,10 @@ of updates depends on the GitHub account and on who can release.
      and JPEG) and lists package sizes in the run summary;
    - after approval in the `release` environment, uploads every RID's packages to one **draft**
      release named "DipsyPaint 0.1.0".
-4. Check the draft: install it on at least one machine per OS, and write the release notes.
-5. Publish the draft. Installed copies download the update the next time they start.
+4. Check the draft: install it on at least one machine per OS, and paste the release notes from
+   `docs/release-notes/vX.Y.Z.md`, without its title line.
+5. Publish the draft. Installed copies download the update the next time they start. Check that
+   an installed copy of the previous release updates itself.
 
 If a run fails, fix the cause on `main`, delete the tag (`git push origin :v0.1.0`; also delete
 the draft if one was created), then tag again.
