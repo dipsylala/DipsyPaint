@@ -51,6 +51,18 @@ dotnet run -c Release --project benchmarks/DipsyPaint.Benchmarks -- coldstart sr
 On Windows the app is `DipsyPaint.exe`. On Linux without a display, wrap the cold-start command
 in `xvfb-run -a`.
 
+Several engine paths run in parallel, so a machine with more cores than the reference hardware's 4
+flatters them. On such a machine, limit the drag benchmarks to 4 cores with BenchmarkDotNet's
+`--affinity` mask, one logical CPU per physical core. On Windows with SMT, where each core's two
+logical CPUs are numbered next to each other, `85` (0b1010101) picks CPUs 0, 2, 4 and 6:
+
+```sh
+dotnet run -c Release --project benchmarks/DipsyPaint.Benchmarks -- --filter '*Transform*' '*Shape*' --affinity 85
+```
+
+Results of a run limited by `--affinity` are named with the number of CPUs, e.g.
+`Transform.RotateEvent [4 CPUs]`, so the report keeps them apart from runs on every CPU.
+
 The engine run writes BenchmarkDotNet's reports and a `measurements.json` to
 `BenchmarkDotNet.Artifacts/results/`; `coldstart --out <file>` writes the same format. The
 `report` command compares such files with the targets and with an earlier run:
@@ -69,6 +81,12 @@ everything as the `benchmarks` artifact. It prints a warning annotation when a r
 - misses its target, or
 - is more than 25% slower than the previous `main` run (cached between runs).
 
+The drag targets must hold on 4 cores (issue #115). GitHub's Linux runners have 4 logical CPUs on
+2 physical cores, so the main run already measures at most 4 cores, on fewer physical cores than
+the reference hardware. If the runner has more than 4 CPUs, the workflow also runs the drag
+benchmarks (`Transform.*`, `Shape.*`) limited to 4 CPUs and reports them in the same table, named
+`[4 CPUs]`. Either way a regression that only shows on 4 cores is flagged.
+
 The workflow never fails because of a result. It needs the `SIXLABORS_LICENSE_KEY` secret; when the
 secret is unavailable, it skips the benchmarks with a notice.
 
@@ -83,6 +101,7 @@ an Intel Core i5-10210U or an AMD Ryzen 5 4500U.
 - [ ] Plug in the laptop, choose the balanced or performance power plan, and close other programs.
 - [ ] Record the CPU, RAM, GPU, OS version and the commit being measured.
 - [ ] Engine benchmarks (default job, no `--job short`): `Brush.StrokeEvent` ≤ 16 ms per event at both sizes, and `ArtisticBrush.StrokeEvent` for every brush; `Transform.RotateEvent`, `Transform.StretchEvent`, `Shape.RotateEvent`, `Shape.StretchEvent` and `Shape.MoveEvent` ≤ 16 ms per event; `Fill.FloodFill` ≤ 200 ms.
+- [ ] If the drag benchmarks can only be run on a machine with more than 4 cores, run them limited to 4 (`--affinity`, see *Running locally*) and check the targets against those results.
 - [ ] Cold start with the release package (the publish mode chosen in ticket 14), `--runs 10`: median ≤ 2 s. Note the first run after a reboot as well.
 - [ ] By hand on a 3840×2160 document with 20 layers: brush strokes keep up with the pointer, with no visible lag; so do turning and stretching a selection of the whole canvas by its handles.
 - [ ] By hand: a flood fill of the whole canvas feels instant, and the window stays responsive during large operations (AC34).
