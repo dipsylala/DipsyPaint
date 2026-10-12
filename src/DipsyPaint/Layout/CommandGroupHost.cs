@@ -11,12 +11,15 @@ namespace DipsyPaint.Layout;
 
 /// <summary>
 /// Wraps a command group with its move handle: a button that can be dragged to another place on
-/// any window edge, or clicked (or pressed with Enter or Space) for a "Move to" menu, so every move
-/// can also be made without a mouse.
+/// any window edge or over the canvas, or clicked (or pressed with Enter or Space) for a "Move to"
+/// menu, so every move can also be made without a mouse. While undocked, the arrow keys move it too.
 /// </summary>
 public sealed class CommandGroupHost : DockPanel
 {
     private const double DragThreshold = 4;
+
+    // How far an arrow key moves an undocked group (ADR-0026).
+    private const double ArrowKeyStep = 10;
 
     // Two columns of three dots.
     private const string GripIcon = "M0,0 h2 v2 h-2 z M4,0 h2 v2 h-2 z M0,4 h2 v2 h-2 z M4,4 h2 v2 h-2 z M0,8 h2 v2 h-2 z M4,8 h2 v2 h-2 z";
@@ -26,7 +29,10 @@ public sealed class CommandGroupHost : DockPanel
     private readonly Dictionary<DockEdge, MenuItem> _moveToItems = [];
     private readonly MenuItem _earlierItem;
     private readonly MenuItem _laterItem;
+    private readonly MenuItem _undockItem;
     private Point? _pressedAt;
+    private Point _grabbedAt;
+    private IPointer? _pointer;
     private bool _dragging;
 
     internal CommandGroupHost(CommandBarDock dock, string id, Control group)
@@ -62,6 +68,8 @@ public sealed class CommandGroupHost : DockPanel
             menu.Items.Add(item);
         }
 
+        _undockItem = MenuItemFor(LayoutStrings.Undock, () => _dock.Undock(Id, default));
+        menu.Items.Add(_undockItem);
         menu.Items.Add(new Separator());
         _earlierItem = MenuItemFor(LayoutStrings.MoveEarlier, () => _dock.MoveBy(Id, -1));
         _laterItem = MenuItemFor(LayoutStrings.MoveLater, () => _dock.MoveBy(Id, 1));
@@ -77,6 +85,7 @@ public sealed class CommandGroupHost : DockPanel
         // After the button's own handling, so a drag that ends away from the handle does not also click it.
         Grip.AddHandler(PointerReleasedEvent, OnGripReleased, RoutingStrategies.Bubble, handledEventsToo: true);
         Grip.AddHandler(PointerCaptureLostEvent, (_, _) => EndDrag(), RoutingStrategies.Direct);
+        Grip.AddHandler(KeyDownEvent, OnGripKeyDown, RoutingStrategies.Tunnel);
 
         Children.Add(Grip);
         Children.Add(group);
@@ -126,6 +135,7 @@ public sealed class CommandGroupHost : DockPanel
             item.IsEnabled = target != edge;
         }
 
+        _undockItem.IsEnabled = _dock.Arrangement.UndockedPosition(Id) is null;
         _earlierItem.IsEnabled = _dock.CanMoveBy(Id, -1);
         _laterItem.IsEnabled = _dock.CanMoveBy(Id, 1);
     }
@@ -147,35 +157,93 @@ public sealed class CommandGroupHost : DockPanel
         if (e.GetCurrentPoint(Grip).Properties.IsLeftButtonPressed && TopLevel.GetTopLevel(this) is { } top)
         {
             _pressedAt = e.GetPosition(top);
+            _grabbedAt = e.GetPosition(this);
             _dragging = false;
+            _pointer = e.Pointer;
             e.Pointer.Capture(Grip);
         }
     }
 
     private void OnGripMoved(object? sender, PointerEventArgs e)
     {
-        if (_pressedAt is { } start && !_dragging && TopLevel.GetTopLevel(this) is { } top)
+        if (_pressedAt is not { } start || TopLevel.GetTopLevel(this) is not { } top)
         {
-            var delta = e.GetPosition(top) - start;
-            _dragging = Math.Abs(delta.X) > DragThreshold || Math.Abs(delta.Y) > DragThreshold;
-            Opacity = _dragging ? 0.5 : 1; // shows which group is being moved
+            return;
         }
+
+        var point = e.GetPosition(top);
+        if (!_dragging)
+        {
+            var delta = point - start;
+            _dragging = Math.Abs(delta.X) > DragThreshold || Math.Abs(delta.Y) > DragThreshold;
+            if (!_dragging)
+            {
+                return;
+            }
+
+            Opacity = 0.5; // shows which group is being moved
+            top.AddHandler(KeyDownEvent, OnKeyDownWhileDragging, RoutingStrategies.Tunnel);
+        }
+
+        _dock.ShowOutline(_dock.TargetAt(this, point, _grabbedAt).Outline);
     }
 
     private void OnGripReleased(object? sender, PointerReleasedEventArgs e)
     {
-        var dragged = _dragging;
+        DropTarget? target = _dragging && TopLevel.GetTopLevel(this) is { } top ? _dock.TargetAt(this, e.GetPosition(top), _grabbedAt) : null;
         EndDrag();
-        if (dragged && TopLevel.GetTopLevel(this) is { } top)
+        if (target is { } t)
         {
-            _dock.Drop(this, e.GetPosition(top));
+            _dock.Drop(this, t);
+        }
+    }
+
+    // Esc cancels the drag, leaving the layout as it was.
+    private void OnKeyDownWhileDragging(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            EndDrag();
+        }
+    }
+
+    private void OnGripKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers != KeyModifiers.None || _dock.Arrangement.UndockedPosition(Id) is null)
+        {
+            return;
+        }
+
+        Vector? step = e.Key switch
+        {
+            Key.Left => new Vector(-ArrowKeyStep, 0),
+            Key.Right => new Vector(ArrowKeyStep, 0),
+            Key.Up => new Vector(0, -ArrowKeyStep),
+            Key.Down => new Vector(0, ArrowKeyStep),
+            _ => null,
+        };
+        if (step is { } offset)
+        {
+            e.Handled = true;
+            _dock.MoveUndocked(Id, offset);
+            Grip.Focus(NavigationMethod.Tab);
         }
     }
 
     private void EndDrag()
     {
+        TopLevel.GetTopLevel(this)?.RemoveHandler(KeyDownEvent, OnKeyDownWhileDragging);
+        var pointer = _pointer;
+        _pointer = null;
         _pressedAt = null;
         _dragging = false;
         Opacity = 1;
+        _dock.ShowOutline(null);
+        // Releases the handle's capture, e.g. when Esc cancels the drag; that ends up back here, now with nothing to do.
+        if (ReferenceEquals(pointer?.Captured, Grip))
+        {
+            pointer.Capture(null);
+        }
     }
 }

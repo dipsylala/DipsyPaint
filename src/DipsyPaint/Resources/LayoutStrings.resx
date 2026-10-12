@@ -37,6 +37,10 @@
   <data name="MoveLater" xml:space="preserve">
     <value>Move later</value>
   </data>
+  <data name="Undock" xml:space="preserve">
+    <value>Undock</value>
+    <comment>Places the command group over the canvas, at its top-left corner, instead of on a window edge.</comment>
+  </data>
   <data name="ResetLayout" xml:space="preserve">
     <value>Reset layout</value>
   </data>

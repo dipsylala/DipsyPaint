@@ -29,8 +29,9 @@ public partial class MainWindow : Window
     public MainWindow(Document document, SettingsStore? settings = null)
     {
         InitializeComponent();
-        CommandBarLayout = new CommandBarDock(this, CanvasScroll, TopEdge, BottomEdge, LeftEdge, RightEdge);
-        ViewMenu.Connect(Zoom, StatusBar, Rulers, Gridlines, [CommandBar, (Control)BottomEdge.Parent!, (Control)LeftEdge.Parent!, (Control)RightEdge.Parent!]);
+        CommandBarLayout = new CommandBarDock(this, UndockedGroups, DragOutline, TopEdge, BottomEdge, LeftEdge, RightEdge);
+        ViewMenu.Connect(Zoom, StatusBar, Rulers, Gridlines,
+            [CommandBar, (Control)BottomEdge.Parent!, (Control)LeftEdge.Parent!, (Control)RightEdge.Parent!, UndockedGroups]);
         if (settings is not null)
         {
             var saved = settings.Load();
